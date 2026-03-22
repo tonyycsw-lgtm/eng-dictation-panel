@@ -910,7 +910,7 @@ if (!isGuestMode) {
     const currentPath = window.location.pathname;
     if (!currentPath.includes('login.html')) {
         console.log('🔄 跳轉到登入頁');
-        window.location.href = '/login.html';
+        window.location.href = './login.html';
     }
     return;
 }
