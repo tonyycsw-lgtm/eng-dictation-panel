@@ -137,6 +137,7 @@
             border-radius: 12px;
             overflow-x: auto;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            position: relative;
         }
         
         table {
@@ -164,6 +165,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            max-width: 200px;
         }
         
         /* 欄位寬度 */
@@ -175,8 +177,8 @@
         th:nth-child(6), td:nth-child(6) { min-width: 70px; }   /* 年級 */
         th:nth-child(7), td:nth-child(7) { min-width: 100px; }  /* 備註 */
         th:nth-child(8), td:nth-child(8) { min-width: 110px; }  /* 註冊/活躍 */
-        th:nth-child(9), td:nth-child(9) { min-width: 70px; }   /* 活躍狀態 */
-        th:nth-child(10), td:nth-child(10) { min-width: 60px; } /* 狀態 */
+        th:nth-child(9), td:nth-child(9) { min-width: 90px; }   /* 活躍狀態 */
+        th:nth-child(10), td:nth-child(10) { min-width: 80px; } /* 狀態 */
         th:nth-child(11), td:nth-child(11) { min-width: 50px; } /* 操作 */
         
         .loading {
@@ -255,28 +257,26 @@
         .status-week { color: #f97316; }
         .status-offline { color: #94a3b8; }
         
-        /* 帳號狀態圖標 - 修正垂直對齊與尺寸 */
+        /* 帳號狀態 - 圖標 + 文字 */
         .account-status {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            vertical-align: middle;
-            line-height: 1;
-            width: 20px;
-            height: 20px;
-            flex-shrink: 0;
+            gap: 4px;
+            font-size: 13px;
+            white-space: nowrap;
         }
         
-        /* 圖標統一尺寸 */
+        .account-normal {
+            color: #10b981;
+        }
+        
+        .account-disabled {
+            color: #ef4444;
+        }
+        
         .account-status i {
-            font-size: 14px;
-            width: 1em;
-            height: 1em;
+            font-size: 13px;
         }
-        
-        .account-normal { color: #10b981; }
-        .account-disabled { color: #ef4444; }
         
         /* 身份標籤 - 金黃色 */
         .role-badge {
@@ -334,7 +334,7 @@
         }
         
         .action-dropdown {
-            position: fixed;
+            position: absolute;
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -472,6 +472,14 @@
             font-size: 12px;
             white-space: nowrap;
         }
+        
+        /* 小螢幕適配 */
+        @media (max-width: 768px) {
+            .action-dropdown {
+                min-width: 120px;
+                max-width: 90vw;
+            }
+        }
     </style>
 </head>
 <body>
@@ -554,7 +562,7 @@
             }
         }
 
-        // 獲取活躍狀態顯示（圖標 + 縮寫）
+        // 獲取活躍狀態顯示（圖標 + 完整文字）
         function getActivityDisplay(lastActiveAt) {
             if (!lastActiveAt) {
                 return { icon: '⚪', text: '從未', class: 'status-offline' };
@@ -566,16 +574,16 @@
             if (diffMinutes < 5) {
                 return { icon: '🟢', text: '在線', class: 'status-online' };
             } else if (diffMinutes < 60) {
-                return { icon: '🟢', text: `${diffMinutes}分`, class: 'status-recent' };
+                return { icon: '🟢', text: `${diffMinutes}分鐘前`, class: 'status-recent' };
             } else if (diffMinutes < 1440) {
                 const hours = Math.floor(diffMinutes / 60);
-                return { icon: '🔵', text: `${hours}時`, class: 'status-today' };
+                return { icon: '🔵', text: `${hours}小時前`, class: 'status-today' };
             } else {
                 const days = Math.floor(diffMinutes / 1440);
                 if (days < 7) {
-                    return { icon: '🟠', text: `${days}天`, class: 'status-week' };
+                    return { icon: '🟠', text: `${days}天前`, class: 'status-week' };
                 } else {
-                    return { icon: '⚪', text: `${days}天`, class: 'status-offline' };
+                    return { icon: '⚪', text: `${days}天前`, class: 'status-offline' };
                 }
             }
         }
@@ -1025,6 +1033,7 @@
         window.toggleActionMenu = (userId, event) => {
             event.stopPropagation();
             
+            // 關閉其他菜單
             if (currentOpenMenu && currentOpenMenu !== userId) {
                 const prevMenu = document.getElementById(`menu-${currentOpenMenu}`);
                 if (prevMenu) prevMenu.style.display = 'none';
@@ -1035,6 +1044,7 @@
             
             const isVisible = currentMenu.style.display === 'block';
             
+            // 關閉所有菜單
             document.querySelectorAll('[id^="menu-"]').forEach(menu => {
                 menu.style.display = 'none';
             });
@@ -1042,21 +1052,31 @@
             if (!isVisible) {
                 const button = event.currentTarget;
                 const rect = button.getBoundingClientRect();
-                const menuWidth = 150;
+                const menuWidth = currentMenu.offsetWidth || 150;
+                const menuHeight = currentMenu.offsetHeight || 200;
                 
-                let left = rect.left - menuWidth - 8;
-                if (left < 10) {
-                    left = rect.left + rect.width + 8;
-                }
-                let top = rect.top;
-                if (top + 200 > window.innerHeight) {
-                    top = window.innerHeight - 200;
-                }
-                if (top < 10) top = 10;
+                // 計算菜單在視窗中的理想位置
+                let left = rect.left;
+                let top = rect.top + rect.height;
                 
-                currentMenu.style.position = 'fixed';
-                currentMenu.style.left = `${left}px`;
-                currentMenu.style.top = `${top}px`;
+                // 左右邊界檢查
+                if (left + menuWidth > window.innerWidth) {
+                    left = rect.left - menuWidth;
+                }
+                if (left < 0) left = 10;
+                
+                // 上下邊界檢查
+                if (top + menuHeight > window.innerHeight) {
+                    top = rect.top - menuHeight;
+                }
+                if (top < 0) top = 10;
+                
+                // 轉換為相對於表格容器的位置
+                const tableContainer = document.querySelector('.users-table');
+                const tableRect = tableContainer.getBoundingClientRect();
+                currentMenu.style.position = 'absolute';
+                currentMenu.style.left = `${left - tableRect.left}px`;
+                currentMenu.style.top = `${top - tableRect.top}px`;
                 currentMenu.style.display = 'block';
                 currentOpenMenu = userId;
             } else {
@@ -1096,7 +1116,7 @@
             const schoolDisplay = user.school || '未設定';
             const schoolClass = user.school ? '' : 'school-unset';
             
-            // 教材顯示（原出版社）
+            // 教材顯示
             const publisherDisplay = user.publisher || '未設定';
             const publisherClass = user.publisher ? '' : 'publisher-unset';
             
@@ -1106,6 +1126,11 @@
             // 備註顯示
             const notesDisplay = user.notes || '未填寫';
             const notesClass = user.notes ? '' : 'notes-unset';
+            
+            // 狀態文字
+            const statusText = isDisabled ? '已停用' : '正常';
+            const statusIcon = isDisabled ? 'fa-ban' : 'fa-check-circle';
+            const statusClass = isDisabled ? 'account-disabled' : 'account-normal';
             
             // 操作菜單
             let menuHtml = `<div class="action-dropdown" id="menu-${docId}" style="display: none;">`;
@@ -1170,8 +1195,8 @@
                      </div>
                     <td class="date-cell">${createdAt}<br>${lastActiveDate}</td>
                     <td><span class="status-icon ${activity.class}">${activity.icon} ${activity.text}</span></td>
-                    <td class="account-status ${isDisabled ? 'account-disabled' : 'account-normal'}">
-                        ${isDisabled ? '<i class="fas fa-ban"></i>' : '<i class="fas fa-check-circle"></i>'}
+                    <td class="account-status ${statusClass}">
+                        <i class="fas ${statusIcon}"></i> ${statusText}
                     </td>
                     <td>
                         <div class="action-menu">
@@ -1181,7 +1206,7 @@
                             ${menuHtml}
                         </div>
                     </td>
-                 </tr>
+                </tr>
             `;
         }
 
@@ -1228,7 +1253,7 @@
             
             if (!usersList) return;
             if (!loadMore) {
-                usersList.innerHTML = '   <tr><td colspan="11" class="loading">載入中...</td></tr>';
+                usersList.innerHTML = '    <tr><td colspan="11" class="loading">載入中...</td></tr>';
                 if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             }
             if (isLoading || !hasMore) return;
@@ -1269,7 +1294,7 @@
                 hasMore = querySnapshot.docs.length === PAGE_SIZE;
                 
                 if (querySnapshot.empty && !loadMore) {
-                    usersList.innerHTML = '   <tr><td colspan="11" class="loading">沒有找到用戶</td></tr>';
+                    usersList.innerHTML = '    <tr><td colspan="11" class="loading">沒有找到用戶</td></tr>';
                     return;
                 }
                 
@@ -1289,7 +1314,7 @@
             } catch (error) {
                 console.error('載入用戶失敗:', error);
                 if (!loadMore) {
-                    usersList.innerHTML = `   <tr><td colspan="11" class="loading">載入失敗: ${error.message}</td></tr>`;
+                    usersList.innerHTML = `    <tr><td colspan="11" class="loading">載入失敗: ${error.message}</td></tr>`;
                 }
             } finally {
                 isLoading = false;
@@ -1308,7 +1333,7 @@
                 return;
             }
             
-            usersList.innerHTML = '   <tr><td colspan="11" class="loading">搜尋中...</td></tr>';
+            usersList.innerHTML = '    <tr><td colspan="11" class="loading">搜尋中...</td></tr>';
             if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             
             try {
@@ -1346,12 +1371,12 @@
                 });
                 
                 if (matchCount === 0) {
-                    usersList.innerHTML = `   <tr><td colspan="11" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
+                    usersList.innerHTML = `    <tr><td colspan="11" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
                 } else {
                     usersList.innerHTML = html;
                 }
             } catch (error) {
-                usersList.innerHTML = `   <tr><td colspan="11" class="loading">搜尋失敗: ${error.message}</td></tr>`;
+                usersList.innerHTML = `    <tr><td colspan="11" class="loading">搜尋失敗: ${error.message}</td></tr>`;
             }
         }
 
