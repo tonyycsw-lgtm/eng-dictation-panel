@@ -1,0 +1,192 @@
+name: Sync from Google Drive
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'      # 每 3 小時自動同步
+  workflow_dispatch:            # 手動觸發
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/sync-from-drive.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create data directory
+        run: |
+          mkdir -p data
+          echo "✅ data 目錄已建立"
+
+      - name: Clean data directory
+        run: |
+          echo "🧹 清空 data/ 目錄..."
+          rm -rf data/*
+          mkdir -p data
+          echo "✅ 目錄已清空，準備重新下載"
+
+      - name: Install gdown
+        run: pip install gdown
+
+      - name: Download from Google Drive
+        env:
+          FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+        run: |
+          if [ -z "$FOLDER_ID" ]; then
+            echo "❌ 錯誤: GOOGLE_DRIVE_FOLDER_ID 未設定"
+            exit 1
+          fi
+          
+          echo "📂 開始從 Google Drive 下載..."
+          echo "📁 資料夾 ID: $FOLDER_ID"
+          
+          # 下載到暫存目錄
+          gdown --folder "https://drive.google.com/drive/folders/$FOLDER_ID" -O /tmp/gdrive/ --remaining-ok
+          
+          # 將所有 JSON 檔案複製到正確位置
+          echo "📁 移動 JSON 檔案到 data/ ..."
+          find /tmp/gdrive -type f -name "*.json" -exec cp {} data/ \;
+          
+          # 顯示已複製的檔案
+          JSON_COUNT=$(ls data/*.json 2>/dev/null | wc -l)
+          echo "📁 已複製 $JSON_COUNT 個 JSON 檔案"
+          
+          if [ $JSON_COUNT -eq 0 ]; then
+            echo "⚠️ 警告: 沒有找到任何 JSON 檔案"
+            exit 1
+          fi
+          
+          ls -la data/
+
+      - name: Validate JSON files
+        run: |
+          if ! command -v jq &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y jq
+          fi
+          
+          echo "🔍 開始驗證 JSON 格式..."
+          INVALID_COUNT=0
+          
+          for file in data/*.json; do
+            if [ "$(basename "$file")" != "units-index.json" ] && [ -f "$file" ]; then
+              if ! jq empty "$file" 2>/dev/null; then
+                echo "❌ 無效的 JSON: $(basename "$file")"
+                INVALID_COUNT=$((INVALID_COUNT + 1))
+              else
+                # 檢查必要欄位（英語系統格式）
+                if ! jq -e '.unit_id' "$file" > /dev/null 2>&1; then
+                  echo "⚠️ 缺少 unit_id: $(basename "$file")"
+                fi
+                if ! jq -e '.unit_title' "$file" > /dev/null 2>&1; then
+                  echo "⚠️ 缺少 unit_title: $(basename "$file")"
+                fi
+                if ! jq -e '.words' "$file" > /dev/null 2>&1; then
+                  echo "⚠️ 缺少 words: $(basename "$file")"
+                fi
+                if ! jq -e '.sentences' "$file" > /dev/null 2>&1; then
+                  echo "⚠️ 缺少 sentences: $(basename "$file")"
+                fi
+                echo "✅ 驗證通過: $(basename "$file")"
+              fi
+            fi
+          done
+          
+          if [ $INVALID_COUNT -gt 0 ]; then
+            echo "❌ 發現 $INVALID_COUNT 個無效的 JSON 檔案"
+            exit 1
+          fi
+          
+          echo "🎉 所有 JSON 檔案驗證通過"
+
+      - name: Create index file
+        run: |
+          cd data
+          
+          # 建立 units 數組
+          echo '{ "units": [' > units-index.json
+          first=true
+          
+          for file in *.json; do
+            # 跳過索引檔案本身
+            if [ "$file" = "units-index.json" ]; then
+              continue
+            fi
+            
+            if [ -f "$file" ]; then
+              if [ "$first" = true ]; then
+                first=false
+              else
+                echo "," >> units-index.json
+              fi
+              
+              # 使用 jq 讀取英語系統的欄位
+              unitId=$(jq -r '.unit_id // ""' "$file" 2>/dev/null)
+              unitTitle=$(jq -r '.unit_title // ""' "$file" 2>/dev/null)
+              unitDesc=$(jq -r '.unit_description // ""' "$file" 2>/dev/null)
+              difficulty=$(jq -r '.difficulty // "intermediate"' "$file" 2>/dev/null)
+              wordsCount=$(jq -r '.words | length' "$file" 2>/dev/null)
+              sentencesCount=$(jq -r '.sentences | length' "$file" 2>/dev/null)
+              
+              # 如果 unitId 為空，使用檔名
+              if [ -z "$unitId" ]; then
+                unitId=$(basename "$file" .json)
+              fi
+              
+              # 如果 unitTitle 為空，使用檔名
+              if [ -z "$unitTitle" ]; then
+                unitTitle=$(basename "$file" .json)
+              fi
+              
+              # 獲建立日期（從檔案時間或使用當前時間）
+              createdDate=$(date +%Y-%m-%d)
+              
+              # 寫入索引
+              cat >> units-index.json << EOF
+    {
+      "id": "$unitId",
+      "title": "$unitTitle",
+      "description": "$unitDesc",
+      "words_count": $wordsCount,
+      "sentences_count": $sentencesCount,
+      "difficulty": "$difficulty",
+      "created": "$createdDate"
+    }
+EOF
+              echo "📄 已加入索引: $unitTitle ($unitId)"
+            fi
+          done
+          
+          echo "" >> units-index.json
+          echo "]" >> units-index.json
+          
+          # 驗證索引檔案
+          if jq empty units-index.json 2>/dev/null; then
+            INDEX_COUNT=$(grep -c '"id"' units-index.json)
+            echo "✅ 索引檔已產生，共 $INDEX_COUNT 個單元"
+          else
+            echo "❌ 索引檔案格式錯誤"
+            cat units-index.json
+            exit 1
+          fi
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/
+          
+          # 檢查是否有變更
+          if git diff --staged --quiet; then
+            echo "📭 沒有變更，跳過提交"
+          else
+            git commit -m "🤖 自動同步 Google Drive 教材 - $(date '+%Y-%m-%d %H:%M:%S')"
+            git push
+            echo "✅ 已提交並推送更新"
+          fi
