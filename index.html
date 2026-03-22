@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英語默書練習系統 | 簡約版</title>
+    <style>
+        /* ===== 基礎重置 ===== */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: 'Georgia', 'Times New Roman', 'Microsoft JhengHei', serif;
+        }
+        
+        body { 
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh; 
+            padding: 30px 20px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            color: #2d3748;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* ===== 用戶欄 ===== */
+        .user-bar {
+            background: white;
+            border-radius: 16px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .user-email {
+            font-size: 12px;
+            color: #718096;
+        }
+        
+        .logout-btn {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .logout-btn:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+        }
+        
+        .guest-badge {
+            background: #edf2f7;
+            color: #4a5568;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #48bb78;
+        }
+        
+        .sync-status i {
+            font-size: 12px;
+        }
+        
+        .sync-status.syncing {
+            color: #ed8936;
+            animation: pulse 1s infinite;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            color: #1a365d;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #718096;
+        }
+        
+        /* ===== 單元控制列 ===== */
+        .unit-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .unit-selector {
+            flex: 1;
+            min-width: 280px;
+        }
+        
+        .unit-select {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            font-size: 16px;
+            color: #2d3748;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .unit-select:hover {
+            border-color: #4299e1;
+        }
+        
+        .upload-wrapper {
+            display: flex;
+            align-items: center;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .upload-btn:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            transform: translateY(-2px);
+        }
+        
+        /* ===== 精簡統計條 ===== */
+        .stats-bar {
+            background: white;
+            border-radius: 16px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+        
+        .mastery-summary {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .mastery-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f7fafc;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 15px;
+        }
+        
+        .mastery-item strong {
+            color: #2d3748;
+            font-weight: 600;
+        }
+        
+        .mastery-value {
+            color: #4299e1;
+            font-weight: 700;
+            margin-left: 4px;
+        }
+        
+        .detail-stats-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
+        }
+        
+        .detail-stats-btn:hover {
+            background: #3182ce;
+            transform: translateY(-2px);
+        }
+        
+        /* ===== 分頁按鈕 ===== */
+        .tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 25px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 4px;
+            max-width: 320px;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .tab-btn.active {
+            background: white;
+            color: #1e40af;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        
+        /* ===== 卡片網格 ===== */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 22px;
+        }
+        
+        #sentences-cards .cards-grid {
+            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+        }
+        
+        .card-container {
+            height: 220px;
+            perspective: 1500px;
+        }
+        
+        #sentences-cards .card-container {
+            height: 260px;
+        }
+        
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+            cursor: pointer;
+            border-radius: 18px;
+        }
+        
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+        
+        .card-front,
+        .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 18px;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .card-front {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            justify-content: space-between;
+        }
+        
+        .sentence-card .card-front {
+            background: linear-gradient(135deg, #4f9b73 0%, #2e7a53 100%);
+        }
+        
+        .card-back {
+            background: white;
+            transform: rotateY(180deg);
+            justify-content: space-between;
+        }
+        
+        .card-number {
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+        }
+        
+        .card-back .card-number {
+            color: #a0aec0;
+        }
+        
+        .card-content {
+            text-align: center;
+            width: 100%;
+        }
+        
+        .stars-container {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        
+        .star {
+            font-size: 28px;
+            color: rgba(255,255,255,0.3);
+            user-select: none;
+        }
+        
+        .star.active {
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255,215,0,0.4);
+        }
+        
+        .answer-text {
+            font-size: 22px;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            color: #1a365d;
+            word-break: break-word;
+        }
+        
+        .translation-text {
+            font-size: 18px;
+            line-height: 1.4;
+            color: #718096;
+            word-break: break-word;
+        }
+        
+        .hint-text {
+            font-size: 16px;
+            color: #a0aec0;
+            font-style: italic;
+            margin-top: 8px;
+        }
+        
+        .audio-buttons {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .audio-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 16px;
+        }
+        
+        .audio-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .audio-btn.playing {
+            background: rgba(255,255,255,0.4);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .audio-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .sentence-card .card-front .audio-btn {
+            width: 48px;
+            height: 48px;
+            font-size: 18px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        .action-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.8;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .action-btn:hover {
+            opacity: 1;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .action-btn:disabled {
+            opacity: 0.3;
+            cursor: default;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .correct-btn {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .review-btn {
+            background: #f56565;
+            color: white;
+        }
+        
+        .action-btn i {
+            font-size: 18px;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+        }
+        
+        .section-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #2d3748;
+            padding-left: 12px;
+            position: relative;
+        }
+        
+        .section-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 70%;
+            background: #4299e1;
+            border-radius: 2px;
+        }
+        
+        .reset-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .reset-button {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 6px rgba(229,62,62,0.2);
+        }
+        
+        .reset-button:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(229,62,62,0.3);
+        }
+        
+        .reset-all-button {
+            background: #718096;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .reset-all-button:hover {
+            background: #4a5568;
+            transform: translateY(-2px);
+        }
+        
+        .cards-section {
+            display: none;
+        }
+        
+        .cards-section.active {
+            display: block;
+        }
+        
+        .unit-stats-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .unit-stats-modal.active {
+            display: flex;
+        }
+        
+        .unit-stats-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .data-status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 8px;
+            background: #48bb78;
+        }
+        
+        .data-status.saving {
+            background: #ed8936;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%,100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            text-align: center;
+            color: #a0aec0;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .mastery-summary {
+                gap: 15px;
+            }
+            .stats-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            #sentences-cards .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 用戶欄 -->
+        <div class="user-bar" id="userBar">
+            <div class="user-info" id="userInfo">
+                <div class="loading" style="width: 20px; height: 20px;"></div>
+                <span>載入中...</span>
+            </div>
+            <div id="userActions"></div>
+        </div>
+        
+        <div class="header">
+            <h1>英語默書練習系統</h1>
+            <div class="subtitle">簡約專注・自動進度</div>
+        </div>
+        
+        <div class="unit-controls">
+            <div class="unit-selector">
+                <select class="unit-select" id="unit-select">
+                    <option value="">載入單元列表中...</option>
+                </select>
+            </div>
+            <div class="upload-wrapper" id="uploadWrapper" style="display: none;">
+                <label for="unit-upload" class="upload-btn">
+                    <i class="fas fa-upload"></i> 上傳JSON
+                </label>
+                <input type="file" id="unit-upload" accept="application/json, .json" style="display:none;">
+            </div>
+        </div>
+        
+        <div class="stats-bar">
+            <div class="mastery-summary">
+                <div class="mastery-item">
+                    <i class="fas fa-font" style="color:#4299e1;"></i>
+                    <span><strong>詞彙掌握</strong> <span class="mastery-value" id="words-mastery">0%</span> (<span id="mastered-words">0</span>/<span id="total-words">0</span>)</span>
+                </div>
+                <div class="mastery-item">
+                    <i class="fas fa-align-left" style="color:#f56565;"></i>
+                    <span><strong>句子掌握</strong> <span class="mastery-value" id="sentences-mastery">0%</span> (<span id="mastered-sentences">0</span>/<span id="total-sentences">0</span>)</span>
+                </div>
+                <span class="data-status" id="data-status"></span>
+            </div>
+            <button class="detail-stats-btn" id="show-unit-stats">
+                <i class="fas fa-chart-pie"></i> 詳細統計
+            </button>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('words')">
+                <i class="fas fa-font"></i> 單詞
+            </button>
+            <button class="tab-btn" onclick="showTab('sentences')">
+                <i class="fas fa-align-left"></i> 句子
+            </button>
+        </div>
+        
+        <div class="cards-section active" id="words-cards">
+            <div class="section-controls">
+                <div class="section-title">高頻詞彙</div>
+                <div class="reset-buttons">
+                    <button class="reset-all-button" onclick="resetAllUnitsData(event)">
+                        <i class="fas fa-trash-alt"></i> 全部重置
+                    </button>
+                    <button class="reset-button" onclick="resetCurrentTabData(event)">
+                        <i class="fas fa-redo"></i> 重置本頁
+                    </button>
+                </div>
+            </div>
+            <div class="cards-grid" id="words-grid">
+                <div class="loading"><i class="fas fa-spinner fa-spin"></i> 請選擇單元...</div>
+            </div>
+        </div>
+        
+        <div class="cards-section" id="sentences-cards">
+            <div class="section-controls">
+                <div class="section-title">句子讀默</div>
+                <div class="reset-buttons">
+                    <button class="reset-all-button" onclick="resetAllUnitsData(event)">
+                        <i class="fas fa-trash-alt"></i> 全部重置
+                    </button>
+                    <button class="reset-button" onclick="resetCurrentTabData(event)">
+                        <i class="fas fa-redo"></i> 重置本頁
+                    </button>
+                </div>
+            </div>
+            <div class="cards-grid" id="sentences-grid">
+                <div class="loading"><i class="fas fa-spinner fa-spin"></i> 請選擇單元...</div>
+            </div>
+        </div>
+        
+        <div class="unit-stats-modal" id="unit-stats-modal">
+            <div class="unit-stats-content">
+                <div class="unit-stats-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="font-size:22px;">詳細學習統計</h3>
+                    <button class="close-stats" id="close-stats" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+                </div>
+                <div class="unit-stats-grid" id="unit-stats-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px; margin-bottom:20px;"></div>
+                <div class="unit-stats-list" id="unit-stats-list" style="background:#f8fafc; border-radius:12px; padding:15px; max-height:250px; overflow-y:auto;"></div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div>英語默書練習系統 · 簡約版</div>
+        </div>
+    </div>
+    
+    <script type="module" src="app.js"></script>
+</body>
+</html>

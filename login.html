@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入 - 英語默書練習系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Georgia', 'Times New Roman', 'Microsoft JhengHei', serif;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 24px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            color: #1a365d;
+            margin-bottom: 12px;
+        }
+        
+        .subtitle {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        
+        .btn-google {
+            background: white;
+            border: 2px solid #e2e8f0;
+            color: #2d3748;
+            padding: 14px 24px;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .btn-google:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        
+        .btn-google i {
+            color: #4285f4;
+            font-size: 20px;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: #a0aec0;
+            font-size: 14px;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+        }
+        
+        .divider::before {
+            margin-right: 16px;
+        }
+        
+        .divider::after {
+            margin-left: 16px;
+        }
+        
+        .guest-btn {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            color: #4a5568;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+        
+        .guest-btn:hover {
+            background: #edf2f7;
+        }
+        
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            margin-top: 32px;
+            font-size: 12px;
+            color: #a0aec0;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="login-container">
+        <h1>📖 英語默書練習系統</h1>
+        <div class="subtitle">登入以同步學習進度</div>
+        
+        <div id="errorMessage" class="error-message"></div>
+        
+        <button id="googleLoginBtn" class="btn-google">
+            <i class="fab fa-google"></i>
+            使用 Google 帳號登入
+        </button>
+        
+        <div class="divider">或</div>
+        
+        <button id="guestModeBtn" class="guest-btn">
+            <i class="fas fa-user"></i> 繼續以訪客模式使用
+        </button>
+        
+        <div class="footer">
+            <i class="fas fa-cloud"></i> 登入後可在不同裝置同步學習進度
+        </div>
+    </div>
+    
+    <script type="module">
+        import { auth, googleProvider, signInWithPopup, onAuthStateChanged } from './firebase-config.js';
+        
+        const googleBtn = document.getElementById('googleLoginBtn');
+        const guestBtn = document.getElementById('guestModeBtn');
+        const errorDiv = document.getElementById('errorMessage');
+        
+        // 檢查是否已登入
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // 已登入，跳轉到主頁
+                window.location.href = '/index.html';
+            }
+        });
+        
+        // Google 登入
+        googleBtn.addEventListener('click', async () => {
+            try {
+                googleBtn.disabled = true;
+                googleBtn.innerHTML = '<span class="loading"></span> 登入中...';
+                errorDiv.style.display = 'none';
+                
+                const result = await signInWithPopup(auth, googleProvider);
+                console.log('✅ 登入成功:', result.user.email);
+                
+                // 登入成功，跳轉到主頁
+                window.location.href = '/index.html';
+                
+            } catch (error) {
+                console.error('登入失敗:', error);
+                errorDiv.textContent = '登入失敗：' + (error.message || '請稍後再試');
+                errorDiv.style.display = 'block';
+                googleBtn.disabled = false;
+                googleBtn.innerHTML = '<i class="fab fa-google"></i> 使用 Google 帳號登入';
+            }
+        });
+        
+        // 訪客模式
+        guestBtn.addEventListener('click', () => {
+            // 設定訪客模式標記，跳轉到主頁（使用 LocalStorage 數據）
+            localStorage.setItem('guestMode', 'true');
+            window.location.href = '/index.html';
+        });
+    </script>
+</body>
+</html>
