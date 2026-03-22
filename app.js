@@ -288,7 +288,7 @@ function updateUserInterface() {
         `;
         
         document.getElementById('loginBtn')?.addEventListener('click', () => {
-            window.location.href = '/login.html';
+            window.location.href = './login.html';
         });
         
         // 訪客模式隱藏上傳按鈕
@@ -313,7 +313,7 @@ function updateUserInterface() {
         `;
         
         document.getElementById('loginBtn')?.addEventListener('click', () => {
-            window.location.href = '/login.html';
+            window.location.href = './login.html';
         });
         
         if (uploadWrapper) uploadWrapper.style.display = 'none';
@@ -343,10 +343,10 @@ async function handleLogout() {
         localStorage.removeItem('guestMode');
         
         // 重新載入頁面
-        window.location.href = '/login.html';
+        window.location.href = './login.html';
     } catch (error) {
         console.error('登出失敗:', error);
-        window.location.href = '/login.html';
+        window.location.href = './login.html';
     }
 }
 
