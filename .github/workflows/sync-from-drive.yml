@@ -161,18 +161,17 @@ jobs:
                 UNIT_TITLE=$(basename "$file" .json)
               fi
               
-              # 寫入索引（不包含 dataUrl，因為檔案在 data/ 目錄）
-              cat >> units-index.json << EOF
-    {
-      "id": "$UNIT_ID",
-      "title": "$UNIT_TITLE",
-      "description": "$UNIT_DESC",
-      "words_count": $WORDS_COUNT,
-      "sentences_count": $SENTENCES_COUNT,
-      "difficulty": "$DIFFICULTY",
-      "created": "$CREATED_DATE"
-    }
-EOF
+              # 寫入索引
+              echo '    {' >> units-index.json
+              echo '      "id": "'"$UNIT_ID"'",' >> units-index.json
+              echo '      "title": "'"$UNIT_TITLE"'",' >> units-index.json
+              echo '      "description": "'"$UNIT_DESC"'",' >> units-index.json
+              echo '      "words_count": '"$WORDS_COUNT", >> units-index.json
+              echo '      "sentences_count": '"$SENTENCES_COUNT", >> units-index.json
+              echo '      "difficulty": "'"$DIFFICULTY"'",' >> units-index.json
+              echo '      "created": "'"$CREATED_DATE"'"' >> units-index.json
+              echo -n '    }' >> units-index.json
+              
               echo "📄 已加入索引: $UNIT_TITLE ($UNIT_ID)"
             fi
           done
@@ -188,7 +187,7 @@ EOF
             
             # 顯示索引內容（用於調試）
             echo "📋 索引內容預覽："
-            cat units-index.json
+            head -20 units-index.json
           else
             echo "❌ 索引檔案格式錯誤"
             cat units-index.json
