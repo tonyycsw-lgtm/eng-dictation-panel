@@ -1,5 +1,5 @@
 // === 導入 Firebase 模組 ===
-import { auth, db, doc, getDoc, setDoc, updateDoc, signOut, onAuthStateChanged } from './firebase-config.js';
+import { auth, db, doc, getDoc, setDoc, updateDoc, increment, signOut, onAuthStateChanged } from './firebase-config.js';
 
 // === 應用配置 ===
 const CONFIG = {
@@ -19,7 +19,7 @@ let defaultStars = {};
 // 用戶狀態
 let currentUser = null;
 let isGuestMode = false;
-let isSyncing = false;
+let lastSyncTime = null;
 
 // === 改良的音頻播放器 ===
 class StableAudioPlayer {
@@ -156,81 +156,25 @@ function formatTime(minutes) {
     return mins > 0 ? `${hours} 小時 ${mins} 分鐘` : `${hours} 小時`;
 }
 
-// === 雲端數據同步 ===
-async function syncStarDataToCloud() {
-    if (!currentUser || isGuestMode || isSyncing) return;
-    
-    isSyncing = true;
-    const syncStatus = document.getElementById('sync-status');
-    if (syncStatus) syncStatus.classList.add('syncing');
+// === 活躍度同步（替代星星同步）===
+async function syncActivityToCloud() {
+    if (!currentUser || isGuestMode) return;
     
     try {
         const userRef = doc(db, 'users', currentUser.uid);
-        const starDataToSave = {};
+        const totalTime = Object.values(learningStats).reduce((sum, stat) => sum + (stat.totalTime || 0), 0);
         
-        // 只保存非零的星星數據以節省空間
-        for (const [id, stars] of Object.entries(starData)) {
-            if (stars > 0) {
-                starDataToSave[id] = stars;
-            }
-        }
-        
-        await setDoc(userRef, {
-            starData: starDataToSave,
-            lastSync: new Date().toISOString(),
+        await updateDoc(userRef, {
+            totalLearningTime: totalTime,
+            lastActiveAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
-        }, { merge: true });
+        });
         
-        if (syncStatus) syncStatus.classList.remove('syncing');
+        lastSyncTime = Date.now();
+        console.log('✅ 活躍度已同步');
     } catch (error) {
-        console.error('雲端同步失敗:', error);
-        if (syncStatus) {
-            syncStatus.classList.remove('syncing');
-            syncStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 同步失敗';
-            setTimeout(() => {
-                syncStatus.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> 已同步';
-            }, 3000);
-        }
-    } finally {
-        isSyncing = false;
+        console.error('活躍度同步失敗:', error);
     }
-}
-
-async function loadStarDataFromCloud() {
-    if (!currentUser || isGuestMode) return false;
-    
-    try {
-        const userRef = doc(db, 'users', currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        
-        if (userSnap.exists()) {
-            const cloudData = userSnap.data();
-            if (cloudData.starData) {
-                // 合併雲端數據到本地 starData
-                for (const [id, stars] of Object.entries(cloudData.starData)) {
-                    starData[id] = stars;
-                }
-                console.log('✅ 從雲端載入星星數據');
-                return true;
-            }
-        }
-        
-        // 沒有雲端數據，初始化為空
-        console.log('📝 初始化新的雲端數據');
-        return true;
-    } catch (error) {
-        console.error('載入雲端數據失敗:', error);
-        return false;
-    }
-}
-
-// 防抖保存函數
-let saveTimeout;
-function debouncedSaveToCloud() {
-    if (saveTimeout) clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-        syncStarDataToCloud();
-    }, 1000);
 }
 
 // === 用戶介面更新 ===
@@ -254,7 +198,7 @@ function updateUserInterface() {
                 <div class="user-email">${escapeHtml(email)}</div>
             </div>
             <div class="sync-status" id="sync-status">
-                <i class="fas fa-cloud-upload-alt"></i> 已同步
+                <i class="fas fa-cloud-upload-alt"></i> 活躍中
             </div>
         `;
         
@@ -283,7 +227,7 @@ function updateUserInterface() {
         
         userActionsDiv.innerHTML = `
             <button class="logout-btn" id="loginBtn" style="background:#4299e1;">
-                <i class="fas fa-sign-in-alt"></i> 登入以同步
+                <i class="fas fa-sign-in-alt"></i> 登入以記錄活躍度
             </button>
         `;
         
@@ -302,7 +246,7 @@ function updateUserInterface() {
             </div>
             <div>
                 <div class="user-name">未登入</div>
-                <div class="user-email">登入以同步進度</div>
+                <div class="user-email">登入以記錄活躍度</div>
             </div>
         `;
         
@@ -333,8 +277,8 @@ function escapeHtml(str) {
 // === 登出處理 ===
 async function handleLogout() {
     try {
-        // 先同步最後的數據
-        await syncStarDataToCloud();
+        // 同步最後的活躍度數據
+        await syncActivityToCloud();
         await signOut(auth);
         currentUser = null;
         isGuestMode = false;
@@ -437,11 +381,7 @@ function saveLearningStats() {
 function saveStarData() {
     localStorage.setItem('starData', JSON.stringify(starData));
     updateDataStatus();
-    
-    // 如果已登入，同步到雲端
-    if (currentUser && !isGuestMode) {
-        debouncedSaveToCloud();
-    }
+    // 星星數據不上雲，只存本地
 }
 
 function updateDataStatus() {
@@ -450,7 +390,7 @@ function updateDataStatus() {
     setTimeout(() => status.classList.remove('saving'), 500);
 }
 
-// === 卡片生成 ===
+// === 卡片生成（保持不變）===
 function generateWordCard(word, index) {
     const number = `單詞 ${index + 1}`;
     return `
@@ -848,12 +788,6 @@ function resetAllUnitsData(event) {
     starData = {};
     learningStats = {};
     
-    // 如果已登入，清除雲端數據
-    if (currentUser && !isGuestMode) {
-        const userRef = doc(db, 'users', currentUser.uid);
-        updateDoc(userRef, { starData: {} }).catch(console.error);
-    }
-    
     if (appData) {
         initStarData();
         initLearningStats();
@@ -885,8 +819,51 @@ async function initPage() {
             isGuestMode = false;
             localStorage.removeItem('guestMode');
             
-            // 從雲端載入星星數據
-            await loadStarDataFromCloud();
+            // 從 LocalStorage 載入星星數據（不上雲）
+            const savedStarData = localStorage.getItem('starData');
+            if (savedStarData) {
+                starData = JSON.parse(savedStarData);
+                console.log('⭐ 從本地載入星星數據');
+            } else {
+                starData = {};
+            }
+            
+            // 從 LocalStorage 載入學習統計
+            const savedStats = localStorage.getItem('learningStats');
+            if (savedStats) {
+                learningStats = JSON.parse(savedStats);
+            }
+            
+            // 更新用戶活躍度到雲端
+            try {
+                const userRef = doc(db, 'users', user.uid);
+                const userSnap = await getDoc(userRef);
+                
+                if (!userSnap.exists()) {
+                    // 新用戶
+                    await setDoc(userRef, {
+                        email: user.email,
+                        displayName: user.displayName || user.email || '會員',
+                        photoURL: user.photoURL || null,
+                        role: 'user',
+                        loginCount: 1,
+                        totalLearningTime: 0,
+                        createdAt: new Date().toISOString(),
+                        lastLoginAt: new Date().toISOString(),
+                        lastActiveAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    });
+                } else {
+                    // 更新登入次數和最後登入時間
+                    await updateDoc(userRef, {
+                        lastLoginAt: new Date().toISOString(),
+                        loginCount: increment(1),
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+            } catch (error) {
+                console.error('更新用戶活躍度失敗:', error);
+            }
             
             // 更新介面
             updateUserInterface();
@@ -906,18 +883,24 @@ async function initPage() {
             console.log('👤 用戶未登入');
             currentUser = null;
             
-if (!isGuestMode) {
-    const currentPath = window.location.pathname;
-    if (!currentPath.includes('login.html')) {
-        console.log('🔄 跳轉到登入頁');
-        window.location.href = './login.html';
-    }
-    return;
-}
+            if (!isGuestMode) {
+                const currentPath = window.location.pathname;
+                if (!currentPath.includes('login.html')) {
+                    console.log('🔄 跳轉到登入頁');
+                    window.location.href = './login.html';
+                }
+                return;
+            }
             
             // 訪客模式，從 LocalStorage 載入數據
-            const savedStarData = JSON.parse(localStorage.getItem('starData') || '{}');
-            starData = savedStarData;
+            const savedStarData = localStorage.getItem('starData');
+            if (savedStarData) {
+                starData = JSON.parse(savedStarData);
+            }
+            const savedStats = localStorage.getItem('learningStats');
+            if (savedStats) {
+                learningStats = JSON.parse(savedStats);
+            }
             
             updateUserInterface();
         }
@@ -960,12 +943,19 @@ if (!isGuestMode) {
         }
     }, 30000);
     
-    // 每5分鐘同步一次雲端（如果已登入）
+    // 每5分鐘同步一次活躍度到雲端
     setInterval(() => {
         if (currentUser && !isGuestMode) {
-            syncStarDataToCloud();
+            syncActivityToCloud();
         }
     }, 300000);
+    
+    // 頁面關閉前同步活躍度
+    window.addEventListener('beforeunload', () => {
+        if (currentUser && !isGuestMode) {
+            syncActivityToCloud();
+        }
+    });
 }
 
 // 將必要的函數掛載到 window 對象，供 HTML 調用
