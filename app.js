@@ -834,36 +834,77 @@ async function initPage() {
                 learningStats = JSON.parse(savedStats);
             }
             
-            // 更新用戶活躍度到雲端
-            try {
-                const userRef = doc(db, 'users', user.uid);
-                const userSnap = await getDoc(userRef);
-                
-                if (!userSnap.exists()) {
-                    // 新用戶
-                    await setDoc(userRef, {
-                        email: user.email,
-                        displayName: user.displayName || user.email || '會員',
-                        photoURL: user.photoURL || null,
-                        role: 'user',
-                        loginCount: 1,
-                        totalLearningTime: 0,
-                        createdAt: new Date().toISOString(),
-                        lastLoginAt: new Date().toISOString(),
-                        lastActiveAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
-                    });
-                } else {
-                    // 更新登入次數和最後登入時間
-                    await updateDoc(userRef, {
-                        lastLoginAt: new Date().toISOString(),
-                        loginCount: increment(1),
-                        updatedAt: new Date().toISOString()
-                    });
-                }
-            } catch (error) {
-                console.error('更新用戶活躍度失敗:', error);
-            }
+         // 更新用戶活躍度到雲端，並自動補充缺失欄位
+try {
+    const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) {
+        // 新用戶：建立完整文檔
+        await setDoc(userRef, {
+            email: user.email,
+            displayName: user.displayName || user.email || '會員',
+            photoURL: user.photoURL || null,
+            role: 'user',
+            loginCount: 1,
+            totalLearningTime: 0,
+            createdAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString(),
+            lastActiveAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        });
+        console.log('✅ 新用戶資料已建立');
+    } else {
+        // 現有用戶：檢查並補充缺失的欄位
+        const currentData = userSnap.data();
+        const updates = {};
+        
+        // 補充 email 欄位（如果缺失）
+        if (!currentData.email) {
+            updates.email = user.email;
+        }
+        
+        // 補充 displayName 欄位（如果缺失）
+        if (!currentData.displayName) {
+            updates.displayName = user.displayName || user.email || '會員';
+        }
+        
+        // 補充 role 欄位（如果缺失）
+        if (currentData.role === undefined) {
+            updates.role = 'user';
+        }
+        
+        // 補充 loginCount 欄位（如果缺失）
+        if (currentData.loginCount === undefined) {
+            updates.loginCount = 0;
+        }
+        
+        // 補充 totalLearningTime 欄位（如果缺失）
+        if (currentData.totalLearningTime === undefined) {
+            updates.totalLearningTime = 0;
+        }
+        
+        // 補充 createdAt 欄位（如果缺失）
+        if (!currentData.createdAt) {
+            updates.createdAt = new Date().toISOString();
+        }
+        
+        // 更新登入次數和最後登入時間（總是更新）
+        updates.lastLoginAt = new Date().toISOString();
+        updates.loginCount = (currentData.loginCount || 0) + 1;
+        updates.updatedAt = new Date().toISOString();
+        
+        // 執行更新
+        if (Object.keys(updates).length > 0) {
+            await updateDoc(userRef, updates);
+            console.log('✅ 用戶資料已更新，補充欄位:', Object.keys(updates));
+        } else {
+            console.log('✅ 用戶資料已是最新');
+        }
+    }
+} catch (error) {
+    console.error('更新用戶活躍度失敗:', error);
+}
             
             // 更新介面
             updateUserInterface();
