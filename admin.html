@@ -137,7 +137,6 @@
             border-radius: 12px;
             overflow-x: auto;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            min-height: 400px;
         }
         
         table {
@@ -244,7 +243,6 @@
             align-items: center;
             gap: 4px;
             font-size: 13px;
-            cursor: help;
             white-space: nowrap;
         }
         
@@ -259,42 +257,12 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            cursor: help;
             font-size: 16px;
             vertical-align: middle;
         }
         
         .account-normal { color: #10b981; }
         .account-disabled { color: #ef4444; }
-        
-        /* 自定義懸停提示（加大、不遮擋） */
-        .custom-tooltip {
-            position: relative;
-            cursor: help;
-        }
-        
-        .custom-tooltip .tooltip-text {
-            visibility: hidden;
-            background-color: #1e293b;
-            color: white;
-            text-align: center;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: normal;
-            white-space: nowrap;
-            position: fixed;
-            z-index: 2000;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        
-        .custom-tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
         
         /* 老師標籤 */
         .teacher-badge {
@@ -328,7 +296,7 @@
             opacity: 0.8;
         }
         
-        /* 操作菜單 */
+        /* 操作菜單 - 純白色不透明 */
         .action-menu {
             position: relative;
             display: inline-block;
@@ -353,7 +321,7 @@
         
         .action-dropdown {
             position: fixed;
-            background: white;
+            background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -371,6 +339,7 @@
             align-items: center;
             gap: 8px;
             border-bottom: 1px solid #f1f5f9;
+            background: #ffffff;
         }
         
         .menu-item:last-child {
@@ -529,25 +498,25 @@
         // 獲取活躍狀態顯示（圖標 + 縮寫）
         function getActivityDisplay(lastActiveAt) {
             if (!lastActiveAt) {
-                return { icon: '⚪', text: '從未', class: 'status-offline', tooltip: '從未上線' };
+                return { icon: '⚪', text: '從未', class: 'status-offline' };
             }
             const last = new Date(lastActiveAt);
             const now = new Date();
             const diffMinutes = Math.floor((now - last) / (1000 * 60));
             
             if (diffMinutes < 5) {
-                return { icon: '🟢', text: '在線', class: 'status-online', tooltip: '剛剛在線' };
+                return { icon: '🟢', text: '在線', class: 'status-online' };
             } else if (diffMinutes < 60) {
-                return { icon: '🟢', text: `${diffMinutes}分`, class: 'status-recent', tooltip: `${diffMinutes}分鐘前在線` };
+                return { icon: '🟢', text: `${diffMinutes}分`, class: 'status-recent' };
             } else if (diffMinutes < 1440) {
                 const hours = Math.floor(diffMinutes / 60);
-                return { icon: '🔵', text: `${hours}時`, class: 'status-today', tooltip: `${hours}小時前在線` };
+                return { icon: '🔵', text: `${hours}時`, class: 'status-today' };
             } else {
                 const days = Math.floor(diffMinutes / 1440);
                 if (days < 7) {
-                    return { icon: '🟠', text: `${days}天`, class: 'status-week', tooltip: `${days}天前在線` };
+                    return { icon: '🟠', text: `${days}天`, class: 'status-week' };
                 } else {
-                    return { icon: '⚪', text: `${days}天`, class: 'status-offline', tooltip: `${days}天前在線` };
+                    return { icon: '⚪', text: `${days}天`, class: 'status-offline' };
                 }
             }
         }
@@ -562,39 +531,12 @@
             });
         }
 
-        // 自定義懸停提示 - 動態定位
-        function showTooltip(event, text) {
-            const tooltip = document.getElementById('dynamicTooltip');
-            if (!tooltip) return;
-            
-            tooltip.textContent = text;
-            tooltip.style.visibility = 'visible';
-            tooltip.style.opacity = '1';
-            
-            // 定位在鼠標上方
-            tooltip.style.left = (event.clientX + 10) + 'px';
-            tooltip.style.top = (event.clientY - 30) + 'px';
-        }
-        
-        function hideTooltip() {
-            const tooltip = document.getElementById('dynamicTooltip');
-            if (tooltip) {
-                tooltip.style.visibility = 'hidden';
-                tooltip.style.opacity = '0';
-            }
-        }
-
         // ============================================
-        // 管理功能函數
+        // 管理功能函數 - 無確認彈窗，直接執行
         // ============================================
         
         window.setAsTeacher = async (userId) => {
-            if (!currentUserIsAdmin) {
-                alert('只有管理員可以設定老師權限');
-                return;
-            }
-            if (!confirm('確定要將該用戶設為老師嗎？')) return;
-            
+            if (!currentUserIsAdmin) return;
             try {
                 const userRef = doc(db, 'users', userId);
                 await updateDoc(userRef, {
@@ -605,17 +547,13 @@
                 await reloadUsers();
                 closeMenu(userId);
             } catch (error) {
+                console.error('設定老師失敗:', error);
                 alert('設定失敗：' + error.message);
             }
         };
         
         window.removeTeacher = async (userId) => {
-            if (!currentUserIsAdmin) {
-                alert('只有管理員可以移除老師權限');
-                return;
-            }
-            if (!confirm('確定要移除該用戶的老師權限嗎？')) return;
-            
+            if (!currentUserIsAdmin) return;
             try {
                 const userRef = doc(db, 'users', userId);
                 await updateDoc(userRef, {
@@ -626,66 +564,47 @@
                 await reloadUsers();
                 closeMenu(userId);
             } catch (error) {
+                console.error('移除老師權限失敗:', error);
                 alert('移除失敗：' + error.message);
             }
         };
         
+        // 停用帳號 - 直接停用，無原因和日期輸入
         window.disableUser = async (userId) => {
-            if (!currentUserIsAdmin) {
-                alert('只有管理員可以停用帳號');
-                return;
-            }
-            const reason = prompt('請輸入停用原因（選填）：', '');
-            const days = prompt('請輸入自動啟用天數（留空則永久停用）：\n例如：7 表示 7 天後自動啟用', '');
-            
-            let reactivateAt = null;
-            if (days && !isNaN(parseInt(days)) && parseInt(days) > 0) {
-                const date = new Date();
-                date.setDate(date.getDate() + parseInt(days));
-                reactivateAt = date.toISOString();
-            }
-            
-            if (!confirm(`確定要停用此帳號嗎？${reason ? '\n原因：' + reason : ''}${reactivateAt ? '\n將於 ' + new Date(reactivateAt).toLocaleDateString('zh-HK') + ' 自動啟用' : ''}`)) return;
-            
+            if (!currentUserIsAdmin) return;
             try {
                 const userRef = doc(db, 'users', userId);
                 await updateDoc(userRef, {
                     isDisabled: true,
                     disabledAt: new Date().toISOString(),
                     disabledBy: auth.currentUser?.uid || '',
-                    disabledReason: reason || '',
-                    reactivateAt: reactivateAt,
                     updatedAt: new Date().toISOString()
                 });
                 console.log(`✅ 用戶 ${userId} 已停用`);
                 await reloadUsers();
                 closeMenu(userId);
             } catch (error) {
+                console.error('停用帳號失敗:', error);
                 alert('停用失敗：' + error.message);
             }
         };
         
+        // 啟用帳號 - 直接啟用
         window.enableUser = async (userId) => {
-            if (!currentUserIsAdmin) {
-                alert('只有管理員可以啟用帳號');
-                return;
-            }
-            if (!confirm('確定要啟用此帳號嗎？')) return;
-            
+            if (!currentUserIsAdmin) return;
             try {
                 const userRef = doc(db, 'users', userId);
                 await updateDoc(userRef, {
                     isDisabled: false,
                     disabledAt: null,
                     disabledBy: null,
-                    disabledReason: null,
-                    reactivateAt: null,
                     updatedAt: new Date().toISOString()
                 });
                 console.log(`✅ 用戶 ${userId} 已啟用`);
                 await reloadUsers();
                 closeMenu(userId);
             } catch (error) {
+                console.error('啟用帳號失敗:', error);
                 alert('啟用失敗：' + error.message);
             }
         };
@@ -802,7 +721,7 @@
             cell.querySelector('.btn-cancel-notes').style.display = 'none';
         };
         
-        // 操作菜單（改良版：固定左側定位）
+        // 操作菜單
         let currentOpenMenu = null;
         
         window.toggleActionMenu = (userId, event) => {
@@ -825,12 +744,10 @@
             });
             
             if (!isVisible) {
-                // 獲取按鈕位置
                 const button = event.currentTarget;
                 const rect = button.getBoundingClientRect();
                 const menuWidth = 150;
                 
-                // 固定顯示在按鈕左側
                 let left = rect.left - menuWidth - 8;
                 if (left < 10) {
                     left = rect.left + rect.width + 8;
@@ -875,37 +792,11 @@
             const isTeacher = user.role === 'teacher';
             const isAdmin = user.role === 'admin';
             const isDisabled = user.isDisabled === true;
-            const reactivateAt = user.reactivateAt;
             
             const phoneDisplay = user.phoneNumber || '未設定';
             const phoneClass = user.phoneNumber ? '' : 'phone-unset';
             const notesDisplay = user.notes || '未填寫';
             const notesClass = user.notes ? '' : 'notes-unset';
-            
-            // 停用狀態提示文字
-            let statusTooltip = '';
-            let statusIconClass = 'account-disabled';
-            
-            if (isDisabled) {
-                if (reactivateAt) {
-                    const reactivateDate = new Date(reactivateAt);
-                    const daysLeft = Math.ceil((reactivateDate - new Date()) / (1000 * 60 * 60 * 24));
-                    if (daysLeft > 0) {
-                        statusTooltip = `⏳ 待恢復 · ${daysLeft}天後自動啟用`;
-                        if (user.disabledReason) statusTooltip += `\n原因：${user.disabledReason}`;
-                    } else {
-                        statusTooltip = `🔴 已停用 · 待手動啟用`;
-                        if (user.disabledReason) statusTooltip += `\n原因：${user.disabledReason}`;
-                    }
-                } else {
-                    statusTooltip = `🔴 永久停用`;
-                    if (user.disabledReason) statusTooltip += `\n原因：${user.disabledReason}`;
-                }
-                statusIconClass = 'account-disabled';
-            } else {
-                statusTooltip = '✅ 正常';
-                statusIconClass = 'account-normal';
-            }
             
             // 操作菜單
             let menuHtml = `<div class="action-dropdown" id="menu-${docId}" style="display: none;">`;
@@ -933,31 +824,29 @@
                             ${isAdmin ? '<span class="admin-badge"><i class="fas fa-crown"></i> 管理員</span>' : ''}
                             ${isTeacher ? '<span class="teacher-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>' : ''}
                         </div>
-                     </div>
-                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(user.email || '-')}</td>
+                    </td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(user.email || '-')}</td>
                     <td class="phone-cell ${phoneClass}" id="phone-${docId}">
                         <span class="phone-display">${phoneDisplay}</span>
                         <input type="text" class="phone-input" value="${user.phoneNumber || ''}" style="display: none;" placeholder="電話">
                         <button class="btn-icon btn-edit-phone" onclick="editPhone('${docId}')" title="編輯"><i class="fas fa-pen"></i></button>
                         <button class="btn-icon btn-save-phone" onclick="savePhone('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
                         <button class="btn-icon btn-cancel-phone" onclick="cancelEditPhone('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
-                     </td>
+                    </td>
                     <td class="notes-cell ${notesClass}" id="notes-${docId}">
                         <span class="notes-display">${notesDisplay}</span>
                         <input type="text" class="notes-input" value="${user.notes || ''}" style="display: none;" placeholder="備註">
                         <button class="btn-icon btn-edit-notes" onclick="editNotes('${docId}')" title="編輯"><i class="fas fa-pen"></i></button>
                         <button class="btn-icon btn-save-notes" onclick="saveNotes('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
                         <button class="btn-icon btn-cancel-notes" onclick="cancelEditNotes('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
-                     </td>
+                    </td>
                     <td class="time-cell">${createdAt}</td>
                     <td class="time-cell">${lastActiveDate}</td>
-                    <td><span class="status-icon ${activity.class}" title="${activity.tooltip}">${activity.icon} ${activity.text}</span></td>
+                    <td><span class="status-icon ${activity.class}">${activity.icon} ${activity.text}</span></td>
                     <td>${loginCount} 次</td>
                     <td>${totalTime}</td>
-                    <td class="custom-tooltip" onmouseover="showTooltip(event, '${escapeHtml(statusTooltip)}')" onmouseout="hideTooltip()">
-                        <span class="account-status ${statusIconClass}">
-                            ${isDisabled ? '<i class="fas fa-ban"></i>' : '<i class="fas fa-check-circle"></i>'}
-                        </span>
+                    <td class="account-status ${isDisabled ? 'account-disabled' : 'account-normal'}">
+                        ${isDisabled ? '<i class="fas fa-ban"></i>' : '<i class="fas fa-check-circle"></i>'}
                     </td>
                     <td>
                         <div class="action-menu">
@@ -967,7 +856,7 @@
                             ${menuHtml}
                         </div>
                     </td>
-                 </tr>
+                </tr>
             `;
         }
 
@@ -1014,7 +903,7 @@
             
             if (!usersList) return;
             if (!loadMore) {
-                usersList.innerHTML = '  <tr><td colspan="11" class="loading">載入中...</td></tr>';
+                usersList.innerHTML = '<tr><td colspan="11" class="loading">載入中...</td></tr>';
                 if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             }
             if (isLoading || !hasMore) return;
@@ -1116,12 +1005,12 @@
                 });
                 
                 if (matchCount === 0) {
-                    usersList.innerHTML = `  <tr><td colspan="11" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
+                    usersList.innerHTML = `  <td><td colspan="11" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
                 } else {
                     usersList.innerHTML = html;
                 }
             } catch (error) {
-                usersList.innerHTML = `  <tr><td colspan="11" class="loading">搜尋失敗: ${error.message}</td></tr>`;
+                usersList.innerHTML = `  <td><td colspan="11" class="loading">搜尋失敗: ${error.message}</td></tr>`;
             }
         }
 
@@ -1156,8 +1045,6 @@
         window.searchUsers = () => performSearch();
         window.loadMoreUsers = () => loadUsers(currentFilter, true);
         window.closeMenu = closeMenu;
-        window.showTooltip = showTooltip;
-        window.hideTooltip = hideTooltip;
 
         // ============================================
         // 載入管理介面
@@ -1165,9 +1052,6 @@
         async function loadAdminInterface(container, user) {
             container.innerHTML = `
                 <div class="container">
-                    <!-- 動態懸停提示層 -->
-                    <div id="dynamicTooltip" style="position: fixed; visibility: hidden; background-color: #1e293b; color: white; padding: 8px 12px; border-radius: 8px; font-size: 13px; white-space: nowrap; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); pointer-events: none;"></div>
-                    
                     <div class="header">
                         <h1><i class="fas fa-chalkboard-teacher"></i> 會員管理後台 · 英語默書系統</h1>
                         <div>
@@ -1201,9 +1085,9 @@
                     </div>
                     
                     <div class="users-table">
-                        <table>
+                         <table>
                             <thead>
-                                <tr>
+                                 <tr>
                                     <th>用戶</th>
                                     <th>Email</th>
                                     <th>電話</th>
