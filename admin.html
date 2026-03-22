@@ -168,10 +168,10 @@
         th:nth-child(2), td:nth-child(2) { min-width: 160px; }  /* 聯絡 */
         th:nth-child(3), td:nth-child(3) { min-width: 100px; }  /* 電話 */
         th:nth-child(4), td:nth-child(4) { min-width: 100px; }  /* 學校 */
-        th:nth-child(5), td:nth-child(5) { min-width: 100px; }  /* 出版社 */
+        th:nth-child(5), td:nth-child(5) { min-width: 100px; }  /* 教材 */
         th:nth-child(6), td:nth-child(6) { min-width: 70px; }   /* 年級 */
         th:nth-child(7), td:nth-child(7) { min-width: 100px; }  /* 備註 */
-        th:nth-child(8), td:nth-child(8) { min-width: 90px; }   /* 註冊/活躍 */
+        th:nth-child(8), td:nth-child(8) { min-width: 110px; }  /* 註冊/活躍 */
         th:nth-child(9), td:nth-child(9) { min-width: 70px; }   /* 活躍狀態 */
         th:nth-child(10), td:nth-child(10) { min-width: 50px; } /* 狀態 */
         th:nth-child(11), td:nth-child(11) { min-width: 50px; } /* 操作 */
@@ -252,7 +252,7 @@
         .status-week { color: #f97316; }
         .status-offline { color: #94a3b8; }
         
-        /* 帳號狀態圖標 */
+        /* 帳號狀態圖標 - 修正垂直對齊 */
         .account-status {
             display: inline-flex;
             align-items: center;
@@ -265,13 +265,13 @@
         .account-normal { color: #10b981; }
         .account-disabled { color: #ef4444; }
         
-        /* 身份標籤 - 銀灰色 */
+        /* 身份標籤 - 金黃色 */
         .role-badge {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            background: #e2e8f0;
-            color: #475569;
+            background: #f59e0b;
+            color: white;
             padding: 2px 8px;
             border-radius: 20px;
             font-size: 10px;
@@ -452,6 +452,13 @@
             color: #94a3b8;
             font-style: italic;
         }
+        
+        /* 日期格式 */
+        .date-cell {
+            font-family: monospace;
+            font-size: 12px;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -515,13 +522,20 @@
             return `${hours}時${mins}分`;
         }
 
+        // 日期格式：2023-10-23
         function formatDate(dateValue) {
             if (!dateValue) return '-';
             try {
+                let date;
                 if (dateValue.seconds) {
-                    return new Date(dateValue.seconds * 1000).toLocaleDateString('zh-HK', { month: '2-digit', day: '2-digit' });
+                    date = new Date(dateValue.seconds * 1000);
+                } else {
+                    date = new Date(dateValue);
                 }
-                return new Date(dateValue).toLocaleDateString('zh-HK', { month: '2-digit', day: '2-digit' });
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
             } catch {
                 return '-';
             }
@@ -630,6 +644,8 @@
             input.type = 'text';
             input.value = display.textContent === '未設定' ? '' : display.textContent;
             input.className = 'edit-input';
+            input.setAttribute('list', 'school-suggestions');
+            input.placeholder = '輸入學校名稱...';
             
             const saveBtn = document.createElement('button');
             saveBtn.innerHTML = '<i class="fas fa-check"></i>';
@@ -650,6 +666,7 @@
                     cell.removeChild(saveBtn);
                     cell.removeChild(cancelBtn);
                     display.style.display = 'inline';
+                    updateSuggestions();
                 } catch (error) {
                     alert('更新失敗：' + error.message);
                 }
@@ -673,7 +690,7 @@
             input.focus();
         };
         
-        // 出版社編輯 - 點擊文字編輯（只有管理員可編輯）
+        // 教材編輯 - 點擊文字編輯（只有管理員可編輯）
         window.editPublisher = (userId) => {
             if (!currentUserIsAdmin) return;
             
@@ -683,6 +700,8 @@
             input.type = 'text';
             input.value = display.textContent === '未設定' ? '' : display.textContent;
             input.className = 'edit-input';
+            input.setAttribute('list', 'publisher-suggestions');
+            input.placeholder = '輸入教材名稱...';
             
             const saveBtn = document.createElement('button');
             saveBtn.innerHTML = '<i class="fas fa-check"></i>';
@@ -703,6 +722,7 @@
                     cell.removeChild(saveBtn);
                     cell.removeChild(cancelBtn);
                     display.style.display = 'inline';
+                    updateSuggestions();
                 } catch (error) {
                     alert('更新失敗：' + error.message);
                 }
@@ -762,7 +782,6 @@
                 return;
             }
             
-            // 確認彈窗
             const confirmMsg = `⚠️ 修改年級會影響學生可看到的教材內容\n\n確定將年級從「${oldGrade || '未設定'}」改為「${newGrade || '未設定'}」嗎？`;
             if (!confirm(confirmMsg)) {
                 cancelEditGrade(userId);
@@ -860,6 +879,64 @@
             cell.querySelector('.btn-save-notes').style.display = 'none';
             cell.querySelector('.btn-cancel-notes').style.display = 'none';
         };
+        
+        // ============================================
+        // 建議列表功能
+        // ============================================
+        
+        function getSchoolSuggestions() {
+            const schools = new Set();
+            document.querySelectorAll('[id^="school-"]').forEach(cell => {
+                const display = cell.querySelector('.school-display');
+                const school = display?.textContent;
+                if (school && school !== '未設定') {
+                    schools.add(school);
+                }
+            });
+            return Array.from(schools).sort();
+        }
+        
+        function getPublisherSuggestions() {
+            const publishers = new Set();
+            document.querySelectorAll('[id^="publisher-"]').forEach(cell => {
+                const display = cell.querySelector('.publisher-display');
+                const publisher = display?.textContent;
+                if (publisher && publisher !== '未設定') {
+                    publishers.add(publisher);
+                }
+            });
+            return Array.from(publishers).sort();
+        }
+        
+        function updateSuggestions() {
+            // 更新學校建議
+            let schoolDatalist = document.getElementById('school-suggestions');
+            if (!schoolDatalist) {
+                schoolDatalist = document.createElement('datalist');
+                schoolDatalist.id = 'school-suggestions';
+                document.body.appendChild(schoolDatalist);
+            }
+            schoolDatalist.innerHTML = '';
+            getSchoolSuggestions().forEach(school => {
+                const option = document.createElement('option');
+                option.value = school;
+                schoolDatalist.appendChild(option);
+            });
+            
+            // 更新教材建議
+            let publisherDatalist = document.getElementById('publisher-suggestions');
+            if (!publisherDatalist) {
+                publisherDatalist = document.createElement('datalist');
+                publisherDatalist.id = 'publisher-suggestions';
+                document.body.appendChild(publisherDatalist);
+            }
+            publisherDatalist.innerHTML = '';
+            getPublisherSuggestions().forEach(publisher => {
+                const option = document.createElement('option');
+                option.value = publisher;
+                publisherDatalist.appendChild(option);
+            });
+        }
         
         // ============================================
         // 管理功能函數
@@ -1006,7 +1083,7 @@
             const schoolDisplay = user.school || '未設定';
             const schoolClass = user.school ? '' : 'school-unset';
             
-            // 出版社顯示
+            // 教材顯示（原出版社）
             const publisherDisplay = user.publisher || '未設定';
             const publisherClass = user.publisher ? '' : 'publisher-unset';
             
@@ -1043,19 +1120,19 @@
                             ${isAdmin ? '<span class="role-badge"><i class="fas fa-crown"></i> 管理員</span>' : ''}
                             ${isTeacher ? '<span class="role-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>' : ''}
                         </div>
-                     </div>
+                    </td>
                     <td style="max-width: 200px;">
                         <div class="email-display">${escapeHtml(user.email || '-')}</div>
                         <div class="phone-cell ${phoneClass}" id="phone-${docId}">
                             <span class="phone-display editable-click" onclick="editPhone('${docId}')">${phoneDisplay}</span>
                         </div>
-                     </div>
+                    </td>
                     <td class="${schoolClass}" id="school-${docId}">
                         <span class="school-display editable-click" onclick="editSchool('${docId}')">${schoolDisplay}</span>
-                     </div>
+                    </td>
                     <td class="${publisherClass}" id="publisher-${docId}">
                         <span class="publisher-display editable-click" onclick="editPublisher('${docId}')">${publisherDisplay}</span>
-                     </div>
+                    </td>
                     <td class="grade-cell" id="grade-${docId}">
                         <span class="grade-display">${gradeDisplay}</span>
                         <select class="grade-select" style="display: none;">
@@ -1070,15 +1147,15 @@
                             <button class="btn-icon btn-save-grade" onclick="saveGrade('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
                             <button class="btn-icon btn-cancel-grade" onclick="cancelEditGrade('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
                         ` : ''}
-                     </div>
+                    </td>
                     <td class="notes-cell ${notesClass}" id="notes-${docId}">
                         <span class="notes-display">${notesDisplay}</span>
                         <input type="text" class="notes-input" value="${user.notes || ''}" style="display: none;" placeholder="備註">
                         <button class="btn-icon btn-edit-notes" onclick="editNotes('${docId}')" title="編輯備註"><i class="fas fa-pen"></i></button>
                         <button class="btn-icon btn-save-notes" onclick="saveNotes('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
                         <button class="btn-icon btn-cancel-notes" onclick="cancelEditNotes('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
-                     </div>
-                    <td class="time-cell">${createdAt}<br>${lastActiveDate}</td>
+                    </td>
+                    <td class="date-cell">${createdAt}<br>${lastActiveDate}</td>
                     <td><span class="status-icon ${activity.class}">${activity.icon} ${activity.text}</span></td>
                     <td class="account-status ${isDisabled ? 'account-disabled' : 'account-normal'}">
                         ${isDisabled ? '<i class="fas fa-ban"></i>' : '<i class="fas fa-check-circle"></i>'}
@@ -1091,7 +1168,7 @@
                             ${menuHtml}
                         </div>
                     </td>
-                 </tr>
+                </tr>
             `;
         }
 
@@ -1138,7 +1215,7 @@
             
             if (!usersList) return;
             if (!loadMore) {
-                usersList.innerHTML = '   <tr><td colspan="11" class="loading">載入中...</td></tr>';
+                usersList.innerHTML = '<tr><td colspan="11" class="loading">載入中...</td></tr>';
                 if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             }
             if (isLoading || !hasMore) return;
@@ -1179,7 +1256,7 @@
                 hasMore = querySnapshot.docs.length === PAGE_SIZE;
                 
                 if (querySnapshot.empty && !loadMore) {
-                    usersList.innerHTML = '   <tr><td colspan="11" class="loading">沒有找到用戶</td></tr>';
+                    usersList.innerHTML = '<tr><td colspan="11" class="loading">沒有找到用戶</td></tr>';
                     return;
                 }
                 
@@ -1192,10 +1269,14 @@
                 if (loadMoreContainer) {
                     loadMoreContainer.style.display = hasMore ? 'block' : 'none';
                 }
+                
+                // 載入完成後更新建議列表
+                updateSuggestions();
+                
             } catch (error) {
                 console.error('載入用戶失敗:', error);
                 if (!loadMore) {
-                    usersList.innerHTML = `   <tr><td colspan="11" class="loading">載入失敗: ${error.message}</td></tr>`;
+                    usersList.innerHTML = `<tr><td colspan="11" class="loading">載入失敗: ${error.message}</td></tr>`;
                 }
             } finally {
                 isLoading = false;
@@ -1214,7 +1295,7 @@
                 return;
             }
             
-            usersList.innerHTML = '   <tr><td colspan="11" class="loading">搜尋中...</td></tr>';
+            usersList.innerHTML = '<tr><td colspan="11" class="loading">搜尋中...</td></tr>';
             if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             
             try {
@@ -1230,23 +1311,34 @@
                     const phoneNumber = (user.phoneNumber || '').toLowerCase();
                     const school = (user.school || '').toLowerCase();
                     const publisher = (user.publisher || '').toLowerCase();
+                    const grade = (user.grade || '').toLowerCase();
                     const notes = (user.notes || '').toLowerCase();
+                    
+                    // 檢查年級匹配（不分大小寫）
+                    let gradeMatch = false;
+                    if (grade) {
+                        const searchGrade = searchTerm.toUpperCase();
+                        const validGrades = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6'];
+                        if (validGrades.includes(searchGrade) && grade.toUpperCase() === searchGrade) {
+                            gradeMatch = true;
+                        }
+                    }
                     
                     if (email.includes(searchTerm) || displayName.includes(searchTerm) || 
                         phoneNumber.includes(searchTerm) || school.includes(searchTerm) ||
-                        publisher.includes(searchTerm) || notes.includes(searchTerm)) {
+                        publisher.includes(searchTerm) || notes.includes(searchTerm) || gradeMatch) {
                         matchCount++;
                         html += generateUserRow(doc.id, user);
                     }
                 });
                 
                 if (matchCount === 0) {
-                    usersList.innerHTML = `   <tr><td colspan="11" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
+                    usersList.innerHTML = `<tr><td colspan="11" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
                 } else {
                     usersList.innerHTML = html;
                 }
             } catch (error) {
-                usersList.innerHTML = `   <tr><td colspan="11" class="loading">搜尋失敗: ${error.message}</td></tr>`;
+                usersList.innerHTML = `<tr><td colspan="11" class="loading">搜尋失敗: ${error.message}</td></tr>`;
             }
         }
 
@@ -1308,7 +1400,7 @@
                     </div>
                     
                     <div class="search-bar">
-                        <input type="text" id="searchInput" placeholder="搜尋名稱、Email、電話、學校、出版社或備註...">
+                        <input type="text" id="searchInput" placeholder="搜尋名稱、Email、電話、學校、教材、年級(P1-P6/S1-S6)或備註...">
                         <button onclick="searchUsers()"><i class="fas fa-search"></i> 搜尋</button>
                     </div>
                     
@@ -1327,7 +1419,7 @@
                                     <th>用戶</th>
                                     <th>聯絡</th>
                                     <th>學校</th>
-                                    <th>出版社</th>
+                                    <th>教材</th>
                                     <th>年級</th>
                                     <th>備註</th>
                                     <th>註冊/活躍</th>
@@ -1425,6 +1517,11 @@
                 currentOpenMenu = null;
             }
         });
+        
+        // 初始化建議列表
+        setTimeout(() => {
+            updateSuggestions();
+        }, 1000);
     </script>
 </body>
 </html>
