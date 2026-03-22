@@ -161,6 +161,9 @@
             color: #334155;
             font-size: 13px;
             vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         /* 欄位寬度 */
@@ -173,7 +176,7 @@
         th:nth-child(7), td:nth-child(7) { min-width: 100px; }  /* 備註 */
         th:nth-child(8), td:nth-child(8) { min-width: 110px; }  /* 註冊/活躍 */
         th:nth-child(9), td:nth-child(9) { min-width: 70px; }   /* 活躍狀態 */
-        th:nth-child(10), td:nth-child(10) { min-width: 50px; } /* 狀態 */
+        th:nth-child(10), td:nth-child(10) { min-width: 60px; } /* 狀態 */
         th:nth-child(11), td:nth-child(11) { min-width: 50px; } /* 操作 */
         
         .loading {
@@ -252,14 +255,24 @@
         .status-week { color: #f97316; }
         .status-offline { color: #94a3b8; }
         
-        /* 帳號狀態圖標 - 修正垂直對齊 */
+        /* 帳號狀態圖標 - 修正垂直對齊與尺寸 */
         .account-status {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 14px;
             vertical-align: middle;
             line-height: 1;
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        
+        /* 圖標統一尺寸 */
+        .account-status i {
+            font-size: 14px;
+            width: 1em;
+            height: 1em;
         }
         
         .account-normal { color: #10b981; }
@@ -1120,19 +1133,19 @@
                             ${isAdmin ? '<span class="role-badge"><i class="fas fa-crown"></i> 管理員</span>' : ''}
                             ${isTeacher ? '<span class="role-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>' : ''}
                         </div>
-                    </td>
+                     </div>
                     <td style="max-width: 200px;">
                         <div class="email-display">${escapeHtml(user.email || '-')}</div>
                         <div class="phone-cell ${phoneClass}" id="phone-${docId}">
                             <span class="phone-display editable-click" onclick="editPhone('${docId}')">${phoneDisplay}</span>
                         </div>
-                    </td>
+                     </div>
                     <td class="${schoolClass}" id="school-${docId}">
                         <span class="school-display editable-click" onclick="editSchool('${docId}')">${schoolDisplay}</span>
-                    </td>
+                     </div>
                     <td class="${publisherClass}" id="publisher-${docId}">
                         <span class="publisher-display editable-click" onclick="editPublisher('${docId}')">${publisherDisplay}</span>
-                    </td>
+                     </div>
                     <td class="grade-cell" id="grade-${docId}">
                         <span class="grade-display">${gradeDisplay}</span>
                         <select class="grade-select" style="display: none;">
@@ -1147,14 +1160,14 @@
                             <button class="btn-icon btn-save-grade" onclick="saveGrade('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
                             <button class="btn-icon btn-cancel-grade" onclick="cancelEditGrade('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
                         ` : ''}
-                    </td>
+                     </div>
                     <td class="notes-cell ${notesClass}" id="notes-${docId}">
                         <span class="notes-display">${notesDisplay}</span>
                         <input type="text" class="notes-input" value="${user.notes || ''}" style="display: none;" placeholder="備註">
                         <button class="btn-icon btn-edit-notes" onclick="editNotes('${docId}')" title="編輯備註"><i class="fas fa-pen"></i></button>
                         <button class="btn-icon btn-save-notes" onclick="saveNotes('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
                         <button class="btn-icon btn-cancel-notes" onclick="cancelEditNotes('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
-                    </td>
+                     </div>
                     <td class="date-cell">${createdAt}<br>${lastActiveDate}</td>
                     <td><span class="status-icon ${activity.class}">${activity.icon} ${activity.text}</span></td>
                     <td class="account-status ${isDisabled ? 'account-disabled' : 'account-normal'}">
@@ -1168,7 +1181,7 @@
                             ${menuHtml}
                         </div>
                     </td>
-                </tr>
+                 </tr>
             `;
         }
 
@@ -1215,7 +1228,7 @@
             
             if (!usersList) return;
             if (!loadMore) {
-                usersList.innerHTML = '<tr><td colspan="11" class="loading">載入中...</td></tr>';
+                usersList.innerHTML = '   <tr><td colspan="11" class="loading">載入中...</td></tr>';
                 if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             }
             if (isLoading || !hasMore) return;
@@ -1256,7 +1269,7 @@
                 hasMore = querySnapshot.docs.length === PAGE_SIZE;
                 
                 if (querySnapshot.empty && !loadMore) {
-                    usersList.innerHTML = '<tr><td colspan="11" class="loading">沒有找到用戶</td></tr>';
+                    usersList.innerHTML = '   <tr><td colspan="11" class="loading">沒有找到用戶</td></tr>';
                     return;
                 }
                 
@@ -1276,7 +1289,7 @@
             } catch (error) {
                 console.error('載入用戶失敗:', error);
                 if (!loadMore) {
-                    usersList.innerHTML = `<tr><td colspan="11" class="loading">載入失敗: ${error.message}</td></tr>`;
+                    usersList.innerHTML = `   <tr><td colspan="11" class="loading">載入失敗: ${error.message}</td></tr>`;
                 }
             } finally {
                 isLoading = false;
@@ -1295,7 +1308,7 @@
                 return;
             }
             
-            usersList.innerHTML = '<tr><td colspan="11" class="loading">搜尋中...</td></tr>';
+            usersList.innerHTML = '   <tr><td colspan="11" class="loading">搜尋中...</td></tr>';
             if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             
             try {
@@ -1333,12 +1346,12 @@
                 });
                 
                 if (matchCount === 0) {
-                    usersList.innerHTML = `<tr><td colspan="11" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
+                    usersList.innerHTML = `   <tr><td colspan="11" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
                 } else {
                     usersList.innerHTML = html;
                 }
             } catch (error) {
-                usersList.innerHTML = `<tr><td colspan="11" class="loading">搜尋失敗: ${error.message}</td></tr>`;
+                usersList.innerHTML = `   <tr><td colspan="11" class="loading">搜尋失敗: ${error.message}</td></tr>`;
             }
         }
 
