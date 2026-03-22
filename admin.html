@@ -142,12 +142,12 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1000px;
+            min-width: 1100px;
         }
         
         th {
             background: #f8fafc;
-            padding: 12px 12px;
+            padding: 12px 10px;
             text-align: left;
             color: #475569;
             font-weight: 600;
@@ -156,25 +156,25 @@
         }
         
         td {
-            padding: 12px 12px;
+            padding: 12px 10px;
             border-bottom: 1px solid #e2e8f0;
             color: #334155;
             font-size: 13px;
             vertical-align: middle;
         }
         
-        /* 固定寬度的列 */
-        th:nth-child(1), td:nth-child(1) { min-width: 120px; }
-        th:nth-child(2), td:nth-child(2) { min-width: 180px; }
-        th:nth-child(3), td:nth-child(3) { min-width: 100px; }
-        th:nth-child(4), td:nth-child(4) { min-width: 100px; }
-        th:nth-child(5), td:nth-child(5) { min-width: 70px; }
-        th:nth-child(6), td:nth-child(6) { min-width: 80px; }
-        th:nth-child(7), td:nth-child(7) { min-width: 70px; }
-        th:nth-child(8), td:nth-child(8) { min-width: 60px; }
-        th:nth-child(9), td:nth-child(9) { min-width: 70px; }
-        th:nth-child(10), td:nth-child(10) { min-width: 50px; }
-        th:nth-child(11), td:nth-child(11) { min-width: 50px; }
+        /* 欄位寬度 */
+        th:nth-child(1), td:nth-child(1) { min-width: 120px; }  /* 用戶 */
+        th:nth-child(2), td:nth-child(2) { min-width: 160px; }  /* 聯絡 */
+        th:nth-child(3), td:nth-child(3) { min-width: 100px; }  /* 電話 */
+        th:nth-child(4), td:nth-child(4) { min-width: 100px; }  /* 學校 */
+        th:nth-child(5), td:nth-child(5) { min-width: 100px; }  /* 出版社 */
+        th:nth-child(6), td:nth-child(6) { min-width: 70px; }   /* 年級 */
+        th:nth-child(7), td:nth-child(7) { min-width: 100px; }  /* 備註 */
+        th:nth-child(8), td:nth-child(8) { min-width: 90px; }   /* 註冊/活躍 */
+        th:nth-child(9), td:nth-child(9) { min-width: 70px; }   /* 活躍狀態 */
+        th:nth-child(10), td:nth-child(10) { min-width: 50px; } /* 狀態 */
+        th:nth-child(11), td:nth-child(11) { min-width: 50px; } /* 操作 */
         
         .loading {
             text-align: center;
@@ -252,7 +252,7 @@
         .status-week { color: #f97316; }
         .status-offline { color: #94a3b8; }
         
-        /* 帳號狀態圖標 - 修正垂直對齊 */
+        /* 帳號狀態圖標 */
         .account-status {
             display: inline-flex;
             align-items: center;
@@ -265,7 +265,7 @@
         .account-normal { color: #10b981; }
         .account-disabled { color: #ef4444; }
         
-        /* 身份標籤 - 統一銀灰色 */
+        /* 身份標籤 - 銀灰色 */
         .role-badge {
             display: inline-flex;
             align-items: center;
@@ -284,7 +284,20 @@
             opacity: 0.8;
         }
         
-        /* 操作菜單 - 純白色完全不透明 */
+        /* 可編輯欄位樣式 - 點擊文字編輯 */
+        .editable-click {
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            display: inline-block;
+        }
+        
+        .editable-click:hover {
+            background: #f1f5f9;
+        }
+        
+        /* 操作菜單 */
         .action-menu {
             position: relative;
             display: inline-block;
@@ -349,27 +362,18 @@
             margin: 5px 0;
         }
         
-        /* 可編輯欄位 */
-        .phone-cell, .notes-cell {
-            position: relative;
-        }
-        
-        .phone-unset, .notes-unset {
-            color: #94a3b8;
-            font-style: italic;
-        }
-        
-        .phone-display, .notes-display {
-            display: inline-block;
-            margin-right: 6px;
-            max-width: 100px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .phone-input, .notes-input {
+        /* 可編輯欄位輸入框 */
+        .edit-input {
             width: 100px;
+            padding: 4px 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+        
+        .grade-select {
+            width: 60px;
             padding: 4px 6px;
             border: 1px solid #cbd5e1;
             border-radius: 4px;
@@ -392,20 +396,61 @@
             background: #e2e8f0;
         }
         
-        .btn-edit-phone, .btn-edit-notes {
+        .btn-edit-notes, .btn-edit-grade {
             color: #4f46e5;
         }
         
-        .btn-save-phone, .btn-save-notes {
+        .btn-save-notes, .btn-save-grade {
             color: #059669;
         }
         
-        .btn-cancel-phone, .btn-cancel-notes {
+        .btn-cancel-notes, .btn-cancel-grade {
             color: #dc2626;
         }
         
         .time-cell {
             white-space: nowrap;
+        }
+        
+        .email-display {
+            word-break: break-all;
+        }
+        
+        .phone-display, .school-display, .publisher-display, .grade-display {
+            display: inline-block;
+            margin-right: 4px;
+        }
+        
+        .phone-unset, .school-unset, .publisher-unset {
+            color: #94a3b8;
+            font-style: italic;
+        }
+        
+        .notes-cell {
+            position: relative;
+        }
+        
+        .notes-display {
+            display: inline-block;
+            margin-right: 6px;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .notes-input {
+            width: 100px;
+            padding: 4px 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+        
+        .notes-unset {
+            color: #94a3b8;
+            font-style: italic;
         }
     </style>
 </head>
@@ -427,7 +472,6 @@
             getDocs, 
             getCountFromServer, 
             doc,
-            getDoc,
             updateDoc,
             query, 
             orderBy, 
@@ -520,140 +564,248 @@
         }
 
         // ============================================
-        // 管理功能函數 - 無確認彈窗，直接執行
+        // 編輯功能函數
         // ============================================
         
-        window.setAsTeacher = async (userId) => {
-            if (!currentUserIsAdmin) return;
-            try {
-                const userRef = doc(db, 'users', userId);
-                await updateDoc(userRef, {
-                    role: 'teacher',
-                    updatedAt: new Date().toISOString()
-                });
-                console.log(`✅ 用戶 ${userId} 已設為老師`);
-                await reloadUsers();
-                closeMenu(userId);
-            } catch (error) {
-                console.error('設定老師失敗:', error);
-                alert('設定失敗：' + error.message);
-            }
-        };
-        
-        window.removeTeacher = async (userId) => {
-            if (!currentUserIsAdmin) return;
-            try {
-                const userRef = doc(db, 'users', userId);
-                await updateDoc(userRef, {
-                    role: 'user',
-                    updatedAt: new Date().toISOString()
-                });
-                console.log(`✅ 用戶 ${userId} 已移除老師權限`);
-                await reloadUsers();
-                closeMenu(userId);
-            } catch (error) {
-                console.error('移除老師權限失敗:', error);
-                alert('移除失敗：' + error.message);
-            }
-        };
-        
-        // 停用帳號 - 直接停用
-        window.disableUser = async (userId) => {
-            if (!currentUserIsAdmin) return;
-            try {
-                const userRef = doc(db, 'users', userId);
-                await updateDoc(userRef, {
-                    isDisabled: true,
-                    disabledAt: new Date().toISOString(),
-                    disabledBy: auth.currentUser?.uid || '',
-                    updatedAt: new Date().toISOString()
-                });
-                console.log(`✅ 用戶 ${userId} 已停用`);
-                await reloadUsers();
-                closeMenu(userId);
-            } catch (error) {
-                console.error('停用帳號失敗:', error);
-                alert('停用失敗：' + error.message);
-            }
-        };
-        
-        // 啟用帳號 - 直接啟用
-        window.enableUser = async (userId) => {
-            if (!currentUserIsAdmin) return;
-            try {
-                const userRef = doc(db, 'users', userId);
-                await updateDoc(userRef, {
-                    isDisabled: false,
-                    disabledAt: null,
-                    disabledBy: null,
-                    updatedAt: new Date().toISOString()
-                });
-                console.log(`✅ 用戶 ${userId} 已啟用`);
-                await reloadUsers();
-                closeMenu(userId);
-            } catch (error) {
-                console.error('啟用帳號失敗:', error);
-                alert('啟用失敗：' + error.message);
-            }
-        };
-        
-        // 編輯電話
+        // 電話編輯 - 點擊文字編輯（只有管理員可編輯）
         window.editPhone = (userId) => {
+            if (!currentUserIsAdmin) return;
+            
             const cell = document.getElementById(`phone-${userId}`);
             const display = cell.querySelector('.phone-display');
-            const input = cell.querySelector('.phone-input');
-            const editBtn = cell.querySelector('.btn-edit-phone');
-            const saveBtn = cell.querySelector('.btn-save-phone');
-            const cancelBtn = cell.querySelector('.btn-cancel-phone');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = display.textContent === '未設定' ? '' : display.textContent;
+            input.className = 'edit-input';
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+            saveBtn.className = 'btn-icon btn-save-phone';
+            saveBtn.style.color = '#059669';
+            saveBtn.onclick = async () => {
+                const newValue = input.value.trim();
+                try {
+                    const userRef = doc(db, 'users', userId);
+                    await updateDoc(userRef, {
+                        phoneNumber: newValue || '',
+                        updatedAt: new Date().toISOString()
+                    });
+                    display.textContent = newValue || '未設定';
+                    if (newValue) cell.classList.remove('phone-unset');
+                    else cell.classList.add('phone-unset');
+                    cell.removeChild(input);
+                    cell.removeChild(saveBtn);
+                    cell.removeChild(cancelBtn);
+                    display.style.display = 'inline';
+                } catch (error) {
+                    alert('更新失敗：' + error.message);
+                }
+            };
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+            cancelBtn.className = 'btn-icon btn-cancel-phone';
+            cancelBtn.style.color = '#dc2626';
+            cancelBtn.onclick = () => {
+                cell.removeChild(input);
+                cell.removeChild(saveBtn);
+                cell.removeChild(cancelBtn);
+                display.style.display = 'inline';
+            };
             
             display.style.display = 'none';
-            input.style.display = 'inline-block';
-            editBtn.style.display = 'none';
-            saveBtn.style.display = 'inline-block';
-            cancelBtn.style.display = 'inline-block';
+            cell.appendChild(input);
+            cell.appendChild(saveBtn);
+            cell.appendChild(cancelBtn);
             input.focus();
         };
         
-        window.savePhone = async (userId) => {
-            const cell = document.getElementById(`phone-${userId}`);
-            const input = cell.querySelector('.phone-input');
-            const newPhone = input.value.trim();
+        // 學校編輯 - 點擊文字編輯（只有管理員可編輯）
+        window.editSchool = (userId) => {
+            if (!currentUserIsAdmin) return;
+            
+            const cell = document.getElementById(`school-${userId}`);
+            const display = cell.querySelector('.school-display');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = display.textContent === '未設定' ? '' : display.textContent;
+            input.className = 'edit-input';
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+            saveBtn.className = 'btn-icon';
+            saveBtn.style.color = '#059669';
+            saveBtn.onclick = async () => {
+                const newValue = input.value.trim();
+                try {
+                    const userRef = doc(db, 'users', userId);
+                    await updateDoc(userRef, {
+                        school: newValue || '',
+                        updatedAt: new Date().toISOString()
+                    });
+                    display.textContent = newValue || '未設定';
+                    if (newValue) cell.classList.remove('school-unset');
+                    else cell.classList.add('school-unset');
+                    cell.removeChild(input);
+                    cell.removeChild(saveBtn);
+                    cell.removeChild(cancelBtn);
+                    display.style.display = 'inline';
+                } catch (error) {
+                    alert('更新失敗：' + error.message);
+                }
+            };
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+            cancelBtn.className = 'btn-icon';
+            cancelBtn.style.color = '#dc2626';
+            cancelBtn.onclick = () => {
+                cell.removeChild(input);
+                cell.removeChild(saveBtn);
+                cell.removeChild(cancelBtn);
+                display.style.display = 'inline';
+            };
+            
+            display.style.display = 'none';
+            cell.appendChild(input);
+            cell.appendChild(saveBtn);
+            cell.appendChild(cancelBtn);
+            input.focus();
+        };
+        
+        // 出版社編輯 - 點擊文字編輯（只有管理員可編輯）
+        window.editPublisher = (userId) => {
+            if (!currentUserIsAdmin) return;
+            
+            const cell = document.getElementById(`publisher-${userId}`);
+            const display = cell.querySelector('.publisher-display');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = display.textContent === '未設定' ? '' : display.textContent;
+            input.className = 'edit-input';
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+            saveBtn.className = 'btn-icon';
+            saveBtn.style.color = '#059669';
+            saveBtn.onclick = async () => {
+                const newValue = input.value.trim();
+                try {
+                    const userRef = doc(db, 'users', userId);
+                    await updateDoc(userRef, {
+                        publisher: newValue || '',
+                        updatedAt: new Date().toISOString()
+                    });
+                    display.textContent = newValue || '未設定';
+                    if (newValue) cell.classList.remove('publisher-unset');
+                    else cell.classList.add('publisher-unset');
+                    cell.removeChild(input);
+                    cell.removeChild(saveBtn);
+                    cell.removeChild(cancelBtn);
+                    display.style.display = 'inline';
+                } catch (error) {
+                    alert('更新失敗：' + error.message);
+                }
+            };
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+            cancelBtn.className = 'btn-icon';
+            cancelBtn.style.color = '#dc2626';
+            cancelBtn.onclick = () => {
+                cell.removeChild(input);
+                cell.removeChild(saveBtn);
+                cell.removeChild(cancelBtn);
+                display.style.display = 'inline';
+            };
+            
+            display.style.display = 'none';
+            cell.appendChild(input);
+            cell.appendChild(saveBtn);
+            cell.appendChild(cancelBtn);
+            input.focus();
+        };
+        
+        // 年級編輯 - 點擊 ✏️ 圖標（只有管理員可編輯）
+        window.editGrade = (userId) => {
+            if (!currentUserIsAdmin) return;
+            
+            const cell = document.getElementById(`grade-${userId}`);
+            const display = cell.querySelector('.grade-display');
+            const select = cell.querySelector('.grade-select');
+            const editBtn = cell.querySelector('.btn-edit-grade');
+            const saveBtn = cell.querySelector('.btn-save-grade');
+            const cancelBtn = cell.querySelector('.btn-cancel-grade');
+            
+            display.style.display = 'none';
+            select.style.display = 'inline-block';
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'inline-block';
+            cancelBtn.style.display = 'inline-block';
+            select.value = display.textContent || '';
+            select.focus();
+        };
+        
+        window.saveGrade = async (userId) => {
+            const cell = document.getElementById(`grade-${userId}`);
+            const display = cell.querySelector('.grade-display');
+            const select = cell.querySelector('.grade-select');
+            const editBtn = cell.querySelector('.btn-edit-grade');
+            const saveBtn = cell.querySelector('.btn-save-grade');
+            const cancelBtn = cell.querySelector('.btn-cancel-grade');
+            
+            const newGrade = select.value;
+            const oldGrade = display.textContent;
+            
+            if (newGrade === oldGrade) {
+                cancelEditGrade(userId);
+                return;
+            }
+            
+            // 確認彈窗
+            const confirmMsg = `⚠️ 修改年級會影響學生可看到的教材內容\n\n確定將年級從「${oldGrade || '未設定'}」改為「${newGrade || '未設定'}」嗎？`;
+            if (!confirm(confirmMsg)) {
+                cancelEditGrade(userId);
+                return;
+            }
             
             try {
                 const userRef = doc(db, 'users', userId);
                 await updateDoc(userRef, {
-                    phoneNumber: newPhone || '',
+                    grade: newGrade || null,
                     updatedAt: new Date().toISOString()
                 });
                 
-                const display = cell.querySelector('.phone-display');
-                display.textContent = newPhone || '未設定';
+                display.textContent = newGrade || '';
                 display.style.display = 'inline';
-                input.style.display = 'none';
-                cell.querySelector('.btn-edit-phone').style.display = 'inline-block';
-                cell.querySelector('.btn-save-phone').style.display = 'none';
-                cell.querySelector('.btn-cancel-phone').style.display = 'none';
+                select.style.display = 'none';
+                editBtn.style.display = 'inline-block';
+                saveBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
                 
-                if (newPhone) cell.classList.remove('phone-unset');
-                else cell.classList.add('phone-unset');
+                console.log(`✅ 用戶 ${userId} 年級已更新: ${oldGrade} -> ${newGrade}`);
             } catch (error) {
                 alert('更新失敗：' + error.message);
+                cancelEditGrade(userId);
             }
         };
         
-        window.cancelEditPhone = (userId) => {
-            const cell = document.getElementById(`phone-${userId}`);
-            const display = cell.querySelector('.phone-display');
-            const input = cell.querySelector('.phone-input');
-            input.value = display.textContent === '未設定' ? '' : display.textContent;
+        window.cancelEditGrade = (userId) => {
+            const cell = document.getElementById(`grade-${userId}`);
+            const display = cell.querySelector('.grade-display');
+            const select = cell.querySelector('.grade-select');
+            const editBtn = cell.querySelector('.btn-edit-grade');
+            const saveBtn = cell.querySelector('.btn-save-grade');
+            const cancelBtn = cell.querySelector('.btn-cancel-grade');
+            
             display.style.display = 'inline';
-            input.style.display = 'none';
-            cell.querySelector('.btn-edit-phone').style.display = 'inline-block';
-            cell.querySelector('.btn-save-phone').style.display = 'none';
-            cell.querySelector('.btn-cancel-phone').style.display = 'none';
+            select.style.display = 'none';
+            editBtn.style.display = 'inline-block';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
         };
         
-        // 編輯備註
+        // 備註編輯 - 點擊 ✏️ 圖標（老師和管理員可編輯）
         window.editNotes = (userId) => {
             const cell = document.getElementById(`notes-${userId}`);
             const display = cell.querySelector('.notes-display');
@@ -709,13 +861,80 @@
             cell.querySelector('.btn-cancel-notes').style.display = 'none';
         };
         
+        // ============================================
+        // 管理功能函數
+        // ============================================
+        
+        window.setAsTeacher = async (userId) => {
+            if (!currentUserIsAdmin) return;
+            try {
+                const userRef = doc(db, 'users', userId);
+                await updateDoc(userRef, {
+                    role: 'teacher',
+                    updatedAt: new Date().toISOString()
+                });
+                await reloadUsers();
+                closeMenu(userId);
+            } catch (error) {
+                alert('設定失敗：' + error.message);
+            }
+        };
+        
+        window.removeTeacher = async (userId) => {
+            if (!currentUserIsAdmin) return;
+            try {
+                const userRef = doc(db, 'users', userId);
+                await updateDoc(userRef, {
+                    role: 'user',
+                    updatedAt: new Date().toISOString()
+                });
+                await reloadUsers();
+                closeMenu(userId);
+            } catch (error) {
+                alert('移除失敗：' + error.message);
+            }
+        };
+        
+        window.disableUser = async (userId) => {
+            if (!currentUserIsAdmin) return;
+            try {
+                const userRef = doc(db, 'users', userId);
+                await updateDoc(userRef, {
+                    isDisabled: true,
+                    disabledAt: new Date().toISOString(),
+                    disabledBy: auth.currentUser?.uid || '',
+                    updatedAt: new Date().toISOString()
+                });
+                await reloadUsers();
+                closeMenu(userId);
+            } catch (error) {
+                alert('停用失敗：' + error.message);
+            }
+        };
+        
+        window.enableUser = async (userId) => {
+            if (!currentUserIsAdmin) return;
+            try {
+                const userRef = doc(db, 'users', userId);
+                await updateDoc(userRef, {
+                    isDisabled: false,
+                    disabledAt: null,
+                    disabledBy: null,
+                    updatedAt: new Date().toISOString()
+                });
+                await reloadUsers();
+                closeMenu(userId);
+            } catch (error) {
+                alert('啟用失敗：' + error.message);
+            }
+        };
+        
         // 操作菜單
         let currentOpenMenu = null;
         
         window.toggleActionMenu = (userId, event) => {
             event.stopPropagation();
             
-            // 關閉其他菜單
             if (currentOpenMenu && currentOpenMenu !== userId) {
                 const prevMenu = document.getElementById(`menu-${currentOpenMenu}`);
                 if (prevMenu) prevMenu.style.display = 'none';
@@ -726,7 +945,6 @@
             
             const isVisible = currentMenu.style.display === 'block';
             
-            // 關閉所有菜單
             document.querySelectorAll('[id^="menu-"]').forEach(menu => {
                 menu.style.display = 'none';
             });
@@ -772,7 +990,6 @@
         // 生成用戶行
         function generateUserRow(docId, user) {
             const activity = getActivityDisplay(user.lastActiveAt || user.lastLoginAt);
-            const totalTime = formatTime(user.totalLearningTime || 0);
             const lastActiveDate = formatDate(user.lastActiveAt || user.lastLoginAt);
             const loginCount = user.loginCount || 0;
             const createdAt = formatDate(user.createdAt);
@@ -781,8 +998,22 @@
             const isAdmin = user.role === 'admin';
             const isDisabled = user.isDisabled === true;
             
+            // 電話顯示
             const phoneDisplay = user.phoneNumber || '未設定';
             const phoneClass = user.phoneNumber ? '' : 'phone-unset';
+            
+            // 學校顯示
+            const schoolDisplay = user.school || '未設定';
+            const schoolClass = user.school ? '' : 'school-unset';
+            
+            // 出版社顯示
+            const publisherDisplay = user.publisher || '未設定';
+            const publisherClass = user.publisher ? '' : 'publisher-unset';
+            
+            // 年級顯示
+            const gradeDisplay = user.grade || '';
+            
+            // 備註顯示
             const notesDisplay = user.notes || '未填寫';
             const notesClass = user.notes ? '' : 'notes-unset';
             
@@ -813,26 +1044,42 @@
                             ${isTeacher ? '<span class="role-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>' : ''}
                         </div>
                      </div>
-                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(user.email || '-')} </td>
-                    <td class="phone-cell ${phoneClass}" id="phone-${docId}">
-                        <span class="phone-display">${phoneDisplay}</span>
-                        <input type="text" class="phone-input" value="${user.phoneNumber || ''}" style="display: none;" placeholder="電話">
-                        <button class="btn-icon btn-edit-phone" onclick="editPhone('${docId}')" title="編輯"><i class="fas fa-pen"></i></button>
-                        <button class="btn-icon btn-save-phone" onclick="savePhone('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
-                        <button class="btn-icon btn-cancel-phone" onclick="cancelEditPhone('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
-                     </td>
+                    <td style="max-width: 200px;">
+                        <div class="email-display">${escapeHtml(user.email || '-')}</div>
+                        <div class="phone-cell ${phoneClass}" id="phone-${docId}">
+                            <span class="phone-display editable-click" onclick="editPhone('${docId}')">${phoneDisplay}</span>
+                        </div>
+                     </div>
+                    <td class="${schoolClass}" id="school-${docId}">
+                        <span class="school-display editable-click" onclick="editSchool('${docId}')">${schoolDisplay}</span>
+                     </div>
+                    <td class="${publisherClass}" id="publisher-${docId}">
+                        <span class="publisher-display editable-click" onclick="editPublisher('${docId}')">${publisherDisplay}</span>
+                     </div>
+                    <td class="grade-cell" id="grade-${docId}">
+                        <span class="grade-display">${gradeDisplay}</span>
+                        <select class="grade-select" style="display: none;">
+                            <option value="">-- 請選擇年級 --</option>
+                            <option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option>
+                            <option value="P4">P4</option><option value="P5">P5</option><option value="P6">P6</option>
+                            <option value="S1">S1</option><option value="S2">S2</option><option value="S3">S3</option>
+                            <option value="S4">S4</option><option value="S5">S5</option><option value="S6">S6</option>
+                        </select>
+                        ${currentUserIsAdmin ? `
+                            <button class="btn-icon btn-edit-grade" onclick="editGrade('${docId}')" title="編輯年級"><i class="fas fa-pen"></i></button>
+                            <button class="btn-icon btn-save-grade" onclick="saveGrade('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
+                            <button class="btn-icon btn-cancel-grade" onclick="cancelEditGrade('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
+                        ` : ''}
+                     </div>
                     <td class="notes-cell ${notesClass}" id="notes-${docId}">
                         <span class="notes-display">${notesDisplay}</span>
                         <input type="text" class="notes-input" value="${user.notes || ''}" style="display: none;" placeholder="備註">
-                        <button class="btn-icon btn-edit-notes" onclick="editNotes('${docId}')" title="編輯"><i class="fas fa-pen"></i></button>
+                        <button class="btn-icon btn-edit-notes" onclick="editNotes('${docId}')" title="編輯備註"><i class="fas fa-pen"></i></button>
                         <button class="btn-icon btn-save-notes" onclick="saveNotes('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
                         <button class="btn-icon btn-cancel-notes" onclick="cancelEditNotes('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
-                     </td>
-                    <td class="time-cell">${createdAt}</td>
-                    <td class="time-cell">${lastActiveDate}</td>
+                     </div>
+                    <td class="time-cell">${createdAt}<br>${lastActiveDate}</td>
                     <td><span class="status-icon ${activity.class}">${activity.icon} ${activity.text}</span></td>
-                    <td>${loginCount} 次</td>
-                    <td>${totalTime}</td>
                     <td class="account-status ${isDisabled ? 'account-disabled' : 'account-normal'}">
                         ${isDisabled ? '<i class="fas fa-ban"></i>' : '<i class="fas fa-check-circle"></i>'}
                     </td>
@@ -891,7 +1138,7 @@
             
             if (!usersList) return;
             if (!loadMore) {
-                usersList.innerHTML = '<tr><td colspan="11" class="loading">載入中...</td></tr>';
+                usersList.innerHTML = '   <tr><td colspan="11" class="loading">載入中...</td></tr>';
                 if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             }
             if (isLoading || !hasMore) return;
@@ -925,8 +1172,6 @@
                     q = lastVisible ? 
                         query(usersRef, where('isDisabled', '==', true), orderBy('disabledAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE)) : 
                         query(usersRef, where('isDisabled', '==', true), orderBy('disabledAt', 'desc'), limit(PAGE_SIZE));
-                } else {
-                    q = query(usersRef, orderBy('lastActiveAt', 'desc'), limit(PAGE_SIZE));
                 }
                 
                 const querySnapshot = await getDocs(q);
@@ -934,7 +1179,7 @@
                 hasMore = querySnapshot.docs.length === PAGE_SIZE;
                 
                 if (querySnapshot.empty && !loadMore) {
-                    usersList.innerHTML = '  <tr><td colspan="11" class="loading">沒有找到用戶</td></tr>';
+                    usersList.innerHTML = '   <tr><td colspan="11" class="loading">沒有找到用戶</td></tr>';
                     return;
                 }
                 
@@ -983,10 +1228,13 @@
                     const email = (user.email || '').toLowerCase();
                     const displayName = (user.displayName || '').toLowerCase();
                     const phoneNumber = (user.phoneNumber || '').toLowerCase();
+                    const school = (user.school || '').toLowerCase();
+                    const publisher = (user.publisher || '').toLowerCase();
                     const notes = (user.notes || '').toLowerCase();
                     
                     if (email.includes(searchTerm) || displayName.includes(searchTerm) || 
-                        phoneNumber.includes(searchTerm) || notes.includes(searchTerm)) {
+                        phoneNumber.includes(searchTerm) || school.includes(searchTerm) ||
+                        publisher.includes(searchTerm) || notes.includes(searchTerm)) {
                         matchCount++;
                         html += generateUserRow(doc.id, user);
                     }
@@ -1060,7 +1308,7 @@
                     </div>
                     
                     <div class="search-bar">
-                        <input type="text" id="searchInput" placeholder="搜尋名稱、Email、電話或備註...">
+                        <input type="text" id="searchInput" placeholder="搜尋名稱、Email、電話、學校、出版社或備註...">
                         <button onclick="searchUsers()"><i class="fas fa-search"></i> 搜尋</button>
                     </div>
                     
@@ -1077,20 +1325,19 @@
                             <thead>
                                 <tr>
                                     <th>用戶</th>
-                                    <th>Email</th>
-                                    <th>電話</th>
+                                    <th>聯絡</th>
+                                    <th>學校</th>
+                                    <th>出版社</th>
+                                    <th>年級</th>
                                     <th>備註</th>
-                                    <th>註冊</th>
-                                    <th>最後活躍</th>
+                                    <th>註冊/活躍</th>
                                     <th>活躍狀態</th>
-                                    <th>學習次數</th>
-                                    <th>學習時長</th>
                                     <th>狀態</th>
                                     <th>操作</th>
                                 </tr>
                             </thead>
                             <tbody id="usersList">
-                                <tr><td colspan="11" class="loading">載入中...</td></tr>
+                                <tr><td colspan="10" class="loading">載入中...</td></tr>
                             </tbody>
                         </table>
                         <div id="loadMoreContainer" class="load-more-container" style="display: none;">
