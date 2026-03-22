@@ -75,31 +75,45 @@ jobs:
           INVALID_COUNT=0
           
           for file in data/*.json; do
-            if [ "$(basename "$file")" != "units-index.json" ] && [ -f "$file" ]; then
+            if [ "$(basename "$file")" = "units-index.json" ]; then
+              continue
+            fi
+            
+            if [ -f "$file" ]; then
               if ! jq empty "$file" 2>/dev/null; then
                 echo "❌ 無效的 JSON: $(basename "$file")"
                 INVALID_COUNT=$((INVALID_COUNT + 1))
               else
                 # 檢查必要欄位（英語系統格式）
-                if ! jq -e '.unit_id' "$file" > /dev/null 2>&1; then
+                HAS_UNIT_ID=$(jq 'has("unit_id")' "$file" 2>/dev/null)
+                HAS_UNIT_TITLE=$(jq 'has("unit_title")' "$file" 2>/dev/null)
+                HAS_WORDS=$(jq 'has("words")' "$file" 2>/dev/null)
+                HAS_SENTENCES=$(jq 'has("sentences")' "$file" 2>/dev/null)
+                
+                if [ "$HAS_UNIT_ID" != "true" ]; then
                   echo "⚠️ 缺少 unit_id: $(basename "$file")"
                 fi
-                if ! jq -e '.unit_title' "$file" > /dev/null 2>&1; then
+                if [ "$HAS_UNIT_TITLE" != "true" ]; then
                   echo "⚠️ 缺少 unit_title: $(basename "$file")"
                 fi
-                if ! jq -e '.words' "$file" > /dev/null 2>&1; then
+                if [ "$HAS_WORDS" != "true" ]; then
                   echo "⚠️ 缺少 words: $(basename "$file")"
                 fi
-                if ! jq -e '.sentences' "$file" > /dev/null 2>&1; then
+                if [ "$HAS_SENTENCES" != "true" ]; then
                   echo "⚠️ 缺少 sentences: $(basename "$file")"
                 fi
-                echo "✅ 驗證通過: $(basename "$file")"
+                
+                if [ "$HAS_UNIT_ID" = "true" ] && [ "$HAS_UNIT_TITLE" = "true" ] && [ "$HAS_WORDS" = "true" ] && [ "$HAS_SENTENCES" = "true" ]; then
+                  echo "✅ 驗證通過: $(basename "$file")"
+                else
+                  INVALID_COUNT=$((INVALID_COUNT + 1))
+                fi
               fi
             fi
           done
           
           if [ $INVALID_COUNT -gt 0 ]; then
-            echo "❌ 發現 $INVALID_COUNT 個無效的 JSON 檔案"
+            echo "❌ 發現 $INVALID_COUNT 個無效或格式錯誤的 JSON 檔案"
             exit 1
           fi
           
@@ -109,12 +123,14 @@ jobs:
         run: |
           cd data
           
-          # 建立 units 數組
-          echo '{ "units": [' > units-index.json
+          # 建立 units-index.json
+          echo '{' > units-index.json
+          echo '  "units": [' >> units-index.json
+          
           first=true
           
+          # 遍歷所有 JSON 檔案（排除索引本身）
           for file in *.json; do
-            # 跳過索引檔案本身
             if [ "$file" = "units-index.json" ]; then
               continue
             fi
@@ -123,53 +139,56 @@ jobs:
               if [ "$first" = true ]; then
                 first=false
               else
-                echo "," >> units-index.json
+                echo ',' >> units-index.json
               fi
               
               # 使用 jq 讀取英語系統的欄位
-              unitId=$(jq -r '.unit_id // ""' "$file" 2>/dev/null)
-              unitTitle=$(jq -r '.unit_title // ""' "$file" 2>/dev/null)
-              unitDesc=$(jq -r '.unit_description // ""' "$file" 2>/dev/null)
-              difficulty=$(jq -r '.difficulty // "intermediate"' "$file" 2>/dev/null)
-              wordsCount=$(jq -r '.words | length' "$file" 2>/dev/null)
-              sentencesCount=$(jq -r '.sentences | length' "$file" 2>/dev/null)
+              UNIT_ID=$(jq -r '.unit_id' "$file" 2>/dev/null)
+              UNIT_TITLE=$(jq -r '.unit_title' "$file" 2>/dev/null)
+              UNIT_DESC=$(jq -r '.unit_description // ""' "$file" 2>/dev/null)
+              DIFFICULTY=$(jq -r '.difficulty // "intermediate"' "$file" 2>/dev/null)
+              WORDS_COUNT=$(jq '.words | length' "$file" 2>/dev/null)
+              SENTENCES_COUNT=$(jq '.sentences | length' "$file" 2>/dev/null)
+              CREATED_DATE=$(date +%Y-%m-%d)
               
-              # 如果 unitId 為空，使用檔名
-              if [ -z "$unitId" ]; then
-                unitId=$(basename "$file" .json)
+              # 如果 unit_id 為空，使用檔名（不含 .json）
+              if [ -z "$UNIT_ID" ] || [ "$UNIT_ID" = "null" ]; then
+                UNIT_ID=$(basename "$file" .json)
               fi
               
-              # 如果 unitTitle 為空，使用檔名
-              if [ -z "$unitTitle" ]; then
-                unitTitle=$(basename "$file" .json)
+              # 如果 unit_title 為空，使用檔名
+              if [ -z "$UNIT_TITLE" ] || [ "$UNIT_TITLE" = "null" ]; then
+                UNIT_TITLE=$(basename "$file" .json)
               fi
               
-              # 獲建立日期（從檔案時間或使用當前時間）
-              createdDate=$(date +%Y-%m-%d)
-              
-              # 寫入索引
+              # 寫入索引（不包含 dataUrl，因為檔案在 data/ 目錄）
               cat >> units-index.json << EOF
     {
-      "id": "$unitId",
-      "title": "$unitTitle",
-      "description": "$unitDesc",
-      "words_count": $wordsCount,
-      "sentences_count": $sentencesCount,
-      "difficulty": "$difficulty",
-      "created": "$createdDate"
+      "id": "$UNIT_ID",
+      "title": "$UNIT_TITLE",
+      "description": "$UNIT_DESC",
+      "words_count": $WORDS_COUNT,
+      "sentences_count": $SENTENCES_COUNT,
+      "difficulty": "$DIFFICULTY",
+      "created": "$CREATED_DATE"
     }
 EOF
-              echo "📄 已加入索引: $unitTitle ($unitId)"
+              echo "📄 已加入索引: $UNIT_TITLE ($UNIT_ID)"
             fi
           done
           
-          echo "" >> units-index.json
-          echo "]" >> units-index.json
+          echo '' >> units-index.json
+          echo '  ]' >> units-index.json
+          echo '}' >> units-index.json
           
           # 驗證索引檔案
           if jq empty units-index.json 2>/dev/null; then
-            INDEX_COUNT=$(grep -c '"id"' units-index.json)
+            INDEX_COUNT=$(jq '.units | length' units-index.json)
             echo "✅ 索引檔已產生，共 $INDEX_COUNT 個單元"
+            
+            # 顯示索引內容（用於調試）
+            echo "📋 索引內容預覽："
+            cat units-index.json
           else
             echo "❌ 索引檔案格式錯誤"
             cat units-index.json
