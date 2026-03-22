@@ -906,11 +906,14 @@ async function initPage() {
             console.log('👤 用戶未登入');
             currentUser = null;
             
-            if (!isGuestMode) {
-                // 未登入且非訪客模式，跳轉到登入頁
-                window.location.href = '/login.html';
-                return;
-            }
+if (!isGuestMode) {
+    const currentPath = window.location.pathname;
+    if (!currentPath.includes('login.html')) {
+        console.log('🔄 跳轉到登入頁');
+        window.location.href = '/login.html';
+    }
+    return;
+}
             
             // 訪客模式，從 LocalStorage 載入數據
             const savedStarData = JSON.parse(localStorage.getItem('starData') || '{}');
