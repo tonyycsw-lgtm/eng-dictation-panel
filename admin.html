@@ -301,40 +301,17 @@
             background: #f1f5f9;
         }
         
-        /* ========== 操作菜單 - 修復透明/多餘線條問題 ========== */
-        .action-menu {
-            position: relative;
-            display: inline-block;
-        }
-        
-        .action-btn {
-            background: #4f46e5;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .action-btn:hover {
-            background: #4338ca;
-        }
-        
-        .action-dropdown {
-            position: absolute;
-            background: #ffffff !important;
+        /* ========== 操作菜單 - 全局單一菜單 ========== */
+        .global-action-menu {
+            position: fixed;
+            background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-            z-index: 9999;
+            z-index: 10000;
             min-width: 150px;
             padding: 4px 0;
-            opacity: 1 !important;
-            visibility: visible !important;
+            display: none;
             overflow: hidden;
         }
         
@@ -347,17 +324,16 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            border-bottom: none !important;
-            background: #ffffff !important;
+            border-bottom: none;
+            background: #ffffff;
         }
         
-        /* 統一分隔線樣式 - 只在項目之間顯示 */
         .menu-item:not(:last-child) {
-            border-bottom: 1px solid #f1f5f9 !important;
+            border-bottom: 1px solid #f1f5f9;
         }
         
         .menu-item:hover {
-            background: #f8fafc !important;
+            background: #f8fafc;
         }
         
         .menu-item i {
@@ -366,7 +342,6 @@
             flex-shrink: 0;
         }
         
-        /* 分隔線樣式 */
         .menu-divider {
             height: 1px;
             background: #e2e8f0;
@@ -472,9 +447,27 @@
             white-space: nowrap;
         }
         
+        /* 操作按鈕樣式 */
+        .action-btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .action-btn:hover {
+            background: #4338ca;
+        }
+        
         /* 小螢幕適配 */
         @media (max-width: 768px) {
-            .action-dropdown {
+            .global-action-menu {
                 min-width: 120px;
                 max-width: 90vw;
             }
@@ -491,6 +484,9 @@
 </head>
 <body>
     <div id="app"></div>
+
+    <!-- 全局單一操作菜單 -->
+    <div id="globalActionMenu" class="global-action-menu"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
@@ -539,6 +535,9 @@
         let currentUserIsTeacher = false;
         let currentUserEmail = '';
         
+        // 當前顯示的菜單用戶ID，用於生成選項時參考
+        let currentMenuUserId = null;
+        
         // ============================================
         // Toast 提示函數
         // ============================================
@@ -557,7 +556,7 @@
                 border-radius: 8px;
                 color: white;
                 background: ${type === 'success' ? '#10b981' : '#ef4444'};
-                z-index: 10000;
+                z-index: 10001;
                 font-size: 14px;
                 font-weight: 500;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -582,7 +581,6 @@
             return `${hours}時${mins}分`;
         }
 
-        // 日期格式：2023-10-23
         function formatDate(dateValue) {
             if (!dateValue) return '-';
             try {
@@ -601,7 +599,6 @@
             }
         }
 
-        // 獲取活躍狀態顯示（圖標 + 完整文字）
         function getActivityDisplay(lastActiveAt) {
             if (!lastActiveAt) {
                 return { icon: '⚪', text: '從未', class: 'status-offline' };
@@ -638,10 +635,9 @@
         }
 
         // ============================================
-        // 編輯功能函數
+        // 編輯功能函數（與原相同）
         // ============================================
         
-        // 電話編輯 - 點擊文字編輯（只有管理員可編輯）
         window.editPhone = (userId) => {
             if (!currentUserIsAdmin) return;
             
@@ -695,7 +691,6 @@
             input.focus();
         };
         
-        // 學校編輯 - 點擊文字編輯（只有管理員可編輯）
         window.editSchool = (userId) => {
             if (!currentUserIsAdmin) return;
             
@@ -752,7 +747,6 @@
             input.focus();
         };
         
-        // 教材編輯 - 點擊文字編輯（只有管理員可編輯）
         window.editPublisher = (userId) => {
             if (!currentUserIsAdmin) return;
             
@@ -809,7 +803,6 @@
             input.focus();
         };
         
-        // 年級編輯 - 點擊 ✏️ 圖標（只有管理員可編輯）- 已移除 confirm
         window.editGrade = (userId) => {
             if (!currentUserIsAdmin) return;
             
@@ -881,7 +874,6 @@
             cancelBtn.style.display = 'none';
         };
         
-        // 備註編輯 - 點擊 ✏️ 圖標（老師和管理員可編輯）
         window.editNotes = (userId) => {
             const cell = document.getElementById(`notes-${userId}`);
             const display = cell.querySelector('.notes-display');
@@ -996,7 +988,7 @@
         }
         
         // ============================================
-        // 管理功能函數
+        // 管理功能函數（與原相同，但關閉菜單改為全局）
         // ============================================
         
         window.setAsTeacher = async (userId) => {
@@ -1008,7 +1000,7 @@
                     updatedAt: new Date().toISOString()
                 });
                 await reloadUsers();
-                closeMenu(userId);
+                closeGlobalMenu();
                 showToast('已設為老師', 'success');
             } catch (error) {
                 showToast('設定失敗：' + error.message);
@@ -1024,7 +1016,7 @@
                     updatedAt: new Date().toISOString()
                 });
                 await reloadUsers();
-                closeMenu(userId);
+                closeGlobalMenu();
                 showToast('已移除老師權限', 'success');
             } catch (error) {
                 showToast('移除失敗：' + error.message);
@@ -1042,7 +1034,7 @@
                     updatedAt: new Date().toISOString()
                 });
                 await reloadUsers();
-                closeMenu(userId);
+                closeGlobalMenu();
                 showToast('帳號已停用', 'success');
             } catch (error) {
                 showToast('停用失敗：' + error.message);
@@ -1060,76 +1052,135 @@
                     updatedAt: new Date().toISOString()
                 });
                 await reloadUsers();
-                closeMenu(userId);
+                closeGlobalMenu();
                 showToast('帳號已啟用', 'success');
             } catch (error) {
                 showToast('啟用失敗：' + error.message);
             }
         };
         
-        // 操作菜單
-        let currentOpenMenu = null;
+        // ============================================
+        // 全局單一菜單相關函數
+        // ============================================
         
-        window.toggleActionMenu = (userId, event) => {
-            event.stopPropagation();
+        // 根據用戶資料生成菜單 HTML
+        function generateMenuOptions(userId, userData) {
+            const isTeacher = userData.role === 'teacher';
+            const isAdmin = userData.role === 'admin';
+            const isDisabled = userData.isDisabled === true;
             
-            document.querySelectorAll('[id^="menu-"]').forEach(menu => {
-                if (menu.id !== `menu-${userId}`) {
-                    menu.style.display = 'none';
+            let html = '';
+            
+            if (currentUserIsAdmin) {
+                if (isTeacher) {
+                    html += `<div class="menu-item" data-action="removeTeacher" data-userid="${userId}"><i class="fas fa-user-slash"></i> 移除老師權限</div>`;
+                } else if (!isAdmin) {
+                    html += `<div class="menu-item" data-action="setAsTeacher" data-userid="${userId}"><i class="fas fa-chalkboard-teacher"></i> 設為老師</div>`;
                 }
-            });
-            
-            const currentMenu = document.getElementById(`menu-${userId}`);
-            if (!currentMenu) return;
-            
-            const isVisible = currentMenu.style.display === 'block';
-            
-            if (!isVisible) {
-                const button = event.currentTarget;
-                const buttonRect = button.getBoundingClientRect();
-                
-                currentMenu.style.position = 'absolute';
-                currentMenu.style.left = '0';
-                currentMenu.style.top = '100%';
-                currentMenu.style.right = 'auto';
-                currentMenu.style.bottom = 'auto';
-                currentMenu.style.marginTop = '4px';
-                currentMenu.style.marginBottom = '0';
-                
-                currentMenu.style.display = 'block';
-                const menuWidth = currentMenu.offsetWidth;
-                const menuHeight = currentMenu.offsetHeight;
-                
-                const buttonParentRect = button.parentElement.getBoundingClientRect();
-                const menuRightEdge = buttonParentRect.left + menuWidth;
-                
-                if (menuRightEdge > window.innerWidth) {
-                    currentMenu.style.left = 'auto';
-                    currentMenu.style.right = '0';
+                html += `<div class="menu-divider"></div>`;
+                if (isDisabled) {
+                    html += `<div class="menu-item" data-action="enableUser" data-userid="${userId}"><i class="fas fa-check-circle"></i> 啟用帳號</div>`;
+                } else {
+                    html += `<div class="menu-item" data-action="disableUser" data-userid="${userId}"><i class="fas fa-ban"></i> 停用帳號</div>`;
                 }
-                
-                const menuBottomEdge = buttonParentRect.bottom + menuHeight + 4;
-                if (menuBottomEdge > window.innerHeight) {
-                    currentMenu.style.top = 'auto';
-                    currentMenu.style.bottom = '100%';
-                    currentMenu.style.marginTop = '0';
-                    currentMenu.style.marginBottom = '4px';
-                }
-                
-                currentMenu.style.display = 'block';
-                currentOpenMenu = userId;
-            } else {
-                currentMenu.style.display = 'none';
-                currentOpenMenu = null;
             }
-        };
-        
-        function closeMenu(userId) {
-            const menu = document.getElementById(`menu-${userId}`);
-            if (menu) menu.style.display = 'none';
-            if (currentOpenMenu === userId) currentOpenMenu = null;
+            
+            return html;
         }
         
+        // 顯示全局菜單
+        async function showGlobalMenu(userId, event) {
+            event.stopPropagation();
+            
+            // 先關閉可能已打開的菜單
+            closeGlobalMenu();
+            
+            // 獲取用戶資料以決定選項
+            try {
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                if (!userDoc.exists()) {
+                    showToast('用戶資料不存在');
+                    return;
+                }
+                const userData = userDoc.data();
+                const menuHtml = generateMenuOptions(userId, userData);
+                if (!menuHtml) {
+                    // 無權限操作，不顯示菜單
+                    return;
+                }
+                
+                const menu = document.getElementById('globalActionMenu');
+                menu.innerHTML = menuHtml;
+                
+                // 定位菜單到按鈕旁邊
+                const button = event.currentTarget;
+                const rect = button.getBoundingClientRect();
+                menu.style.position = 'fixed';
+                menu.style.left = `${rect.left}px`;
+                menu.style.top = `${rect.bottom + 4}px`;
+                
+                // 邊界檢查：如果超出右邊界，向左偏移
+                const menuRect = menu.getBoundingClientRect();
+                if (menuRect.right > window.innerWidth) {
+                    menu.style.left = `${rect.right - menuRect.width}px`;
+                }
+                // 如果超出底部，顯示在按鈕上方
+                if (menuRect.bottom > window.innerHeight) {
+                    menu.style.top = `${rect.top - menuRect.height - 4}px`;
+                }
+                
+                menu.style.display = 'block';
+                currentMenuUserId = userId;
+            } catch (error) {
+                console.error('獲取用戶資料失敗:', error);
+                showToast('無法載入操作選項');
+            }
+        }
+        
+        // 關閉全局菜單
+        function closeGlobalMenu() {
+            const menu = document.getElementById('globalActionMenu');
+            if (menu) {
+                menu.style.display = 'none';
+                menu.innerHTML = ''; // 清空內容
+            }
+            currentMenuUserId = null;
+        }
+        
+        // 處理菜單點擊（事件委託）
+        function handleMenuClick(event) {
+            const target = event.target.closest('.menu-item');
+            if (!target) return;
+            
+            const action = target.getAttribute('data-action');
+            const userId = target.getAttribute('data-userid');
+            if (!userId) return;
+            
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // 執行對應動作
+            switch (action) {
+                case 'setAsTeacher':
+                    window.setAsTeacher(userId);
+                    break;
+                case 'removeTeacher':
+                    window.removeTeacher(userId);
+                    break;
+                case 'disableUser':
+                    window.disableUser(userId);
+                    break;
+                case 'enableUser':
+                    window.enableUser(userId);
+                    break;
+                default:
+                    break;
+            }
+            
+            closeGlobalMenu();
+        }
+        
+        // 重新加載用戶列表（保留分頁狀態）
         async function reloadUsers() {
             lastVisible = null;
             hasMore = true;
@@ -1137,7 +1188,7 @@
             await updateStats();
         }
         
-        // 生成用戶行
+        // 生成用戶行（不再包含內嵌菜單）
         function generateUserRow(docId, user) {
             const activity = getActivityDisplay(user.lastActiveAt || user.lastLoginAt);
             const lastActiveDate = formatDate(user.lastActiveAt || user.lastLoginAt);
@@ -1171,30 +1222,9 @@
                 nameHtml += `<span class="role-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>`;
             }
             
-            let menuHtml = `<div class="action-dropdown" id="menu-${docId}" style="display: none;">`;
-            
-            if (currentUserIsAdmin) {
-                if (isTeacher) {
-                    menuHtml += `<div class="menu-item" onclick="removeTeacher('${docId}'); closeMenu('${docId}')"><i class="fas fa-user-slash"></i> 移除老師權限</div>`;
-                } else if (!isAdmin) {
-                    menuHtml += `<div class="menu-item" onclick="setAsTeacher('${docId}'); closeMenu('${docId}')"><i class="fas fa-chalkboard-teacher"></i> 設為老師</div>`;
-                }
-                menuHtml += `<div class="menu-divider"></div>`;
-                if (isDisabled) {
-                    menuHtml += `<div class="menu-item" onclick="enableUser('${docId}'); closeMenu('${docId}')"><i class="fas fa-check-circle"></i> 啟用帳號</div>`;
-                } else {
-                    menuHtml += `<div class="menu-item" onclick="disableUser('${docId}'); closeMenu('${docId}')"><i class="fas fa-ban"></i> 停用帳號</div>`;
-                }
-            }
-            menuHtml += `</div>`;
-            
             return `
                 <tr ${isDisabled ? 'class="disabled-row"' : ''}>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                            ${nameHtml}
-                        </div>
-                    </td>
+                    <td><div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">${nameHtml}</div></td>
                     <td style="max-width: 200px;">
                         <div class="email-display">${escapeHtml(user.email || '-')}</div>
                         <div class="phone-cell ${phoneClass}" id="phone-${docId}">
@@ -1232,12 +1262,9 @@
                     <td class="date-cell">${createdAt}<br>${lastActiveDate}</td>
                     <td><span class="status-icon ${activity.class}">${activity.icon} ${activity.text}</span></td>
                     <td>
-                        <div class="action-menu">
-                            <button class="action-btn" onclick="toggleActionMenu('${docId}', event)">
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                            ${menuHtml}
-                        </div>
+                        <button class="action-btn" onclick="showGlobalMenu('${docId}', event)">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
                     </td>
                 </tr>
             `;
@@ -1286,7 +1313,7 @@
             
             if (!usersList) return;
             if (!loadMore) {
-                usersList.innerHTML = '    <tr><td colspan="9" class="loading">載入中...</td></tr>';
+                usersList.innerHTML = '<tr><td colspan="9" class="loading">載入中...</td></tr>';
                 if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             }
             if (isLoading || !hasMore) return;
@@ -1327,7 +1354,7 @@
                 hasMore = querySnapshot.docs.length === PAGE_SIZE;
                 
                 if (querySnapshot.empty && !loadMore) {
-                    usersList.innerHTML = '    <tr><td colspan="9" class="loading">沒有找到用戶</td></tr>';
+                    usersList.innerHTML = '<tr><td colspan="9" class="loading">沒有找到用戶</td></tr>';
                     return;
                 }
                 
@@ -1346,7 +1373,7 @@
             } catch (error) {
                 console.error('載入用戶失敗:', error);
                 if (!loadMore) {
-                    usersList.innerHTML = `    <tr><td colspan="9" class="loading">載入失敗: ${error.message}</td></tr>`;
+                    usersList.innerHTML = `<tr><td colspan="9" class="loading">載入失敗: ${error.message}</td></tr>`;
                 }
             } finally {
                 isLoading = false;
@@ -1365,7 +1392,7 @@
                 return;
             }
             
-            usersList.innerHTML = '    <tr><td colspan="9" class="loading">搜尋中...</td></tr>';
+            usersList.innerHTML = '<tr><td colspan="9" class="loading">搜尋中...</td></tr>';
             if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             
             try {
@@ -1402,12 +1429,12 @@
                 });
                 
                 if (matchCount === 0) {
-                    usersList.innerHTML = `    <td><td colspan="9" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
+                    usersList.innerHTML = `<tr><td colspan="9" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
                 } else {
                     usersList.innerHTML = html;
                 }
             } catch (error) {
-                usersList.innerHTML = `    <tr><td colspan="9" class="loading">搜尋失敗: ${error.message}</td></tr>`;
+                usersList.innerHTML = `<tr><td colspan="9" class="loading">搜尋失敗: ${error.message}</td></tr>`;
             }
         }
 
@@ -1441,8 +1468,19 @@
 
         window.searchUsers = () => performSearch();
         window.loadMoreUsers = () => loadUsers(currentFilter, true);
-        window.closeMenu = closeMenu;
-
+        
+        // 全局點擊監聽器，點擊菜單外關閉
+        document.addEventListener('click', (event) => {
+            const menu = document.getElementById('globalActionMenu');
+            const actionButton = event.target.closest('.action-btn');
+            if (!actionButton && menu && menu.style.display === 'block') {
+                closeGlobalMenu();
+            }
+        });
+        
+        // 監聽菜單內點擊（事件委託）
+        document.getElementById('globalActionMenu')?.addEventListener('click', handleMenuClick);
+        
         // ============================================
         // 載入管理介面
         // ============================================
@@ -1568,16 +1606,6 @@
                         <button onclick="logout()" class="btn-toggle" style="margin-top: 20px;">登出</button>
                     </div>
                 `;
-            }
-        });
-        
-        // 點擊外部關閉菜單
-        document.addEventListener('click', (event) => {
-            if (!event.target.closest('.action-btn') && !event.target.closest('.action-dropdown')) {
-                document.querySelectorAll('[id^="menu-"]').forEach(menu => {
-                    menu.style.display = 'none';
-                });
-                currentOpenMenu = null;
             }
         });
         
