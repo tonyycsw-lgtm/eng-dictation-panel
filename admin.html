@@ -1017,59 +1017,53 @@
         // 操作菜單
         let currentOpenMenu = null;
         
-        window.toggleActionMenu = (userId, event) => {
-            event.stopPropagation();
-            
-            // 關閉其他菜單
-            if (currentOpenMenu && currentOpenMenu !== userId) {
-                const prevMenu = document.getElementById(`menu-${currentOpenMenu}`);
-                if (prevMenu) prevMenu.style.display = 'none';
-            }
-            
-            const currentMenu = document.getElementById(`menu-${userId}`);
-            if (!currentMenu) return;
-            
-            const isVisible = currentMenu.style.display === 'block';
-            
-            // 關閉所有菜單
-            document.querySelectorAll('[id^="menu-"]').forEach(menu => {
-                menu.style.display = 'none';
-            });
-            
-            if (!isVisible) {
-                const button = event.currentTarget;
-                const rect = button.getBoundingClientRect();
-                const menuWidth = currentMenu.offsetWidth || 150;
-                const menuHeight = currentMenu.offsetHeight || 200;
-                
-                // 計算菜單在視窗中的理想位置
-                let left = rect.left;
-                let top = rect.top + rect.height;
-                
-                // 左右邊界檢查
-                if (left + menuWidth > window.innerWidth) {
-                    left = rect.left - menuWidth;
-                }
-                if (left < 0) left = 10;
-                
-                // 上下邊界檢查
-                if (top + menuHeight > window.innerHeight) {
-                    top = rect.top - menuHeight;
-                }
-                if (top < 0) top = 10;
-                
-                // 轉換為相對於表格容器的位置
-                const tableContainer = document.querySelector('.users-table');
-                const tableRect = tableContainer.getBoundingClientRect();
-                currentMenu.style.position = 'absolute';
-                currentMenu.style.left = `${left - tableRect.left}px`;
-                currentMenu.style.top = `${top - tableRect.top}px`;
-                currentMenu.style.display = 'block';
-                currentOpenMenu = userId;
-            } else {
-                currentOpenMenu = null;
-            }
-        };
+       window.toggleActionMenu = (userId, event) => {
+    event.stopPropagation();
+    
+    // 關閉其他菜單
+    document.querySelectorAll('[id^="menu-"]').forEach(menu => {
+        if (menu.id !== `menu-${userId}`) {
+            menu.style.display = 'none';
+        }
+    });
+    
+    const currentMenu = document.getElementById(`menu-${userId}`);
+    if (!currentMenu) return;
+    
+    const isVisible = currentMenu.style.display === 'block';
+    
+    if (!isVisible) {
+        const button = event.currentTarget;
+        const rect = button.getBoundingClientRect();
+        const menuWidth = currentMenu.offsetWidth || 150;
+        const menuHeight = currentMenu.offsetHeight || 200;
+        
+        // 計算菜單位置（相對於視窗）
+        let left = rect.left;
+        let top = rect.bottom + 5;
+        
+        // 右邊界檢查：如果超出右邊，顯示在按鈕左側
+        if (left + menuWidth > window.innerWidth) {
+            left = rect.right - menuWidth;
+        }
+        // 左邊界檢查
+        if (left < 0) left = 5;
+        
+        // 下邊界檢查：如果超出底部，顯示在按鈕上方
+        if (top + menuHeight > window.innerHeight) {
+            top = rect.top - menuHeight - 5;
+        }
+        if (top < 0) top = 5;
+        
+        // 使用 fixed 定位，相對於視窗
+        currentMenu.style.position = 'fixed';
+        currentMenu.style.left = `${left}px`;
+        currentMenu.style.top = `${top}px`;
+        currentMenu.style.display = 'block';
+    } else {
+        currentMenu.style.display = 'none';
+    }
+};
         
         function closeMenu(userId) {
             const menu = document.getElementById(`menu-${userId}`);
