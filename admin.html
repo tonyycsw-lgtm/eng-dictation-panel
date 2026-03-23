@@ -384,36 +384,39 @@
       text-overflow: ellipsis;
     }
     
-    /* 備註欄懸停顯示完整內容 */
-    .notes-cell {
-      max-width: 180px;
-      position: relative;
-    }
-    
-    .notes-display {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      display: inline-block;
-      max-width: 150px;
-    }
-    
-    .notes-display:hover {
-      overflow: visible;
-      white-space: normal;
-      position: absolute;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 4px 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      z-index: 10;
-      max-width: 300px;
-      word-break: break-word;
-      left: 0;
-      top: 100%;
-      margin-top: 4px;
-    }
+/* 備註欄懸停顯示完整內容 - 修復抖動 */
+.notes-cell {
+  max-width: 180px;
+  position: relative;
+}
+
+.notes-display {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  max-width: 150px;
+}
+
+/* 懸停在整個單元格上時顯示完整內容 */
+.notes-cell:hover .notes-display {
+  overflow: visible;
+  white-space: normal;
+  position: absolute;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 10;
+  max-width: 280px;
+  width: auto;
+  min-width: 150px;
+  word-break: break-word;
+  left: 0;
+  top: 100%;
+  margin-top: 4px;
+}
     
     .phone-unset, .notes-unset, .publisher-unset {
       color: #94a3b8;
