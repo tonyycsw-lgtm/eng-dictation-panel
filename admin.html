@@ -324,28 +324,32 @@
             background: #4338ca;
         }
         
-        .action-dropdown {
-            position: absolute;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 1000;
-            min-width: 150px;
-        }
+.action-dropdown {
+    position: absolute;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    min-width: 150px;
+    background-color: #ffffff;  
+    opacity: 1;                 
+    visibility: visible;    
+}
         
-        .menu-item {
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 13px;
-            color: #1e293b;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-bottom: 1px solid #f1f5f9;
-            background: #ffffff;
-        }
+.menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #1e293b;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #ffffff;
+    background-color: #ffffff;  /* 確保不透明 */
+}
         
         .menu-item:last-child {
             border-bottom: none;
@@ -1017,7 +1021,7 @@
         // 操作菜單
         let currentOpenMenu = null;
         
-       window.toggleActionMenu = (userId, event) => {
+window.toggleActionMenu = (userId, event) => {
     event.stopPropagation();
     
     // 關閉其他菜單
@@ -1038,24 +1042,22 @@
         const menuWidth = currentMenu.offsetWidth || 150;
         const menuHeight = currentMenu.offsetHeight || 200;
         
-        // 計算菜單位置（相對於視窗）
-        let left = rect.left;
-        let top = rect.bottom + 5;
+        // 固定顯示在按鈕左側
+        let left = rect.left - menuWidth - 5;
+        let top = rect.top;
         
-        // 右邊界檢查：如果超出右邊，顯示在按鈕左側
-        if (left + menuWidth > window.innerWidth) {
-            left = rect.right - menuWidth;
+        // 左邊界檢查：如果左側空間不足，顯示在右側
+        if (left < 5) {
+            left = rect.right + 5;
         }
-        // 左邊界檢查
-        if (left < 0) left = 5;
         
-        // 下邊界檢查：如果超出底部，顯示在按鈕上方
+        // 上下邊界檢查
         if (top + menuHeight > window.innerHeight) {
-            top = rect.top - menuHeight - 5;
+            top = window.innerHeight - menuHeight - 5;
         }
-        if (top < 0) top = 5;
+        if (top < 5) top = 5;
         
-        // 使用 fixed 定位，相對於視窗
+        // 使用 fixed 定位
         currentMenu.style.position = 'fixed';
         currentMenu.style.left = `${left}px`;
         currentMenu.style.top = `${top}px`;
@@ -1063,8 +1065,7 @@
     } else {
         currentMenu.style.display = 'none';
     }
-};
-        
+};        
         function closeMenu(userId) {
             const menu = document.getElementById(`menu-${userId}`);
             if (menu) menu.style.display = 'none';
