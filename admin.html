@@ -143,7 +143,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1100px;
+            min-width: 1000px;
         }
         
         th {
@@ -169,17 +169,15 @@
         }
         
         /* 欄位寬度 */
-        th:nth-child(1), td:nth-child(1) { min-width: 120px; }  /* 用戶 */
+        th:nth-child(1), td:nth-child(1) { min-width: 140px; }  /* 用戶 */
         th:nth-child(2), td:nth-child(2) { min-width: 160px; }  /* 聯絡 */
-        th:nth-child(3), td:nth-child(3) { min-width: 100px; }  /* 電話 */
-        th:nth-child(4), td:nth-child(4) { min-width: 100px; }  /* 學校 */
-        th:nth-child(5), td:nth-child(5) { min-width: 100px; }  /* 教材 */
-        th:nth-child(6), td:nth-child(6) { min-width: 70px; }   /* 年級 */
-        th:nth-child(7), td:nth-child(7) { min-width: 100px; }  /* 備註 */
-        th:nth-child(8), td:nth-child(8) { min-width: 110px; }  /* 註冊/活躍 */
-        th:nth-child(9), td:nth-child(9) { min-width: 90px; }   /* 活躍狀態 */
-        th:nth-child(10), td:nth-child(10) { min-width: 80px; } /* 狀態 */
-        th:nth-child(11), td:nth-child(11) { min-width: 50px; } /* 操作 */
+        th:nth-child(3), td:nth-child(3) { min-width: 100px; }  /* 學校 */
+        th:nth-child(4), td:nth-child(4) { min-width: 100px; }  /* 教材 */
+        th:nth-child(5), td:nth-child(5) { min-width: 70px; }   /* 年級 */
+        th:nth-child(6), td:nth-child(6) { min-width: 100px; }  /* 備註 */
+        th:nth-child(7), td:nth-child(7) { min-width: 110px; }  /* 註冊/活躍 */
+        th:nth-child(8), td:nth-child(8) { min-width: 90px; }   /* 活躍狀態 */
+        th:nth-child(9), td:nth-child(9) { min-width: 50px; }   /* 操作 */
         
         .loading {
             text-align: center;
@@ -257,33 +255,26 @@
         .status-week { color: #f97316; }
         .status-offline { color: #94a3b8; }
         
-        /* 帳號狀態 - 圖標 + 文字 */
-        .account-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 13px;
-            white-space: nowrap;
-        }
-        
-        .account-normal {
-            color: #10b981;
-        }
-        
-        .account-disabled {
-            color: #ef4444;
-        }
-        
-        .account-status i {
-            font-size: 13px;
-        }
-        
         /* 身份標籤 - 金黃色 */
         .role-badge {
             display: inline-flex;
             align-items: center;
             gap: 4px;
             background: #f59e0b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 500;
+            margin-left: 6px;
+        }
+        
+        /* 停用標籤 - 紅色 */
+        .disabled-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #ef4444;
             color: white;
             padding: 2px 8px;
             border-radius: 20px;
@@ -767,7 +758,7 @@
             input.focus();
         };
         
-        // 年級編輯 - 點擊 ✏️ 圖標（只有管理員可編輯）
+        // 年級編輯 - 點擊 ✏️ 圖標（只有管理員可編輯）- 已移除 confirm
         window.editGrade = (userId) => {
             if (!currentUserIsAdmin) return;
             
@@ -803,11 +794,7 @@
                 return;
             }
             
-            const confirmMsg = `⚠️ 修改年級會影響學生可看到的教材內容\n\n確定將年級從「${oldGrade || '未設定'}」改為「${newGrade || '未設定'}」嗎？`;
-            if (!confirm(confirmMsg)) {
-                cancelEditGrade(userId);
-                return;
-            }
+            // 已移除 confirm 對話框，直接儲存
             
             try {
                 const userRef = doc(db, 'users', userId);
@@ -1127,10 +1114,16 @@
             const notesDisplay = user.notes || '未填寫';
             const notesClass = user.notes ? '' : 'notes-unset';
             
-            // 狀態文字
-            const statusText = isDisabled ? '已停用' : '正常';
-            const statusIcon = isDisabled ? 'fa-ban' : 'fa-check-circle';
-            const statusClass = isDisabled ? 'account-disabled' : 'account-normal';
+            // 用戶名稱（含停用標籤）
+            let nameHtml = `<strong>${escapeHtml(user.displayName || '-')}</strong>`;
+            if (isDisabled) {
+                nameHtml += `<span class="disabled-badge">已停用</span>`;
+            }
+            if (isAdmin) {
+                nameHtml += `<span class="role-badge"><i class="fas fa-crown"></i> 管理員</span>`;
+            } else if (isTeacher) {
+                nameHtml += `<span class="role-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>`;
+            }
             
             // 操作菜單
             let menuHtml = `<div class="action-dropdown" id="menu-${docId}" style="display: none;">`;
@@ -1154,17 +1147,15 @@
                 <tr ${isDisabled ? 'class="disabled-row"' : ''}>
                     <td>
                         <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                            <strong>${escapeHtml(user.displayName || '-')}</strong>
-                            ${isAdmin ? '<span class="role-badge"><i class="fas fa-crown"></i> 管理員</span>' : ''}
-                            ${isTeacher ? '<span class="role-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>' : ''}
+                            ${nameHtml}
                         </div>
-                     </div>
+                    </td>
                     <td style="max-width: 200px;">
                         <div class="email-display">${escapeHtml(user.email || '-')}</div>
                         <div class="phone-cell ${phoneClass}" id="phone-${docId}">
                             <span class="phone-display editable-click" onclick="editPhone('${docId}')">${phoneDisplay}</span>
                         </div>
-                     </div>
+                    </td>
                     <td class="${schoolClass}" id="school-${docId}">
                         <span class="school-display editable-click" onclick="editSchool('${docId}')">${schoolDisplay}</span>
                      </div>
@@ -1195,9 +1186,6 @@
                      </div>
                     <td class="date-cell">${createdAt}<br>${lastActiveDate}</td>
                     <td><span class="status-icon ${activity.class}">${activity.icon} ${activity.text}</span></td>
-                    <td class="account-status ${statusClass}">
-                        <i class="fas ${statusIcon}"></i> ${statusText}
-                    </td>
                     <td>
                         <div class="action-menu">
                             <button class="action-btn" onclick="toggleActionMenu('${docId}', event)">
@@ -1205,7 +1193,7 @@
                             </button>
                             ${menuHtml}
                         </div>
-                    </td>
+                     </div>
                 </tr>
             `;
         }
@@ -1253,7 +1241,7 @@
             
             if (!usersList) return;
             if (!loadMore) {
-                usersList.innerHTML = '    <tr><td colspan="11" class="loading">載入中...</td></tr>';
+                usersList.innerHTML = '<tr><td colspan="9" class="loading">載入中...</td></tr>';
                 if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             }
             if (isLoading || !hasMore) return;
@@ -1294,7 +1282,7 @@
                 hasMore = querySnapshot.docs.length === PAGE_SIZE;
                 
                 if (querySnapshot.empty && !loadMore) {
-                    usersList.innerHTML = '    <tr><td colspan="11" class="loading">沒有找到用戶</td></tr>';
+                    usersList.innerHTML = '<tr><td colspan="9" class="loading">沒有找到用戶</td></tr>';
                     return;
                 }
                 
@@ -1314,7 +1302,7 @@
             } catch (error) {
                 console.error('載入用戶失敗:', error);
                 if (!loadMore) {
-                    usersList.innerHTML = `    <tr><td colspan="11" class="loading">載入失敗: ${error.message}</td></tr>`;
+                    usersList.innerHTML = `<tr><td colspan="9" class="loading">載入失敗: ${error.message}</td></tr>`;
                 }
             } finally {
                 isLoading = false;
@@ -1333,7 +1321,7 @@
                 return;
             }
             
-            usersList.innerHTML = '    <tr><td colspan="11" class="loading">搜尋中...</td></tr>';
+            usersList.innerHTML = '<tr><td colspan="9" class="loading">搜尋中...</td></tr>';
             if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             
             try {
@@ -1371,12 +1359,12 @@
                 });
                 
                 if (matchCount === 0) {
-                    usersList.innerHTML = `    <tr><td colspan="11" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
+                    usersList.innerHTML = `<tr><td colspan="9" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
                 } else {
                     usersList.innerHTML = html;
                 }
             } catch (error) {
-                usersList.innerHTML = `    <tr><td colspan="11" class="loading">搜尋失敗: ${error.message}</td></tr>`;
+                usersList.innerHTML = `<tr><td colspan="9" class="loading">搜尋失敗: ${error.message}</td></tr>`;
             }
         }
 
@@ -1443,7 +1431,7 @@
                     </div>
                     
                     <div class="filters">
-                        <button class="filter-btn active" onclick="filterUsers('all')">全部會員</button>
+                        <button class="filter-btn active" onclick="filterUsers('all')">全部用戶</button>
                         <button class="filter-btn" onclick="filterUsers('online')">🟢 在線中</button>
                         <button class="filter-btn" onclick="filterUsers('today')">📅 今日活躍</button>
                         <button class="filter-btn" onclick="filterUsers('week')">📊 本週活躍</button>
@@ -1462,12 +1450,11 @@
                                     <th>備註</th>
                                     <th>註冊/活躍</th>
                                     <th>活躍狀態</th>
-                                    <th>狀態</th>
                                     <th>操作</th>
                                 </tr>
                             </thead>
                             <tbody id="usersList">
-                                <tr><td colspan="10" class="loading">載入中...</td></tr>
+                                <tr><td colspan="9" class="loading">載入中...</td></tr>
                             </tbody>
                         </table>
                         <div id="loadMoreContainer" class="load-more-container" style="display: none;">
