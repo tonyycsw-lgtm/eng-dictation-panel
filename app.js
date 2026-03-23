@@ -18,7 +18,8 @@ let defaultStars = {};
 
 // 用戶狀態
 let currentUser = null;
-let isGuestMode = false;
+let currentUserRole = 'user';      // 新增：當前用戶角色
+let isGuestMode = false;            // 已移除訪客模式，保留變量以兼容
 let lastSyncTime = null;
 
 // === 改良的音頻播放器 ===
@@ -156,7 +157,50 @@ function formatTime(minutes) {
     return mins > 0 ? `${hours} 小時 ${mins} 分鐘` : `${hours} 小時`;
 }
 
-// === 活躍度同步（替代星星同步）===
+// ===== 🔥 新增：檢查帳號是否停用 =====
+async function isUserDisabled(userId) {
+    try {
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            return userSnap.data().isDisabled === true;
+        }
+        return false;
+    } catch (error) {
+        console.error('檢查停用狀態失敗:', error);
+        return false;
+    }
+}
+
+// ===== 🔥 新增：獲取用戶角色（兩種方式）=====
+async function getUserRole(userId) {
+    try {
+        // 方式 1：從 Firestore 讀取 role 欄位
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+            const userData = userSnap.data();
+            if (userData.role) {
+                return userData.role;
+            }
+        }
+        
+        // 方式 2：從 Custom Claims 讀取（備用）
+        if (auth.currentUser) {
+            const idTokenResult = await auth.currentUser.getIdTokenResult();
+            if (idTokenResult.claims.admin === true) return 'admin';
+            if (idTokenResult.claims.teacher === true) return 'teacher';
+        }
+        
+        return 'user';
+    } catch (error) {
+        console.error('獲取角色失敗:', error);
+        return 'user';
+    }
+}
+
+// === 活躍度同步 ===
 async function syncActivityToCloud() {
     if (!currentUser || isGuestMode) return;
     
@@ -177,7 +221,7 @@ async function syncActivityToCloud() {
     }
 }
 
-// === 用戶介面更新 ===
+// === 用戶介面更新（包含上傳按鈕權限控制）===
 function updateUserInterface() {
     const userInfoDiv = document.getElementById('userInfo');
     const userActionsDiv = document.getElementById('userActions');
@@ -191,10 +235,18 @@ function updateUserInterface() {
         const displayName = currentUser.displayName || currentUser.email || '用戶';
         const email = currentUser.email || '';
         
+        // 根據角色顯示不同標籤
+        let roleLabel = '';
+        if (currentUserRole === 'admin') {
+            roleLabel = '<span style="background:#4f46e5; color:white; padding:2px 8px; border-radius:20px; font-size:10px; margin-left:8px;">管理員</span>';
+        } else if (currentUserRole === 'teacher') {
+            roleLabel = '<span style="background:#f59e0b; color:white; padding:2px 8px; border-radius:20px; font-size:10px; margin-left:8px;">老師</span>';
+        }
+        
         userInfoDiv.innerHTML = `
             ${photoURL ? `<img src="${photoURL}" class="user-avatar" alt="頭像">` : '<div style="width:40px;height:40px;border-radius:50%;background:#667eea;display:flex;align-items:center;justify-content:center;color:white;"><i class="fas fa-user"></i></div>'}
             <div>
-                <div class="user-name">${escapeHtml(displayName)}</div>
+                <div class="user-name">${escapeHtml(displayName)}${roleLabel}</div>
                 <div class="user-email">${escapeHtml(email)}</div>
             </div>
             <div class="sync-status" id="sync-status">
@@ -210,57 +262,20 @@ function updateUserInterface() {
         
         document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
         
-        // 顯示上傳按鈕（所有登入用戶都可以上傳）
-        if (uploadWrapper) uploadWrapper.style.display = 'flex';
-        
-    } else if (isGuestMode) {
-        // 訪客模式
-        userInfoDiv.innerHTML = `
-            <div style="width:40px;height:40px;border-radius:50%;background:#a0aec0;display:flex;align-items:center;justify-content:center;color:white;">
-                <i class="fas fa-user"></i>
-            </div>
-            <div>
-                <div class="user-name">訪客模式</div>
-                <div class="user-email">進度儲存在本地</div>
-            </div>
-        `;
-        
-        userActionsDiv.innerHTML = `
-            <button class="logout-btn" id="loginBtn" style="background:#4299e1;">
-                <i class="fas fa-sign-in-alt"></i> 登入以記錄活躍度
-            </button>
-        `;
-        
-        document.getElementById('loginBtn')?.addEventListener('click', () => {
-            window.location.href = './login.html';
-        });
-        
-        // 訪客模式隱藏上傳按鈕
-        if (uploadWrapper) uploadWrapper.style.display = 'none';
+        // ===== 🔥 上傳按鈕權限控制：只有管理員和老師可以看到 =====
+        if (uploadWrapper) {
+            if (currentUserRole === 'admin' || currentUserRole === 'teacher') {
+                uploadWrapper.style.display = 'flex';
+                console.log('✅ 上傳按鈕已顯示（角色:', currentUserRole, '）');
+            } else {
+                uploadWrapper.style.display = 'none';
+                console.log('🔒 上傳按鈕已隱藏（角色:', currentUserRole, '）');
+            }
+        }
         
     } else {
-        // 未登入，顯示登入按鈕
-        userInfoDiv.innerHTML = `
-            <div style="width:40px;height:40px;border-radius:50%;background:#a0aec0;display:flex;align-items:center;justify-content:center;color:white;">
-                <i class="fas fa-user"></i>
-            </div>
-            <div>
-                <div class="user-name">未登入</div>
-                <div class="user-email">登入以記錄活躍度</div>
-            </div>
-        `;
-        
-        userActionsDiv.innerHTML = `
-            <button class="logout-btn" id="loginBtn" style="background:#4299e1;">
-                <i class="fas fa-sign-in-alt"></i> 登入
-            </button>
-        `;
-        
-        document.getElementById('loginBtn')?.addEventListener('click', () => {
-            window.location.href = './login.html';
-        });
-        
-        if (uploadWrapper) uploadWrapper.style.display = 'none';
+        // 未登入或訪客模式（訪客模式已移除，跳轉到登入頁）
+        window.location.href = './login.html';
     }
 }
 
@@ -277,16 +292,10 @@ function escapeHtml(str) {
 // === 登出處理 ===
 async function handleLogout() {
     try {
-        // 同步最後的活躍度數據
         await syncActivityToCloud();
         await signOut(auth);
         currentUser = null;
-        isGuestMode = false;
-        
-        // 清除訪客模式標記
-        localStorage.removeItem('guestMode');
-        
-        // 重新載入頁面
+        currentUserRole = 'user';
         window.location.href = './login.html';
     } catch (error) {
         console.error('登出失敗:', error);
@@ -337,7 +346,6 @@ function initStarData() {
     appData.words.forEach(word => allIds.push(word.id));
     appData.sentences.forEach(sentence => allIds.push(sentence.id));
     
-    // 初始化 defaultStars
     allIds.forEach(id => {
         defaultStars[id] = 0;
         if (starData[id] === undefined) {
@@ -381,16 +389,17 @@ function saveLearningStats() {
 function saveStarData() {
     localStorage.setItem('starData', JSON.stringify(starData));
     updateDataStatus();
-    // 星星數據不上雲，只存本地
 }
 
 function updateDataStatus() {
     const status = document.getElementById('data-status');
-    status.classList.add('saving');
-    setTimeout(() => status.classList.remove('saving'), 500);
+    if (status) {
+        status.classList.add('saving');
+        setTimeout(() => status.classList.remove('saving'), 500);
+    }
 }
 
-// === 卡片生成（保持不變）===
+// === 卡片生成 ===
 function generateWordCard(word, index) {
     const number = `單詞 ${index + 1}`;
     return `
@@ -666,8 +675,12 @@ function updateUnitStatsDisplay() {
 
 // === 分頁管理 ===
 function showTab(tabName) {
+    const event = window.event;
+    if (event) {
+        event.target.classList.add('active');
+    }
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    if (event && event.target) event.target.classList.add('active');
     document.querySelectorAll('.cards-section').forEach(section => section.classList.remove('active'));
     document.getElementById(tabName + '-cards').classList.add('active');
 }
@@ -686,7 +699,6 @@ async function loadUnit(unitId) {
         initLearningStats();
         generateCards();
         
-        // 更新星星顯示
         Object.keys(starData).forEach(key => {
             createStars(key, starData[key]);
             disableButtons(key);
@@ -804,22 +816,30 @@ function resetAllUnitsData(event) {
 
 // === 初始化 ===
 async function initPage() {
-    // 檢查訪客模式
-    const guestModeFlag = localStorage.getItem('guestMode');
-    if (guestModeFlag === 'true') {
-        isGuestMode = true;
-    }
-    
     // 監聽 Firebase 認證狀態
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             // 用戶已登入
             console.log('✅ 用戶已登入:', user.email);
+            
+            // ===== 🔥 檢查帳號是否被停用 =====
+            const isDisabled = await isUserDisabled(user.uid);
+            if (isDisabled) {
+                console.log('🔒 帳號已被停用，拒絕登入');
+                await signOut(auth);
+                alert('您的帳號已被停用，請聯絡管理員');
+                window.location.href = './login.html';
+                return;
+            }
+            
             currentUser = user;
             isGuestMode = false;
-            localStorage.removeItem('guestMode');
             
-            // 從 LocalStorage 載入星星數據（不上雲）
+            // ===== 🔥 獲取用戶角色 =====
+            currentUserRole = await getUserRole(user.uid);
+            console.log('👤 用戶角色:', currentUserRole);
+            
+            // 從 LocalStorage 載入星星數據
             const savedStarData = localStorage.getItem('starData');
             if (savedStarData) {
                 starData = JSON.parse(savedStarData);
@@ -834,77 +854,48 @@ async function initPage() {
                 learningStats = JSON.parse(savedStats);
             }
             
-         // 更新用戶活躍度到雲端，並自動補充缺失欄位
-try {
-    const userRef = doc(db, 'users', user.uid);
-    const userSnap = await getDoc(userRef);
-    
-    if (!userSnap.exists()) {
-        // 新用戶：建立完整文檔
-        await setDoc(userRef, {
-            email: user.email,
-            displayName: user.displayName || user.email || '會員',
-            photoURL: user.photoURL || null,
-            role: 'user',
-            loginCount: 1,
-            totalLearningTime: 0,
-            createdAt: new Date().toISOString(),
-            lastLoginAt: new Date().toISOString(),
-            lastActiveAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        });
-        console.log('✅ 新用戶資料已建立');
-    } else {
-        // 現有用戶：檢查並補充缺失的欄位
-        const currentData = userSnap.data();
-        const updates = {};
-        
-        // 補充 email 欄位（如果缺失）
-        if (!currentData.email) {
-            updates.email = user.email;
-        }
-        
-        // 補充 displayName 欄位（如果缺失）
-        if (!currentData.displayName) {
-            updates.displayName = user.displayName || user.email || '會員';
-        }
-        
-        // 補充 role 欄位（如果缺失）
-        if (currentData.role === undefined) {
-            updates.role = 'user';
-        }
-        
-        // 補充 loginCount 欄位（如果缺失）
-        if (currentData.loginCount === undefined) {
-            updates.loginCount = 0;
-        }
-        
-        // 補充 totalLearningTime 欄位（如果缺失）
-        if (currentData.totalLearningTime === undefined) {
-            updates.totalLearningTime = 0;
-        }
-        
-        // 補充 createdAt 欄位（如果缺失）
-        if (!currentData.createdAt) {
-            updates.createdAt = new Date().toISOString();
-        }
-        
-        // 更新登入次數和最後登入時間（總是更新）
-        updates.lastLoginAt = new Date().toISOString();
-        updates.loginCount = (currentData.loginCount || 0) + 1;
-        updates.updatedAt = new Date().toISOString();
-        
-        // 執行更新
-        if (Object.keys(updates).length > 0) {
-            await updateDoc(userRef, updates);
-            console.log('✅ 用戶資料已更新，補充欄位:', Object.keys(updates));
-        } else {
-            console.log('✅ 用戶資料已是最新');
-        }
-    }
-} catch (error) {
-    console.error('更新用戶活躍度失敗:', error);
-}
+            // 更新用戶活躍度到雲端
+            try {
+                const userRef = doc(db, 'users', user.uid);
+                const userSnap = await getDoc(userRef);
+                
+                if (!userSnap.exists()) {
+                    await setDoc(userRef, {
+                        email: user.email,
+                        displayName: user.displayName || user.email || '會員',
+                        photoURL: user.photoURL || null,
+                        role: 'user',
+                        loginCount: 1,
+                        totalLearningTime: 0,
+                        createdAt: new Date().toISOString(),
+                        lastLoginAt: new Date().toISOString(),
+                        lastActiveAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    });
+                    console.log('✅ 新用戶資料已建立');
+                } else {
+                    const currentData = userSnap.data();
+                    const updates = {};
+                    
+                    if (!currentData.email) updates.email = user.email;
+                    if (!currentData.displayName) updates.displayName = user.displayName || user.email || '會員';
+                    if (currentData.role === undefined) updates.role = 'user';
+                    if (currentData.loginCount === undefined) updates.loginCount = 0;
+                    if (currentData.totalLearningTime === undefined) updates.totalLearningTime = 0;
+                    if (!currentData.createdAt) updates.createdAt = new Date().toISOString();
+                    
+                    updates.lastLoginAt = new Date().toISOString();
+                    updates.loginCount = (currentData.loginCount || 0) + 1;
+                    updates.updatedAt = new Date().toISOString();
+                    
+                    if (Object.keys(updates).length > 0) {
+                        await updateDoc(userRef, updates);
+                        console.log('✅ 用戶資料已更新，補充欄位:', Object.keys(updates));
+                    }
+                }
+            } catch (error) {
+                console.error('更新用戶活躍度失敗:', error);
+            }
             
             // 更新介面
             updateUserInterface();
@@ -920,30 +911,9 @@ try {
             }
             
         } else {
-            // 用戶未登入
-            console.log('👤 用戶未登入');
-            currentUser = null;
-            
-            if (!isGuestMode) {
-                const currentPath = window.location.pathname;
-                if (!currentPath.includes('login.html')) {
-                    console.log('🔄 跳轉到登入頁');
-                    window.location.href = './login.html';
-                }
-                return;
-            }
-            
-            // 訪客模式，從 LocalStorage 載入數據
-            const savedStarData = localStorage.getItem('starData');
-            if (savedStarData) {
-                starData = JSON.parse(savedStarData);
-            }
-            const savedStats = localStorage.getItem('learningStats');
-            if (savedStats) {
-                learningStats = JSON.parse(savedStats);
-            }
-            
-            updateUserInterface();
+            // 用戶未登入，跳轉到登入頁
+            console.log('👤 用戶未登入，跳轉到登入頁');
+            window.location.href = './login.html';
         }
     });
     
