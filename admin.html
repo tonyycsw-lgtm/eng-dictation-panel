@@ -296,6 +296,36 @@
       /* 已移除背景色和透明度，與正常行完全一致 */
     }
     
+    /* 徽章樣式 */
+    .premium-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .premium-true {
+      background: #dcfce7;
+      color: #166534;
+    }
+    
+    .premium-false {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    /* 到期提醒樣式 */
+    .expiring-soon {
+      color: #f97316;
+      font-weight: 500;
+    }
+    
+    .expired-badge {
+      color: #ef4444;
+      font-weight: 500;
+    }
+    
     /* 線上狀態 */
     .online-status {
       font-weight: 600;
@@ -328,7 +358,7 @@
       50% { opacity: 0.5; }
     }
     
-    /* 可編輯欄位 - 點擊直接編輯 */
+    /* 可編輯欄位 */
     .editable-click {
       cursor: pointer;
       padding: 2px 4px;
@@ -341,12 +371,12 @@
       background: #f1f5f9;
     }
     
-    .phone-cell, .notes-cell {
+    .phone-cell, .notes-cell, .displayname-cell {
       position: relative;
       white-space: nowrap;
     }
     
-    .phone-display, .notes-display, .grade-display, .publisher-display {
+    .phone-display, .notes-display, .displayname-display, .grade-display, .publisher-display {
       display: inline-block;
       margin-right: 8px;
       max-width: 120px;
@@ -354,12 +384,43 @@
       text-overflow: ellipsis;
     }
     
+    /* 備註欄懸停顯示完整內容 */
+    .notes-cell {
+      max-width: 180px;
+      position: relative;
+    }
+    
+    .notes-display {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+      max-width: 150px;
+    }
+    
+    .notes-display:hover {
+      overflow: visible;
+      white-space: normal;
+      position: absolute;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 4px 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 10;
+      max-width: 300px;
+      word-break: break-word;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+    }
+    
     .phone-unset, .notes-unset, .publisher-unset {
       color: #94a3b8;
       font-style: italic;
     }
     
-    .edit-input, .phone-input, .notes-input, .publisher-input {
+    .edit-input, .phone-input, .notes-input, .publisher-input, .displayname-input {
       width: 120px;
       padding: 4px 8px;
       border: 1px solid #cbd5e1;
@@ -368,8 +429,8 @@
       margin-right: 4px;
     }
     
-    .grade-select {
-      width: 70px;
+    .grade-select, .plan-select {
+      width: 80px;
       padding: 4px 6px;
       border: 1px solid #cbd5e1;
       border-radius: 4px;
@@ -392,7 +453,7 @@
       background: #e2e8f0;
     }
     
-    /* 操作菜單 - 固定定位由 JS 控制 */
+    /* 操作菜單 */
     .action-menu {
       position: relative;
       display: inline-block;
@@ -487,30 +548,6 @@
     
     .trial-badge.active { background: #dcfce7; color: #166534; }
     .trial-badge.expiring { background: #fef3c7; color: #92400e; }
-    
-    .premium-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    
-    .premium-true {
-      background: #dcfce7;
-      color: #166534;
-    }
-    
-    .premium-false {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-    
-    .expired {
-      color: #ef4444;
-      font-weight: 600;
-      background-color: #fef2f2;
-    }
     
     @keyframes fadeInOut {
       0% { opacity: 0; transform: translateY(20px); }
@@ -638,6 +675,23 @@
       }
     }
 
+    function getExpiryDisplay(expiresAt) {
+      if (!expiresAt) return '-';
+      
+      const expiryDate = new Date(expiresAt);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const daysLeft = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+      
+      if (daysLeft < 0) {
+        return '<span class="expired-badge">⚠️ 已過期</span>';
+      } else if (daysLeft <= 7) {
+        return `<span class="expiring-soon">⚠️ ${daysLeft}天</span>`;
+      } else {
+        return formatDate(expiresAt);
+      }
+    }
+
     function getOnlineStatus(lastLoginAt, isDisabled = false) {
       if (isDisabled) {
         return '<span class="online-status status-offline"><span class="activity-indicator"></span>已停用</span>';
@@ -716,22 +770,41 @@
       menu.style.top = `${top}px`;
     }
 
-    // 生成用戶行 (14欄)
+    // 生成用戶行
     function generateUserRow(docId, user) {
       const isDisabled = user.isDisabled === true;
       const isTeacher = user.role === 'teacher';
       const isAdmin = user.role === 'admin';
       const trialStatus = getTrialStatus(user.trialEndAt);
       
-      let nameHtml = `<strong>${escapeHtml(user.displayName || '-')}</strong>`;
+      // 用戶名稱
+      let nameHtml = `
+        <div class="displayname-cell" id="displayname-${docId}">
+          <span class="displayname-display editable-click" onclick="editDisplayName('${docId}')">${escapeHtml(user.displayName || '未設定')}</span>
+          <input type="text" class="displayname-input" value="${escapeHtml(user.displayName || '')}" style="display:none;">
+          <button class="btn-icon btn-save-displayname" onclick="saveDisplayName('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
+          <button class="btn-icon btn-cancel-displayname" onclick="cancelEditDisplayName('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
+        </div>
+      `;
       if (isAdmin) nameHtml += `<span class="admin-badge"><i class="fas fa-crown"></i> 管理員</span>`;
       else if (isTeacher) nameHtml += `<span class="teacher-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>`;
       
-      const phoneDisplay = user.phoneNumber || '未設定';
-      const notesDisplay = user.notes || '未填寫';
-      const lastActiveDate = formatDate(user.lastActiveAt || user.lastLoginAt);
+      // 方案徽章（合併後）
+      const planMap = { 'free': '免費', 'monthly': '月費', 'annual': '年費', 'custom': '自訂' };
+      const planText = planMap[user.plan] || user.plan || '-';
+      const isPremium = user.premium === true;
+      const planBadgeClass = isPremium ? 'premium-true' : 'premium-false';
       
-      // 操作菜單 HTML
+      // 電話
+      const phoneDisplay = user.phoneNumber || '未設定';
+      
+      // 備註
+      const notesDisplay = user.notes || '未填寫';
+      
+      // 有效期顯示
+      const expiryDisplay = getExpiryDisplay(user.expiresAt);
+      
+      // 操作菜單
       let menuHtml = `<div class="action-dropdown" id="menu-${docId}" style="display: none;">`;
       menuHtml += `
         <div class="menu-item" data-action="setPlan" data-plan="free"><i class="fas fa-times-circle"></i> 設為免費</div>
@@ -765,12 +838,11 @@
       
       return `
         <tr ${isDisabled ? 'class="disabled-row"' : ''}>
-          <td><div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">${nameHtml}</div></td>
+          <td>${nameHtml}</td>
           <td style="max-width:200px;">${escapeHtml(user.email || '-')}</td>
           <td class="phone-cell" id="phone-${docId}">
-            <span class="phone-display ${!user.phoneNumber ? 'phone-unset' : ''}">${escapeHtml(phoneDisplay)}</span>
+            <span class="phone-display editable-click ${!user.phoneNumber ? 'phone-unset' : ''}" onclick="editPhone('${docId}')">${escapeHtml(phoneDisplay)}</span>
             <input type="text" class="phone-input" value="${escapeHtml(user.phoneNumber || '')}" style="display:none;">
-            <button class="btn-icon btn-edit-phone" onclick="editPhone('${docId}')"><i class="fas fa-pen"></i></button>
             <button class="btn-icon btn-save-phone" onclick="savePhone('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-phone" onclick="cancelEditPhone('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
           </td>
@@ -781,17 +853,6 @@
             <button class="btn-icon btn-save-notes" onclick="saveNotes('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-notes" onclick="cancelEditNotes('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
           </td>
-          <td>${formatDate(user.createdAt)}</td>
-          <td>${getOnlineStatus(user.lastActiveAt || user.lastLoginAt, isDisabled)}</td>
-          <td>${lastActiveDate}</td>
-          <td>${user.plan === 'free' ? '免費' : user.plan === 'monthly' ? '月費' : user.plan === 'annual' ? '年費' : user.plan || '-'}</td>
-          <td><span class="premium-badge ${user.premium ? 'premium-true' : 'premium-false'}">${user.premium ? '✅ 付費' : '❌ 免費'}</span></td>
-          <td class="${user.expiresAt && new Date(user.expiresAt) < new Date() ? 'expired' : ''}">${formatDate(user.expiresAt)}</td>
-          <td>
-            <span class="trial-display ${trialStatus}" onclick="editTrial('${docId}')">
-              ${formatTrialDate(user.trialEndAt)} ${getTrialBadge(user.trialEndAt)}
-            </span>
-          </td>
           <td id="grade-${docId}">
             <span class="grade-display editable-click" onclick="editGrade('${docId}')">${escapeHtml(user.grade || '未設定')}</span>
             <select class="grade-select" style="display: none;">
@@ -801,14 +862,24 @@
               <option value="S1">S1</option><option value="S2">S2</option><option value="S3">S3</option>
               <option value="S4">S4</option><option value="S5">S5</option><option value="S6">S6</option>
             </select>
-            <button class="btn-icon btn-save-grade" onclick="saveGrade('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
-            <button class="btn-icon btn-cancel-grade" onclick="cancelEditGrade('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
+            <button class="btn-icon btn-save-grade" onclick="saveGrade('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
+            <button class="btn-icon btn-cancel-grade" onclick="cancelEditGrade('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
           </td>
           <td id="publisher-${docId}" class="${!user.publisher ? 'publisher-unset' : ''}">
             <span class="publisher-display editable-click" onclick="editPublisher('${docId}')">${escapeHtml(user.publisher || '未設定')}</span>
-            <input type="text" class="publisher-input" style="display: none;" value="${escapeHtml(user.publisher || '')}" placeholder="請輸入教材名稱">
-            <button class="btn-icon btn-save-publisher" onclick="savePublisher('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
-            <button class="btn-icon btn-cancel-publisher" onclick="cancelEditPublisher('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
+            <input type="text" class="publisher-input" style="display:none;" value="${escapeHtml(user.publisher || '')}" placeholder="請輸入教材名稱">
+            <button class="btn-icon btn-save-publisher" onclick="savePublisher('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
+            <button class="btn-icon btn-cancel-publisher" onclick="cancelEditPublisher('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
+          </td>
+          <td>${formatDate(user.createdAt)}</td>
+          <td>${formatDate(user.lastActiveAt || user.lastLoginAt)}</td>
+          <td>${getOnlineStatus(user.lastActiveAt || user.lastLoginAt, isDisabled)}</td>
+          <td><span class="premium-badge ${planBadgeClass}">${planText}</span></td>
+          <td>${expiryDisplay}</td>
+          <td>
+            <span class="trial-display ${trialStatus}" onclick="editTrial('${docId}')">
+              ${formatTrialDate(user.trialEndAt)} ${getTrialBadge(user.trialEndAt)}
+            </span>
           </td>
           <td>${isDisabled ? '<span class="disabled-badge"><i class="fas fa-ban"></i> 已停用</span>' : '<span class="active-badge"><i class="fas fa-check-circle"></i> 正常</span>'}</td>
           <td>
@@ -830,7 +901,7 @@
       if (!usersList) return;
       
       if (!loadMore) {
-        usersList.innerHTML = '<tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr>';
+        usersList.innerHTML = '<tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr>';
         if (loadMoreContainer) loadMoreContainer.style.display = 'none';
       }
       
@@ -847,6 +918,27 @@
         } else if (filter === 'premium') {
           q = lastVisible ? query(usersRef, where('premium', '==', true), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
             : query(usersRef, where('premium', '==', true), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+        } else if (filter === 'free') {
+          q = lastVisible ? query(usersRef, where('premium', '==', false), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+            : query(usersRef, where('premium', '==', false), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+        } else if (filter === 'trial-active') {
+          const now = new Date().toISOString();
+          q = lastVisible ? query(usersRef, where('trialEndAt', '>', now), orderBy('trialEndAt', 'asc'), startAfter(lastVisible), limit(PAGE_SIZE))
+            : query(usersRef, where('trialEndAt', '>', now), orderBy('trialEndAt', 'asc'), limit(PAGE_SIZE));
+        } else if (filter === 'expiring-soon') {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const sevenDaysLater = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+          q = lastVisible ? query(usersRef, where('premium', '==', true), where('expiresAt', '>', today.toISOString()), where('expiresAt', '<=', sevenDaysLater.toISOString()), orderBy('expiresAt', 'asc'), startAfter(lastVisible), limit(PAGE_SIZE))
+            : query(usersRef, where('premium', '==', true), where('expiresAt', '>', today.toISOString()), where('expiresAt', '<=', sevenDaysLater.toISOString()), orderBy('expiresAt', 'asc'), limit(PAGE_SIZE));
+        } else if (filter === 'expired') {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          q = lastVisible ? query(usersRef, where('premium', '==', true), where('expiresAt', '<=', today.toISOString()), orderBy('expiresAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+            : query(usersRef, where('premium', '==', true), where('expiresAt', '<=', today.toISOString()), orderBy('expiresAt', 'desc'), limit(PAGE_SIZE));
+        } else if (filter === 'teacher') {
+          q = lastVisible ? query(usersRef, where('role', '==', 'teacher'), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+            : query(usersRef, where('role', '==', 'teacher'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
         } else if (filter === 'disabled') {
           q = lastVisible ? query(usersRef, where('isDisabled', '==', true), orderBy('disabledAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
             : query(usersRef, where('isDisabled', '==', true), orderBy('disabledAt', 'desc'), limit(PAGE_SIZE));
@@ -867,7 +959,7 @@
         if (loadMoreContainer) loadMoreContainer.style.display = hasMore ? 'block' : 'none';
       } catch (error) {
         console.error('載入用戶失敗:', error);
-        if (!loadMore) usersList.innerHTML = `<tr><td colspan="15" class="loading">載入失敗: ${error.message}</td></tr>`;
+        if (!loadMore) usersList.innerHTML = ` 者<td colspan="14" class="loading">載入失敗: ${error.message} </tr>`;
       } finally {
         isLoading = false;
       }
@@ -891,75 +983,14 @@
       }
     }
 
-    // ===== 年級編輯函數 =====
-    window.editGrade = (userId) => {
+    // ===== 用戶名稱編輯 =====
+    window.editDisplayName = (userId) => {
       if (!currentUserIsAdmin && !currentUserIsTeacher) return;
-      
-      const cell = document.getElementById(`grade-${userId}`);
-      const display = cell.querySelector('.grade-display');
-      const select = cell.querySelector('.grade-select');
-      const saveBtn = cell.querySelector('.btn-save-grade');
-      const cancelBtn = cell.querySelector('.btn-cancel-grade');
-      
-      display.style.display = 'none';
-      select.style.display = 'inline-block';
-      saveBtn.style.display = 'inline-block';
-      cancelBtn.style.display = 'inline-block';
-      select.value = display.textContent === '未設定' ? '' : display.textContent;
-      select.focus();
-    };
-
-    window.saveGrade = async (userId) => {
-      const cell = document.getElementById(`grade-${userId}`);
-      const display = cell.querySelector('.grade-display');
-      const select = cell.querySelector('.grade-select');
-      const saveBtn = cell.querySelector('.btn-save-grade');
-      const cancelBtn = cell.querySelector('.btn-cancel-grade');
-      
-      const newGrade = select.value;
-      
-      try {
-        const userRef = doc(db, 'users', userId);
-        await updateDoc(userRef, {
-          grade: newGrade || null,
-          updatedAt: new Date().toISOString()
-        });
-        
-        display.textContent = newGrade || '未設定';
-        display.style.display = 'inline';
-        select.style.display = 'none';
-        saveBtn.style.display = 'none';
-        cancelBtn.style.display = 'none';
-        
-        console.log(`✅ 年級已更新: ${userId} -> ${newGrade}`);
-      } catch (error) {
-        showToast('更新失敗：' + error.message);
-      }
-    };
-
-    window.cancelEditGrade = (userId) => {
-      const cell = document.getElementById(`grade-${userId}`);
-      const display = cell.querySelector('.grade-display');
-      const select = cell.querySelector('.grade-select');
-      const saveBtn = cell.querySelector('.btn-save-grade');
-      const cancelBtn = cell.querySelector('.btn-cancel-grade');
-      
-      display.style.display = 'inline';
-      select.style.display = 'none';
-      saveBtn.style.display = 'none';
-      cancelBtn.style.display = 'none';
-    };
-
-    // ===== 教材編輯函數 =====
-    window.editPublisher = (userId) => {
-      if (!currentUserIsAdmin && !currentUserIsTeacher) return;
-      
-      const cell = document.getElementById(`publisher-${userId}`);
-      const display = cell.querySelector('.publisher-display');
-      const input = cell.querySelector('.publisher-input');
-      const saveBtn = cell.querySelector('.btn-save-publisher');
-      const cancelBtn = cell.querySelector('.btn-cancel-publisher');
-      
+      const cell = document.getElementById(`displayname-${userId}`);
+      const display = cell.querySelector('.displayname-display');
+      const input = cell.querySelector('.displayname-input');
+      const saveBtn = cell.querySelector('.btn-save-displayname');
+      const cancelBtn = cell.querySelector('.btn-cancel-displayname');
       input.value = display.textContent === '未設定' ? '' : display.textContent;
       display.style.display = 'none';
       input.style.display = 'inline-block';
@@ -967,55 +998,216 @@
       cancelBtn.style.display = 'inline-block';
       input.focus();
     };
-
-    window.savePublisher = async (userId) => {
-      const cell = document.getElementById(`publisher-${userId}`);
-      const display = cell.querySelector('.publisher-display');
-      const input = cell.querySelector('.publisher-input');
-      const saveBtn = cell.querySelector('.btn-save-publisher');
-      const cancelBtn = cell.querySelector('.btn-cancel-publisher');
-      
-      const newPublisher = input.value.trim();
-      
+    
+    window.saveDisplayName = async (userId) => {
+      const cell = document.getElementById(`displayname-${userId}`);
+      const input = cell.querySelector('.displayname-input');
+      const newName = input.value.trim();
       try {
-        const userRef = doc(db, 'users', userId);
-        await updateDoc(userRef, {
-          publisher: newPublisher || '',
-          updatedAt: new Date().toISOString()
-        });
-        
-        display.textContent = newPublisher || '未設定';
+        await updateDoc(doc(db, 'users', userId), { displayName: newName || '', updatedAt: new Date().toISOString() });
+        const display = cell.querySelector('.displayname-display');
+        display.textContent = newName || '未設定';
         display.style.display = 'inline';
         input.style.display = 'none';
-        saveBtn.style.display = 'none';
-        cancelBtn.style.display = 'none';
-        
-        if (newPublisher) {
-          cell.classList.remove('publisher-unset');
-        } else {
-          cell.classList.add('publisher-unset');
-        }
-        
-        console.log(`✅ 教材已更新: ${userId} -> ${newPublisher}`);
-      } catch (error) {
-        showToast('更新失敗：' + error.message);
-      }
+        cell.querySelector('.btn-save-displayname').style.display = 'none';
+        cell.querySelector('.btn-cancel-displayname').style.display = 'none';
+        console.log(`✅ 用戶名稱已更新: ${userId}`);
+      } catch (error) { showToast('更新失敗：' + error.message); }
     };
-
-    window.cancelEditPublisher = (userId) => {
-      const cell = document.getElementById(`publisher-${userId}`);
-      const display = cell.querySelector('.publisher-display');
-      const input = cell.querySelector('.publisher-input');
-      const saveBtn = cell.querySelector('.btn-save-publisher');
-      const cancelBtn = cell.querySelector('.btn-cancel-publisher');
-      
+    
+    window.cancelEditDisplayName = (userId) => {
+      const cell = document.getElementById(`displayname-${userId}`);
+      const display = cell.querySelector('.displayname-display');
+      const input = cell.querySelector('.displayname-input');
+      input.value = display.textContent === '未設定' ? '' : display.textContent;
       display.style.display = 'inline';
       input.style.display = 'none';
+      cell.querySelector('.btn-save-displayname').style.display = 'none';
+      cell.querySelector('.btn-cancel-displayname').style.display = 'none';
+    };
+
+    // ===== 電話編輯 =====
+    window.editPhone = (userId) => {
+      if (!currentUserIsAdmin && !currentUserIsTeacher) return;
+      const cell = document.getElementById(`phone-${userId}`);
+      const display = cell.querySelector('.phone-display');
+      const input = cell.querySelector('.phone-input');
+      const saveBtn = cell.querySelector('.btn-save-phone');
+      const cancelBtn = cell.querySelector('.btn-cancel-phone');
+      input.value = display.textContent === '未設定' ? '' : display.textContent;
+      display.style.display = 'none';
+      input.style.display = 'inline-block';
+      saveBtn.style.display = 'inline-block';
+      cancelBtn.style.display = 'inline-block';
+      input.focus();
+    };
+    
+    window.savePhone = async (userId) => {
+      const cell = document.getElementById(`phone-${userId}`);
+      const input = cell.querySelector('.phone-input');
+      const newPhone = input.value.trim();
+      try {
+        await updateDoc(doc(db, 'users', userId), { phoneNumber: newPhone || '', updatedAt: new Date().toISOString() });
+        const display = cell.querySelector('.phone-display');
+        display.textContent = newPhone || '未設定';
+        display.style.display = 'inline';
+        input.style.display = 'none';
+        cell.querySelector('.btn-save-phone').style.display = 'none';
+        cell.querySelector('.btn-cancel-phone').style.display = 'none';
+        if (newPhone) cell.classList.remove('phone-unset');
+        else cell.classList.add('phone-unset');
+        console.log(`✅ 電話已更新: ${userId}`);
+      } catch (error) { showToast('更新失敗：' + error.message); }
+    };
+    
+    window.cancelEditPhone = (userId) => {
+      const cell = document.getElementById(`phone-${userId}`);
+      const display = cell.querySelector('.phone-display');
+      const input = cell.querySelector('.phone-input');
+      input.value = display.textContent === '未設定' ? '' : display.textContent;
+      display.style.display = 'inline';
+      input.style.display = 'none';
+      cell.querySelector('.btn-save-phone').style.display = 'none';
+      cell.querySelector('.btn-cancel-phone').style.display = 'none';
+    };
+
+    // ===== 備註編輯 =====
+    window.editNotes = (userId) => {
+      if (!currentUserIsAdmin && !currentUserIsTeacher) return;
+      const cell = document.getElementById(`notes-${userId}`);
+      const display = cell.querySelector('.notes-display');
+      const input = cell.querySelector('.notes-input');
+      input.value = display.textContent === '未填寫' ? '' : display.textContent;
+      display.style.display = 'none';
+      input.style.display = 'inline-block';
+      cell.querySelector('.btn-edit-notes').style.display = 'none';
+      cell.querySelector('.btn-save-notes').style.display = 'inline-block';
+      cell.querySelector('.btn-cancel-notes').style.display = 'inline-block';
+      input.focus();
+    };
+    
+    window.saveNotes = async (userId) => {
+      const cell = document.getElementById(`notes-${userId}`);
+      const input = cell.querySelector('.notes-input');
+      const newNotes = input.value.trim();
+      try {
+        await updateDoc(doc(db, 'users', userId), { notes: newNotes || '', updatedAt: new Date().toISOString() });
+        const display = cell.querySelector('.notes-display');
+        display.textContent = newNotes || '未填寫';
+        display.style.display = 'inline';
+        input.style.display = 'none';
+        cell.querySelector('.btn-edit-notes').style.display = 'inline-block';
+        cell.querySelector('.btn-save-notes').style.display = 'none';
+        cell.querySelector('.btn-cancel-notes').style.display = 'none';
+        if (newNotes) cell.classList.remove('notes-unset');
+        else cell.classList.add('notes-unset');
+        console.log(`✅ 備註已更新: ${userId}`);
+      } catch (error) { showToast('更新失敗：' + error.message); }
+    };
+    
+    window.cancelEditNotes = (userId) => {
+      const cell = document.getElementById(`notes-${userId}`);
+      const display = cell.querySelector('.notes-display');
+      const input = cell.querySelector('.notes-input');
+      input.value = display.textContent === '未填寫' ? '' : display.textContent;
+      display.style.display = 'inline';
+      input.style.display = 'none';
+      cell.querySelector('.btn-edit-notes').style.display = 'inline-block';
+      cell.querySelector('.btn-save-notes').style.display = 'none';
+      cell.querySelector('.btn-cancel-notes').style.display = 'none';
+    };
+
+    // ===== 年級編輯 =====
+    window.editGrade = (userId) => {
+      if (!currentUserIsAdmin && !currentUserIsTeacher) return;
+      const cell = document.getElementById(`grade-${userId}`);
+      const display = cell.querySelector('.grade-display');
+      const select = cell.querySelector('.grade-select');
+      const saveBtn = cell.querySelector('.btn-save-grade');
+      const cancelBtn = cell.querySelector('.btn-cancel-grade');
+      display.style.display = 'none';
+      select.style.display = 'inline-block';
+      saveBtn.style.display = 'inline-block';
+      cancelBtn.style.display = 'inline-block';
+      select.value = display.textContent === '未設定' ? '' : display.textContent;
+      select.focus();
+    };
+    
+    window.saveGrade = async (userId) => {
+      const cell = document.getElementById(`grade-${userId}`);
+      const display = cell.querySelector('.grade-display');
+      const select = cell.querySelector('.grade-select');
+      const saveBtn = cell.querySelector('.btn-save-grade');
+      const cancelBtn = cell.querySelector('.btn-cancel-grade');
+      const newGrade = select.value;
+      try {
+        await updateDoc(doc(db, 'users', userId), { grade: newGrade || null, updatedAt: new Date().toISOString() });
+        display.textContent = newGrade || '未設定';
+        display.style.display = 'inline';
+        select.style.display = 'none';
+        saveBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+        console.log(`✅ 年級已更新: ${userId} -> ${newGrade}`);
+      } catch (error) { showToast('更新失敗：' + error.message); }
+    };
+    
+    window.cancelEditGrade = (userId) => {
+      const cell = document.getElementById(`grade-${userId}`);
+      const display = cell.querySelector('.grade-display');
+      const select = cell.querySelector('.grade-select');
+      const saveBtn = cell.querySelector('.btn-save-grade');
+      const cancelBtn = cell.querySelector('.btn-cancel-grade');
+      display.style.display = 'inline';
+      select.style.display = 'none';
       saveBtn.style.display = 'none';
       cancelBtn.style.display = 'none';
     };
 
-    // 權限管理函數
+    // ===== 教材編輯 =====
+    window.editPublisher = (userId) => {
+      if (!currentUserIsAdmin && !currentUserIsTeacher) return;
+      const cell = document.getElementById(`publisher-${userId}`);
+      const display = cell.querySelector('.publisher-display');
+      const input = cell.querySelector('.publisher-input');
+      const saveBtn = cell.querySelector('.btn-save-publisher');
+      const cancelBtn = cell.querySelector('.btn-cancel-publisher');
+      input.value = display.textContent === '未設定' ? '' : display.textContent;
+      display.style.display = 'none';
+      input.style.display = 'inline-block';
+      saveBtn.style.display = 'inline-block';
+      cancelBtn.style.display = 'inline-block';
+      input.focus();
+    };
+    
+    window.savePublisher = async (userId) => {
+      const cell = document.getElementById(`publisher-${userId}`);
+      const input = cell.querySelector('.publisher-input');
+      const newPublisher = input.value.trim();
+      try {
+        await updateDoc(doc(db, 'users', userId), { publisher: newPublisher || '', updatedAt: new Date().toISOString() });
+        const display = cell.querySelector('.publisher-display');
+        display.textContent = newPublisher || '未設定';
+        display.style.display = 'inline';
+        input.style.display = 'none';
+        cell.querySelector('.btn-save-publisher').style.display = 'none';
+        cell.querySelector('.btn-cancel-publisher').style.display = 'none';
+        if (newPublisher) cell.classList.remove('publisher-unset');
+        else cell.classList.add('publisher-unset');
+        console.log(`✅ 教材已更新: ${userId} -> ${newPublisher}`);
+      } catch (error) { showToast('更新失敗：' + error.message); }
+    };
+    
+    window.cancelEditPublisher = (userId) => {
+      const cell = document.getElementById(`publisher-${userId}`);
+      const display = cell.querySelector('.publisher-display');
+      const input = cell.querySelector('.publisher-input');
+      display.style.display = 'inline';
+      input.style.display = 'none';
+      cell.querySelector('.btn-save-publisher').style.display = 'none';
+      cell.querySelector('.btn-cancel-publisher').style.display = 'none';
+    };
+
+    // ===== 權限管理 =====
     window.setAsTeacher = async (userId) => {
       if (!currentUserIsAdmin) return;
       try {
@@ -1059,6 +1251,7 @@
         let expiresAt = null, premium = false;
         if (plan === 'monthly') { premium = true; now.setMonth(now.getMonth() + 1); expiresAt = now.toISOString(); }
         else if (plan === 'annual') { premium = true; now.setFullYear(now.getFullYear() + 1); expiresAt = now.toISOString(); }
+        else if (plan === 'custom') { premium = true; }
         await updateDoc(doc(db, 'users', userId), { premium, plan, expiresAt, updatedAt: new Date().toISOString() });
         await reloadUsers();
         await updateStats();
@@ -1124,137 +1317,34 @@
       } catch (error) { showToast('更新失敗：' + error.message); }
     };
     
-    // 編輯功能
-    window.editPhone = (userId) => {
-      const cell = document.getElementById(`phone-${userId}`);
-      const display = cell.querySelector('.phone-display');
-      const input = cell.querySelector('.phone-input');
-      const editBtn = cell.querySelector('.btn-edit-phone');
-      const saveBtn = cell.querySelector('.btn-save-phone');
-      const cancelBtn = cell.querySelector('.btn-cancel-phone');
-      display.style.display = 'none';
-      input.style.display = 'inline-block';
-      editBtn.style.display = 'none';
-      saveBtn.style.display = 'inline-block';
-      cancelBtn.style.display = 'inline-block';
-      input.focus();
-    };
-    
-    window.savePhone = async (userId) => {
-      const cell = document.getElementById(`phone-${userId}`);
-      const input = cell.querySelector('.phone-input');
-      const newPhone = input.value.trim();
-      try {
-        await updateDoc(doc(db, 'users', userId), { phoneNumber: newPhone || '', updatedAt: new Date().toISOString() });
-        const display = cell.querySelector('.phone-display');
-        display.textContent = newPhone || '未設定';
-        display.style.display = 'inline';
-        input.style.display = 'none';
-        cell.querySelector('.btn-edit-phone').style.display = 'inline-block';
-        cell.querySelector('.btn-save-phone').style.display = 'none';
-        cell.querySelector('.btn-cancel-phone').style.display = 'none';
-        if (newPhone) cell.classList.remove('phone-unset');
-        else cell.classList.add('phone-unset');
-        showToast('電話已更新', 'success');
-      } catch (error) { showToast('更新失敗：' + error.message); }
-    };
-    
-    window.cancelEditPhone = (userId) => {
-      const cell = document.getElementById(`phone-${userId}`);
-      const display = cell.querySelector('.phone-display');
-      const input = cell.querySelector('.phone-input');
-      input.value = display.textContent === '未設定' ? '' : display.textContent;
-      display.style.display = 'inline';
-      input.style.display = 'none';
-      cell.querySelector('.btn-edit-phone').style.display = 'inline-block';
-      cell.querySelector('.btn-save-phone').style.display = 'none';
-      cell.querySelector('.btn-cancel-phone').style.display = 'none';
-    };
-    
-    window.editNotes = (userId) => {
-      const cell = document.getElementById(`notes-${userId}`);
-      const display = cell.querySelector('.notes-display');
-      const input = cell.querySelector('.notes-input');
-      display.style.display = 'none';
-      input.style.display = 'inline-block';
-      cell.querySelector('.btn-edit-notes').style.display = 'none';
-      cell.querySelector('.btn-save-notes').style.display = 'inline-block';
-      cell.querySelector('.btn-cancel-notes').style.display = 'inline-block';
-      input.focus();
-    };
-    
-    window.saveNotes = async (userId) => {
-      const cell = document.getElementById(`notes-${userId}`);
-      const input = cell.querySelector('.notes-input');
-      const newNotes = input.value.trim();
-      try {
-        await updateDoc(doc(db, 'users', userId), { notes: newNotes || '', updatedAt: new Date().toISOString() });
-        const display = cell.querySelector('.notes-display');
-        display.textContent = newNotes || '未填寫';
-        display.style.display = 'inline';
-        input.style.display = 'none';
-        cell.querySelector('.btn-edit-notes').style.display = 'inline-block';
-        cell.querySelector('.btn-save-notes').style.display = 'none';
-        cell.querySelector('.btn-cancel-notes').style.display = 'none';
-        if (newNotes) cell.classList.remove('notes-unset');
-        else cell.classList.add('notes-unset');
-        showToast('備註已更新', 'success');
-      } catch (error) { showToast('更新失敗：' + error.message); }
-    };
-    
-    window.cancelEditNotes = (userId) => {
-      const cell = document.getElementById(`notes-${userId}`);
-      const display = cell.querySelector('.notes-display');
-      const input = cell.querySelector('.notes-input');
-      input.value = display.textContent === '未填寫' ? '' : display.textContent;
-      display.style.display = 'inline';
-      input.style.display = 'none';
-      cell.querySelector('.btn-edit-notes').style.display = 'inline-block';
-      cell.querySelector('.btn-save-notes').style.display = 'none';
-      cell.querySelector('.btn-cancel-notes').style.display = 'none';
-    };
-    
-    // 操作菜單切換
+    // 操作菜單
     window.toggleActionMenu = (userId, event) => {
       if (event) event.stopPropagation();
-      
       document.querySelectorAll('[id^="menu-"]').forEach(menu => {
-        if (menu.id !== `menu-${userId}`) {
-          menu.style.display = 'none';
-        }
+        if (menu.id !== `menu-${userId}`) menu.style.display = 'none';
       });
-      
       const currentMenu = document.getElementById(`menu-${userId}`);
       if (!currentMenu) return;
-      
       const isVisible = currentMenu.style.display === 'block';
-      
       if (isVisible) {
         currentMenu.style.display = 'none';
       } else {
         const button = event?.currentTarget || document.querySelector(`.action-btn[data-userid="${userId}"]`);
-        if (button) {
-          positionMenu(currentMenu, button);
-        }
+        if (button) positionMenu(currentMenu, button);
         currentMenu.style.display = 'block';
       }
     };
     
-    // 為菜單項綁定事件
     document.addEventListener('click', async (e) => {
       const menuItem = e.target.closest('.menu-item');
       if (!menuItem) return;
-      
       const action = menuItem.dataset.action;
       const plan = menuItem.dataset.plan;
       const dropdown = menuItem.closest('.action-dropdown');
       if (!dropdown) return;
-      
       const userId = dropdown.id.replace('menu-', '');
-      
       e.stopPropagation();
       dropdown.style.display = 'none';
-      
       switch(action) {
         case 'setTeacher': await window.setAsTeacher(userId); break;
         case 'removeTeacher': await window.removeTeacher(userId); break;
@@ -1268,9 +1358,7 @@
     });
     
     document.addEventListener('click', () => {
-      document.querySelectorAll('[id^="menu-"]').forEach(menu => {
-        menu.style.display = 'none';
-      });
+      document.querySelectorAll('[id^="menu-"]').forEach(menu => menu.style.display = 'none');
     });
     
     async function reloadUsers() {
@@ -1284,7 +1372,7 @@
       const term = document.getElementById('searchInput').value.trim().toLowerCase();
       const usersList = document.getElementById('usersList');
       if (!term) { await reloadUsers(); return; }
-      usersList.innerHTML = ' hilab<td colspan="15" class="loading"><span class="loading-spinner"></span> 搜尋中...</td></tr>';
+      usersList.innerHTML = ' 者<td colspan="14" class="loading"><span class="loading-spinner"></span> 搜尋中... </tr>';
       try {
         const snapshot = await getDocs(query(collection(db, 'users'), limit(200)));
         let html = '', count = 0;
@@ -1296,13 +1384,12 @@
             html += generateUserRow(doc.id, user);
           }
         });
-        usersList.innerHTML = count ? html : ` 者<td colspan="15" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶</td> </tr>`;
+        usersList.innerHTML = count ? html : ` 者<td colspan="14" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶 </tr>`;
       } catch (error) {
-        usersList.innerHTML = ` 者<td colspan="15" class="loading">搜尋失敗: ${error.message}</td> </tr>`;
+        usersList.innerHTML = ` 者<td colspan="14" class="loading">搜尋失敗: ${error.message} </tr>`;
       }
     }
     
-    // 登入與權限檢查
     window.loginWithGoogle = async () => {
       try {
         const provider = new GoogleAuthProvider();
@@ -1314,7 +1401,6 @@
     
     window.logout = async () => { await signOut(auth); window.location.reload(); };
     
-    // 載入管理介面
     async function loadAdminInterface(container, user) {
       container.innerHTML = `
         <div class="container">
@@ -1332,16 +1418,21 @@
           <div class="filters">
             <button class="filter-btn active" onclick="filterUsers('all', event)">全部</button>
             <button class="filter-btn" onclick="filterUsers('premium', event)">付費會員</button>
+            <button class="filter-btn" onclick="filterUsers('free', event)">免費會員</button>
+            <button class="filter-btn" onclick="filterUsers('trial-active', event)">⏳ 試用中</button>
+            <button class="filter-btn" onclick="filterUsers('expiring-soon', event)">⚠️ 即將到期</button>
+            <button class="filter-btn" onclick="filterUsers('expired', event)">❌ 已過期</button>
+            <button class="filter-btn" onclick="filterUsers('teacher', event)">👨‍🏫 老師</button>
             <button class="filter-btn" onclick="filterUsers('disabled', event)">🚫 已停用</button>
           </div>
           <div class="users-table">
             <table>
               <thead>
                 <tr>
-                  <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>註冊時間</th><th>線上狀態</th><th>最近上線</th><th>方案</th><th>狀態</th><th>有效期</th><th>試用到期</th><th>年級</th><th>教材</th><th>帳號狀態</th><th>操作</th>
+                  <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>年級</th><th>教材</th><th>註冊時間</th><th>最近上線</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th>
                 </tr>
               </thead>
-              <tbody id="usersList"><tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
+              <tbody id="usersList"><tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
             </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
@@ -1363,7 +1454,6 @@
       await loadUsers('all', false);
     }
     
-    // 監聽登入狀態
     onAuthStateChanged(auth, async (user) => {
       const appDiv = document.getElementById('app');
       if (!user) {
