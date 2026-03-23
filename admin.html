@@ -48,7 +48,7 @@
     
     .stats {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 20px;
       margin-bottom: 30px;
     }
@@ -143,7 +143,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 1600px;
+      min-width: 1400px;
     }
     
     th {
@@ -318,11 +318,16 @@
       margin-right: 4px;
     }
     
-    .status-online .activity-indicator { background: #059669; }
+    .status-online .activity-indicator { background: #059669; animation: pulse 2s infinite; }
     .status-recent .activity-indicator { background: #059669; }
     .status-today .activity-indicator { background: #2563eb; }
     .status-week .activity-indicator { background: #f97316; }
     .status-offline .activity-indicator { background: #94a3b8; }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
     
     /* 可編輯欄位 */
     .phone-cell, .notes-cell {
@@ -367,7 +372,7 @@
       background: #e2e8f0;
     }
     
-    /* 操作菜單 */
+    /* 操作菜單 - 固定定位由 JS 控制 */
     .action-menu {
       position: relative;
       display: inline-block;
@@ -391,16 +396,15 @@
     }
     
     .action-dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
+      position: fixed;
       background: white;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      z-index: 1000;
-      min-width: 180px;
-      margin-top: 5px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      z-index: 10000;
+      min-width: 170px;
+      display: none;
+      overflow: hidden;
     }
     
     .menu-item {
@@ -420,7 +424,7 @@
     }
     
     .menu-item:hover {
-      background: #f1f5f9;
+      background: #f8fafc;
     }
     
     .menu-item i {
@@ -432,110 +436,6 @@
       height: 1px;
       background: #e2e8f0;
       margin: 5px 0;
-    }
-    
-    /* 閱讀進度 */
-    .clickable-progress {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
-      transition: background 0.2s;
-    }
-    
-    .clickable-progress:hover {
-      background: #f1f5f9;
-    }
-    
-    .progress-summary {
-      display: flex;
-      flex-direction: column;
-      font-size: 11px;
-    }
-    
-    .progress-count {
-      font-weight: 600;
-      color: #4f46e5;
-    }
-    
-    .progress-avg {
-      color: #64748b;
-    }
-    
-    /* 彈窗 */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2000;
-    }
-    
-    .dictation-detail-modal {
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    }
-    
-    .dictation-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 20px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    
-    .dictation-item {
-      padding: 10px;
-      background: #f8fafc;
-      border-radius: 8px;
-    }
-    
-    .dictation-title {
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-    
-    .dictation-score {
-      font-size: 12px;
-      color: #64748b;
-    }
-    
-    .dictation-score .correct {
-      color: #10b981;
-    }
-    
-    .dictation-score .wrong {
-      color: #ef4444;
-    }
-    
-    .close-btn {
-      width: 100%;
-      padding: 10px;
-      background: #4f46e5;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    
-    .tooltip {
-      position: relative;
-      cursor: help;
     }
     
     /* 試用期 */
@@ -568,6 +468,30 @@
     .trial-badge.active { background: #dcfce7; color: #166534; }
     .trial-badge.expiring { background: #fef3c7; color: #92400e; }
     
+    .premium-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .premium-true {
+      background: #dcfce7;
+      color: #166534;
+    }
+    
+    .premium-false {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .expired {
+      color: #ef4444;
+      font-weight: 600;
+      background-color: #fef2f2;
+    }
+    
     @keyframes fadeInOut {
       0% { opacity: 0; transform: translateY(20px); }
       15% { opacity: 1; transform: translateY(0); }
@@ -578,6 +502,9 @@
     @media (max-width: 768px) {
       .stats {
         grid-template-columns: repeat(2, 1fr);
+      }
+      .action-dropdown {
+        min-width: 150px;
       }
     }
   </style>
@@ -747,72 +674,36 @@
       }
     }
 
-    // 顯示默書記錄詳情
-    window.showDictationDetail = async (userId) => {
-      try {
-        const userRef = doc(db, 'users', userId);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-          showToast('用戶不存在');
-          return;
-        }
-        const userData = userSnap.data();
-        const dictations = userData.dictationHistory || [];
-        
-        let html = `
-          <div class="dictation-detail-modal">
-            <h3>📝 默書記錄詳情</h3>
-            <div class="dictation-list">
-        `;
-        
-        if (dictations.length === 0) {
-          html += `<div style="text-align:center; padding:20px;">尚無默書記錄</div>`;
-        } else {
-          dictations.slice().reverse().forEach(d => {
-            const date = formatDate(d.date);
-            html += `
-              <div class="dictation-item">
-                <div class="dictation-title">${escapeHtml(d.unit || '單元')} - ${date}</div>
-                <div class="dictation-score">
-                  <span class="correct">✓ ${d.correct || 0}</span> / 
-                  <span class="wrong">✗ ${d.wrong || 0}</span>
-                  <span style="margin-left: 8px;">正確率: ${Math.round((d.correct / (d.correct + d.wrong)) * 100) || 0}%</span>
-                </div>
-              </div>
-            `;
-          });
-        }
-        
-        html += `
-            </div>
-            <div class="reading-summary" style="background:#f1f5f9; padding:12px; border-radius:6px; margin-bottom:16px;">
-              <div>📊 總練習次數: ${dictations.length}</div>
-              <div>✅ 平均正確率: ${dictations.length ? Math.round(dictations.reduce((sum, d) => sum + (d.correct / (d.correct + d.wrong)) * 100, 0) / dictations.length) : 0}%</div>
-            </div>
-            <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">關閉</button>
-          </div>
-        `;
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.innerHTML = html;
-        document.body.appendChild(modal);
-      } catch (error) {
-        console.error('讀取默書記錄失敗', error);
-        showToast('讀取失敗');
+    // 定位菜單函數
+    function positionMenu(menu, button) {
+      const rect = button.getBoundingClientRect();
+      const menuWidth = 180;
+      const menuHeight = menu.scrollHeight || 280;
+      
+      // 計算水平位置：優先向左展開避免超出右邊界
+      let left = rect.left;
+      if (rect.left + menuWidth > window.innerWidth) {
+        left = rect.right - menuWidth;
       }
-    };
+      if (left < 5) left = 5;
+      
+      // 計算垂直位置：優先向下，如果超出則向上
+      let top = rect.bottom + 5;
+      if (rect.bottom + menuHeight + 10 > window.innerHeight) {
+        top = rect.top - menuHeight - 5;
+      }
+      if (top < 5) top = 5;
+      
+      menu.style.left = `${left}px`;
+      menu.style.top = `${top}px`;
+    }
 
-    // 生成用戶行
+    // 生成用戶行 (13欄，移除默書記錄)
     function generateUserRow(docId, user) {
       const isDisabled = user.isDisabled === true;
       const isTeacher = user.role === 'teacher';
       const isAdmin = user.role === 'admin';
       const trialStatus = getTrialStatus(user.trialEndAt);
-      const dictationHistory = user.dictationHistory || [];
-      const dictationCount = dictationHistory.length;
-      const avgScore = dictationHistory.length ? 
-        Math.round(dictationHistory.reduce((sum, d) => sum + (d.correct / (d.correct + d.wrong)) * 100, 0) / dictationHistory.length) : 0;
       
       let nameHtml = `<strong>${escapeHtml(user.displayName || '-')}</strong>`;
       if (isAdmin) nameHtml += `<span class="admin-badge"><i class="fas fa-crown"></i> 管理員</span>`;
@@ -820,34 +711,36 @@
       
       const phoneDisplay = user.phoneNumber || '未設定';
       const notesDisplay = user.notes || '未填寫';
+      const lastActiveDate = formatDate(user.lastActiveAt || user.lastLoginAt);
       
+      // 操作菜單 HTML
       let menuHtml = `<div class="action-dropdown" id="menu-${docId}" style="display: none;">`;
       menuHtml += `
-        <div class="menu-item" onclick="setPlan('${docId}', 'free')"><i class="fas fa-times-circle"></i> 設為免費</div>
-        <div class="menu-item" onclick="setPlan('${docId}', 'monthly')"><i class="fas fa-calendar-alt"></i> 設為月費</div>
-        <div class="menu-item" onclick="setPlan('${docId}', 'annual')"><i class="fas fa-calendar-check"></i> 設為年費</div>
+        <div class="menu-item" data-action="setPlan" data-plan="free"><i class="fas fa-times-circle"></i> 設為免費</div>
+        <div class="menu-item" data-action="setPlan" data-plan="monthly"><i class="fas fa-calendar-alt"></i> 設為月費</div>
+        <div class="menu-item" data-action="setPlan" data-plan="annual"><i class="fas fa-calendar-check"></i> 設為年費</div>
       `;
       
       if (currentUserIsAdmin) {
         menuHtml += `<div class="menu-divider"></div>`;
         if (isTeacher) {
-          menuHtml += `<div class="menu-item" onclick="removeTeacher('${docId}')"><i class="fas fa-user-slash"></i> 移除老師權限</div>`;
+          menuHtml += `<div class="menu-item" data-action="removeTeacher"><i class="fas fa-user-slash"></i> 移除老師權限</div>`;
         } else if (!isAdmin) {
-          menuHtml += `<div class="menu-item" onclick="setAsTeacher('${docId}')"><i class="fas fa-chalkboard-teacher"></i> 設為老師</div>`;
+          menuHtml += `<div class="menu-item" data-action="setTeacher"><i class="fas fa-chalkboard-teacher"></i> 設為老師</div>`;
         }
         
         menuHtml += `<div class="menu-divider"></div>`;
         if (isDisabled) {
-          menuHtml += `<div class="menu-item" onclick="enableUser('${docId}')"><i class="fas fa-check-circle"></i> 啟用帳號</div>`;
+          menuHtml += `<div class="menu-item" data-action="enableUser"><i class="fas fa-check-circle"></i> 啟用帳號</div>`;
         } else {
-          menuHtml += `<div class="menu-item" onclick="disableUser('${docId}')"><i class="fas fa-ban"></i> 停用帳號</div>`;
+          menuHtml += `<div class="menu-item" data-action="disableUser"><i class="fas fa-ban"></i> 停用帳號</div>`;
         }
         
         menuHtml += `
           <div class="menu-divider"></div>
-          <div class="menu-item" onclick="setTrial('${docId}')"><i class="fas fa-hourglass-half"></i> 設定試用期</div>
-          <div class="menu-item" onclick="extendTrial('${docId}')"><i class="fas fa-plus-circle"></i> 延長試用期</div>
-          <div class="menu-item" onclick="removeTrial('${docId}')"><i class="fas fa-times"></i> 移除試用期</div>
+          <div class="menu-item" data-action="setTrial"><i class="fas fa-hourglass-half"></i> 設定試用期</div>
+          <div class="menu-item" data-action="extendTrial"><i class="fas fa-plus-circle"></i> 延長試用期</div>
+          <div class="menu-item" data-action="removeTrial"><i class="fas fa-times"></i> 移除試用期</div>
         `;
       }
       menuHtml += `</div>`;
@@ -859,29 +752,20 @@
           <td class="phone-cell" id="phone-${docId}">
             <span class="phone-display ${!user.phoneNumber ? 'phone-unset' : ''}">${escapeHtml(phoneDisplay)}</span>
             <input type="text" class="phone-input" value="${escapeHtml(user.phoneNumber || '')}" style="display:none;">
-            <button class="btn-icon" onclick="editPhone('${docId}')"><i class="fas fa-pen"></i></button>
-            <button class="btn-icon" onclick="savePhone('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
-            <button class="btn-icon" onclick="cancelEditPhone('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
+            <button class="btn-icon btn-edit-phone" onclick="editPhone('${docId}')"><i class="fas fa-pen"></i></button>
+            <button class="btn-icon btn-save-phone" onclick="savePhone('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
+            <button class="btn-icon btn-cancel-phone" onclick="cancelEditPhone('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
           </td>
           <td class="notes-cell" id="notes-${docId}">
             <span class="notes-display ${!user.notes ? 'notes-unset' : ''}">${escapeHtml(notesDisplay)}</span>
             <input type="text" class="notes-input" value="${escapeHtml(user.notes || '')}" style="display:none;">
-            <button class="btn-icon" onclick="editNotes('${docId}')"><i class="fas fa-pen"></i></button>
-            <button class="btn-icon" onclick="saveNotes('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
-            <button class="btn-icon" onclick="cancelEditNotes('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
+            <button class="btn-icon btn-edit-notes" onclick="editNotes('${docId}')"><i class="fas fa-pen"></i></button>
+            <button class="btn-icon btn-save-notes" onclick="saveNotes('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
+            <button class="btn-icon btn-cancel-notes" onclick="cancelEditNotes('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
           </td>
           <td>${formatDate(user.createdAt)}</td>
           <td>${getOnlineStatus(user.lastActiveAt || user.lastLoginAt, isDisabled)}</td>
-          <td><span class="tooltip" data-tooltip="總登入次數">${user.loginCount || 0} 次</span></td>
-          <td>
-            <span class="clickable-progress" onclick="showDictationDetail('${docId}')">
-              <div class="progress-summary">
-                <span class="progress-count">${dictationCount} 次</span>
-                <span class="progress-avg">${avgScore}%</span>
-              </div>
-              <i class="fas fa-chart-bar"></i>
-            </span>
-          </td>
+          <td>${lastActiveDate}</td>
           <td>${user.plan === 'free' ? '免費' : user.plan === 'monthly' ? '月費' : user.plan === 'annual' ? '年費' : user.plan || '-'}</td>
           <td><span class="premium-badge ${user.premium ? 'premium-true' : 'premium-false'}">${user.premium ? '✅ 付費' : '❌ 免費'}</span></td>
           <td class="${user.expiresAt && new Date(user.expiresAt) < new Date() ? 'expired' : ''}">${formatDate(user.expiresAt)}</td>
@@ -893,7 +777,9 @@
           <td>${isDisabled ? '<span class="disabled-badge"><i class="fas fa-ban"></i> 已停用</span>' : '<span class="active-badge"><i class="fas fa-check-circle"></i> 正常</span>'}</td>
           <td>
             <div class="action-menu">
-              <button class="action-btn" onclick="toggleActionMenu('${docId}')">操作 <i class="fas fa-chevron-down"></i></button>
+              <button class="action-btn" data-userid="${docId}" onclick="toggleActionMenu('${docId}', event)">
+                操作 <i class="fas fa-chevron-down"></i>
+              </button>
               ${menuHtml}
             </div>
           </td>
@@ -908,11 +794,11 @@
       if (!usersList) return;
       
       if (!loadMore) {
-        usersList.innerHTML = '<tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr>';
+        usersList.innerHTML = '<tr><td colspan="13" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr>';
         if (loadMoreContainer) loadMoreContainer.style.display = 'none';
       }
       
-      if (isLoading || (!loadMore && !hasMore)) return;
+      if (isLoading || (!loadMore && !hasMore && lastVisible !== null)) return;
       isLoading = true;
       
       try {
@@ -945,7 +831,7 @@
         if (loadMoreContainer) loadMoreContainer.style.display = hasMore ? 'block' : 'none';
       } catch (error) {
         console.error('載入用戶失敗:', error);
-        if (!loadMore) usersList.innerHTML = `<tr><td colspan="14" class="loading">載入失敗: ${error.message}</td></tr>`;
+        if (!loadMore) usersList.innerHTML = `<tr><td colspan="13" class="loading">載入失敗: ${error.message}</td></tr>`;
       } finally {
         isLoading = false;
       }
@@ -1168,13 +1054,67 @@
       cell.querySelector('.btn-cancel-notes').style.display = 'none';
     };
     
-    window.toggleActionMenu = (userId) => {
+    // 操作菜單切換（改進版：自動定位）
+    window.toggleActionMenu = (userId, event) => {
+      if (event) event.stopPropagation();
+      
+      // 關閉所有其他菜單
       document.querySelectorAll('[id^="menu-"]').forEach(menu => {
-        if (menu.id !== `menu-${userId}`) menu.style.display = 'none';
+        if (menu.id !== `menu-${userId}`) {
+          menu.style.display = 'none';
+        }
       });
-      const menu = document.getElementById(`menu-${userId}`);
-      if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+      
+      const currentMenu = document.getElementById(`menu-${userId}`);
+      if (!currentMenu) return;
+      
+      const isVisible = currentMenu.style.display === 'block';
+      
+      if (isVisible) {
+        currentMenu.style.display = 'none';
+      } else {
+        // 獲取按鈕元素
+        const button = event?.currentTarget || document.querySelector(`.action-btn[data-userid="${userId}"]`);
+        if (button) {
+          positionMenu(currentMenu, button);
+        }
+        currentMenu.style.display = 'block';
+      }
     };
+    
+    // 為菜單項綁定事件（使用事件委託）
+    document.addEventListener('click', async (e) => {
+      const menuItem = e.target.closest('.menu-item');
+      if (!menuItem) return;
+      
+      const action = menuItem.dataset.action;
+      const plan = menuItem.dataset.plan;
+      const dropdown = menuItem.closest('.action-dropdown');
+      if (!dropdown) return;
+      
+      const userId = dropdown.id.replace('menu-', '');
+      
+      e.stopPropagation();
+      dropdown.style.display = 'none';
+      
+      switch(action) {
+        case 'setTeacher': await window.setAsTeacher(userId); break;
+        case 'removeTeacher': await window.removeTeacher(userId); break;
+        case 'disableUser': await window.disableUser(userId); break;
+        case 'enableUser': await window.enableUser(userId); break;
+        case 'setPlan': await window.setPlan(userId, plan); break;
+        case 'setTrial': await window.setTrial(userId); break;
+        case 'extendTrial': await window.extendTrial(userId); break;
+        case 'removeTrial': await window.removeTrial(userId); break;
+      }
+    });
+    
+    // 點擊外部關閉菜單
+    document.addEventListener('click', () => {
+      document.querySelectorAll('[id^="menu-"]').forEach(menu => {
+        menu.style.display = 'none';
+      });
+    });
     
     async function reloadUsers() {
       lastVisible = null;
@@ -1187,7 +1127,7 @@
       const term = document.getElementById('searchInput').value.trim().toLowerCase();
       const usersList = document.getElementById('usersList');
       if (!term) { await reloadUsers(); return; }
-      usersList.innerHTML = '<tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 搜尋中...</td></tr>';
+      usersList.innerHTML = '<tr><td colspan="13" class="loading"><span class="loading-spinner"></span> 搜尋中...</td></tr>';
       try {
         const snapshot = await getDocs(query(collection(db, 'users'), limit(200)));
         let html = '', count = 0;
@@ -1199,9 +1139,9 @@
             html += generateUserRow(doc.id, user);
           }
         });
-        usersList.innerHTML = count ? html : `<tr><td colspan="14" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶</td></tr>`;
+        usersList.innerHTML = count ? html : `<tr><td colspan="13" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶</td></tr>`;
       } catch (error) {
-        usersList.innerHTML = `<tr><td colspan="14" class="loading">搜尋失敗: ${error.message}</td></tr>`;
+        usersList.innerHTML = `<tr><td colspan="13" class="loading">搜尋失敗: ${error.message}</td></tr>`;
       }
     }
     
@@ -1216,12 +1156,6 @@
     };
     
     window.logout = async () => { await signOut(auth); window.location.reload(); };
-    
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.action-btn') && !e.target.closest('.action-dropdown')) {
-        document.querySelectorAll('[id^="menu-"]').forEach(menu => menu.style.display = 'none');
-      }
-    });
     
     // 載入管理介面
     async function loadAdminInterface(container, user) {
@@ -1244,7 +1178,14 @@
             <button class="filter-btn" onclick="filterUsers('disabled', event)">🚫 已停用</button>
           </div>
           <div class="users-table">
-            <table><thead><tr><th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>註冊時間</th><th>線上狀態</th><th>上線次數</th><th>默書記錄</th><th>方案</th><th>狀態</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th></tr></thead><tbody id="usersList"><tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody></table>
+            <table>
+              <thead>
+                <tr>
+                  <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>註冊時間</th><th>線上狀態</th><th>最近上線</th><th>方案</th><th>狀態</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="usersList"><tr><td colspan="13" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
+            </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
         </div>
