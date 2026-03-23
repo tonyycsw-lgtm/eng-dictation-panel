@@ -479,6 +479,14 @@
                 max-width: 90vw;
             }
         }
+        
+        /* Toast 動畫 */
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(20px); }
+            15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(20px); }
+        }
     </style>
 </head>
 <body>
@@ -499,6 +507,7 @@
             getDocs, 
             getCountFromServer, 
             doc,
+            getDoc,
             updateDoc,
             query, 
             orderBy, 
@@ -529,6 +538,37 @@
         let currentUserIsAdmin = false;
         let currentUserIsTeacher = false;
         let currentUserEmail = '';
+        
+        // ============================================
+        // Toast 提示函數
+        // ============================================
+        function showToast(message, type = 'error') {
+            const existingToast = document.querySelector('.toast-message');
+            if (existingToast) existingToast.remove();
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast-message';
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                color: white;
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                z-index: 10000;
+                font-size: 14px;
+                font-weight: 500;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: fadeInOut 3s ease forwards;
+                pointer-events: none;
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 3000);
+        }
 
         // ============================================
         // 輔助函數
@@ -631,8 +671,9 @@
                     cell.removeChild(saveBtn);
                     cell.removeChild(cancelBtn);
                     display.style.display = 'inline';
+                    showToast('電話已更新', 'success');
                 } catch (error) {
-                    alert('更新失敗：' + error.message);
+                    showToast('更新失敗：' + error.message);
                 }
             };
             
@@ -687,8 +728,9 @@
                     cell.removeChild(cancelBtn);
                     display.style.display = 'inline';
                     updateSuggestions();
+                    showToast('學校已更新', 'success');
                 } catch (error) {
-                    alert('更新失敗：' + error.message);
+                    showToast('更新失敗：' + error.message);
                 }
             };
             
@@ -743,8 +785,9 @@
                     cell.removeChild(cancelBtn);
                     display.style.display = 'inline';
                     updateSuggestions();
+                    showToast('教材已更新', 'success');
                 } catch (error) {
-                    alert('更新失敗：' + error.message);
+                    showToast('更新失敗：' + error.message);
                 }
             };
             
@@ -802,8 +845,6 @@
                 return;
             }
             
-            // 已移除 confirm 對話框，直接儲存
-            
             try {
                 const userRef = doc(db, 'users', userId);
                 await updateDoc(userRef, {
@@ -818,9 +859,9 @@
                 saveBtn.style.display = 'none';
                 cancelBtn.style.display = 'none';
                 
-                console.log(`✅ 用戶 ${userId} 年級已更新: ${oldGrade} -> ${newGrade}`);
+                showToast(`年級已更新為 ${newGrade || '未設定'}`, 'success');
             } catch (error) {
-                alert('更新失敗：' + error.message);
+                showToast('更新失敗：' + error.message);
                 cancelEditGrade(userId);
             }
         };
@@ -879,8 +920,10 @@
                 
                 if (newNotes) cell.classList.remove('notes-unset');
                 else cell.classList.add('notes-unset');
+                
+                showToast('備註已更新', 'success');
             } catch (error) {
-                alert('更新失敗：' + error.message);
+                showToast('更新失敗：' + error.message);
             }
         };
         
@@ -925,7 +968,6 @@
         }
         
         function updateSuggestions() {
-            // 更新學校建議
             let schoolDatalist = document.getElementById('school-suggestions');
             if (!schoolDatalist) {
                 schoolDatalist = document.createElement('datalist');
@@ -939,7 +981,6 @@
                 schoolDatalist.appendChild(option);
             });
             
-            // 更新教材建議
             let publisherDatalist = document.getElementById('publisher-suggestions');
             if (!publisherDatalist) {
                 publisherDatalist = document.createElement('datalist');
@@ -968,8 +1009,9 @@
                 });
                 await reloadUsers();
                 closeMenu(userId);
+                showToast('已設為老師', 'success');
             } catch (error) {
-                alert('設定失敗：' + error.message);
+                showToast('設定失敗：' + error.message);
             }
         };
         
@@ -983,8 +1025,9 @@
                 });
                 await reloadUsers();
                 closeMenu(userId);
+                showToast('已移除老師權限', 'success');
             } catch (error) {
-                alert('移除失敗：' + error.message);
+                showToast('移除失敗：' + error.message);
             }
         };
         
@@ -1000,8 +1043,9 @@
                 });
                 await reloadUsers();
                 closeMenu(userId);
+                showToast('帳號已停用', 'success');
             } catch (error) {
-                alert('停用失敗：' + error.message);
+                showToast('停用失敗：' + error.message);
             }
         };
         
@@ -1017,8 +1061,9 @@
                 });
                 await reloadUsers();
                 closeMenu(userId);
+                showToast('帳號已啟用', 'success');
             } catch (error) {
-                alert('啟用失敗：' + error.message);
+                showToast('啟用失敗：' + error.message);
             }
         };
         
@@ -1028,7 +1073,6 @@
         window.toggleActionMenu = (userId, event) => {
             event.stopPropagation();
             
-            // 關閉其他菜單
             document.querySelectorAll('[id^="menu-"]').forEach(menu => {
                 if (menu.id !== `menu-${userId}`) {
                     menu.style.display = 'none';
@@ -1044,7 +1088,6 @@
                 const button = event.currentTarget;
                 const buttonRect = button.getBoundingClientRect();
                 
-                // 重置位置
                 currentMenu.style.position = 'absolute';
                 currentMenu.style.left = '0';
                 currentMenu.style.top = '100%';
@@ -1053,12 +1096,10 @@
                 currentMenu.style.marginTop = '4px';
                 currentMenu.style.marginBottom = '0';
                 
-                // 強制重新計算菜單尺寸
                 currentMenu.style.display = 'block';
                 const menuWidth = currentMenu.offsetWidth;
                 const menuHeight = currentMenu.offsetHeight;
                 
-                // 右邊界檢查
                 const buttonParentRect = button.parentElement.getBoundingClientRect();
                 const menuRightEdge = buttonParentRect.left + menuWidth;
                 
@@ -1067,7 +1108,6 @@
                     currentMenu.style.right = '0';
                 }
                 
-                // 下邊界檢查
                 const menuBottomEdge = buttonParentRect.bottom + menuHeight + 4;
                 if (menuBottomEdge > window.innerHeight) {
                     currentMenu.style.top = 'auto';
@@ -1077,8 +1117,10 @@
                 }
                 
                 currentMenu.style.display = 'block';
+                currentOpenMenu = userId;
             } else {
                 currentMenu.style.display = 'none';
+                currentOpenMenu = null;
             }
         };
         
@@ -1099,33 +1141,26 @@
         function generateUserRow(docId, user) {
             const activity = getActivityDisplay(user.lastActiveAt || user.lastLoginAt);
             const lastActiveDate = formatDate(user.lastActiveAt || user.lastLoginAt);
-            const loginCount = user.loginCount || 0;
             const createdAt = formatDate(user.createdAt);
             
             const isTeacher = user.role === 'teacher';
             const isAdmin = user.role === 'admin';
             const isDisabled = user.isDisabled === true;
             
-            // 電話顯示
             const phoneDisplay = user.phoneNumber || '未設定';
             const phoneClass = user.phoneNumber ? '' : 'phone-unset';
             
-            // 學校顯示
             const schoolDisplay = user.school || '未設定';
             const schoolClass = user.school ? '' : 'school-unset';
             
-            // 教材顯示
             const publisherDisplay = user.publisher || '未設定';
             const publisherClass = user.publisher ? '' : 'publisher-unset';
             
-            // 年級顯示
             const gradeDisplay = user.grade || '';
             
-            // 備註顯示
             const notesDisplay = user.notes || '未填寫';
             const notesClass = user.notes ? '' : 'notes-unset';
             
-            // 用戶名稱（含停用標籤）
             let nameHtml = `<strong>${escapeHtml(user.displayName || '-')}</strong>`;
             if (isDisabled) {
                 nameHtml += `<span class="disabled-badge">已停用</span>`;
@@ -1136,7 +1171,6 @@
                 nameHtml += `<span class="role-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>`;
             }
             
-            // 操作菜單
             let menuHtml = `<div class="action-dropdown" id="menu-${docId}" style="display: none;">`;
             
             if (currentUserIsAdmin) {
@@ -1160,19 +1194,19 @@
                         <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
                             ${nameHtml}
                         </div>
-                    </div>
+                    </td>
                     <td style="max-width: 200px;">
                         <div class="email-display">${escapeHtml(user.email || '-')}</div>
                         <div class="phone-cell ${phoneClass}" id="phone-${docId}">
                             <span class="phone-display editable-click" onclick="editPhone('${docId}')">${phoneDisplay}</span>
                         </div>
-                     </div>
+                    </td>
                     <td class="${schoolClass}" id="school-${docId}">
                         <span class="school-display editable-click" onclick="editSchool('${docId}')">${schoolDisplay}</span>
-                     </div>
+                    </td>
                     <td class="${publisherClass}" id="publisher-${docId}">
                         <span class="publisher-display editable-click" onclick="editPublisher('${docId}')">${publisherDisplay}</span>
-                     </div>
+                    </td>
                     <td class="grade-cell" id="grade-${docId}">
                         <span class="grade-display">${gradeDisplay}</span>
                         <select class="grade-select" style="display: none;">
@@ -1187,14 +1221,14 @@
                             <button class="btn-icon btn-save-grade" onclick="saveGrade('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
                             <button class="btn-icon btn-cancel-grade" onclick="cancelEditGrade('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
                         ` : ''}
-                     </div>
+                    </td>
                     <td class="notes-cell ${notesClass}" id="notes-${docId}">
                         <span class="notes-display">${notesDisplay}</span>
                         <input type="text" class="notes-input" value="${user.notes || ''}" style="display: none;" placeholder="備註">
                         <button class="btn-icon btn-edit-notes" onclick="editNotes('${docId}')" title="編輯備註"><i class="fas fa-pen"></i></button>
                         <button class="btn-icon btn-save-notes" onclick="saveNotes('${docId}')" style="display: none;" title="儲存"><i class="fas fa-check"></i></button>
                         <button class="btn-icon btn-cancel-notes" onclick="cancelEditNotes('${docId}')" style="display: none;" title="取消"><i class="fas fa-times"></i></button>
-                     </div>
+                    </td>
                     <td class="date-cell">${createdAt}<br>${lastActiveDate}</td>
                     <td><span class="status-icon ${activity.class}">${activity.icon} ${activity.text}</span></td>
                     <td>
@@ -1252,7 +1286,7 @@
             
             if (!usersList) return;
             if (!loadMore) {
-                usersList.innerHTML = '<tr><td colspan="9" class="loading">載入中...</td></tr>';
+                usersList.innerHTML = '    <tr><td colspan="9" class="loading">載入中...</td></tr>';
                 if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             }
             if (isLoading || !hasMore) return;
@@ -1293,7 +1327,7 @@
                 hasMore = querySnapshot.docs.length === PAGE_SIZE;
                 
                 if (querySnapshot.empty && !loadMore) {
-                    usersList.innerHTML = '<tr><td colspan="9" class="loading">沒有找到用戶</td></tr>';
+                    usersList.innerHTML = '    <tr><td colspan="9" class="loading">沒有找到用戶</td></tr>';
                     return;
                 }
                 
@@ -1307,13 +1341,12 @@
                     loadMoreContainer.style.display = hasMore ? 'block' : 'none';
                 }
                 
-                // 載入完成後更新建議列表
                 updateSuggestions();
                 
             } catch (error) {
                 console.error('載入用戶失敗:', error);
                 if (!loadMore) {
-                    usersList.innerHTML = `<tr><td colspan="9" class="loading">載入失敗: ${error.message}</td></tr>`;
+                    usersList.innerHTML = `    <tr><td colspan="9" class="loading">載入失敗: ${error.message}</td></tr>`;
                 }
             } finally {
                 isLoading = false;
@@ -1332,7 +1365,7 @@
                 return;
             }
             
-            usersList.innerHTML = '<tr><td colspan="9" class="loading">搜尋中...</td></tr>';
+            usersList.innerHTML = '    <tr><td colspan="9" class="loading">搜尋中...</td></tr>';
             if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             
             try {
@@ -1351,7 +1384,6 @@
                     const grade = (user.grade || '').toLowerCase();
                     const notes = (user.notes || '').toLowerCase();
                     
-                    // 檢查年級匹配（不分大小寫）
                     let gradeMatch = false;
                     if (grade) {
                         const searchGrade = searchTerm.toUpperCase();
@@ -1370,12 +1402,12 @@
                 });
                 
                 if (matchCount === 0) {
-                    usersList.innerHTML = `<tr><td colspan="9" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
+                    usersList.innerHTML = `    <td><td colspan="9" class="loading">沒有找到符合「${searchTerm}」的用戶</td></tr>`;
                 } else {
                     usersList.innerHTML = html;
                 }
             } catch (error) {
-                usersList.innerHTML = `<tr><td colspan="9" class="loading">搜尋失敗: ${error.message}</td></tr>`;
+                usersList.innerHTML = `    <tr><td colspan="9" class="loading">搜尋失敗: ${error.message}</td></tr>`;
             }
         }
 
@@ -1500,24 +1532,19 @@
             }
             
             try {
-                const userRef = collection(db, 'users');
-                const q = query(userRef, where('email', '==', user.email));
-                const querySnapshot = await getDocs(q);
-                
-                let isAdmin = false;
-                let isTeacher = false;
-                
-                querySnapshot.forEach(doc => {
-                    const role = doc.data().role || 'user';
-                    isAdmin = role === 'admin';
-                    isTeacher = role === 'teacher';
-                });
-                
-                currentUserIsAdmin = isAdmin;
-                currentUserIsTeacher = isTeacher;
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                const userData = userDoc.data() || {};
+                currentUserIsAdmin = userData.role === 'admin';
+                currentUserIsTeacher = userData.role === 'teacher';
                 currentUserEmail = user.email;
                 
-                if (!isAdmin && !isTeacher) {
+                console.log('👤 用戶權限:', { 
+                    admin: currentUserIsAdmin, 
+                    teacher: currentUserIsTeacher,
+                    email: currentUserEmail
+                });
+                
+                if (!currentUserIsAdmin && !currentUserIsTeacher) {
                     appDiv.innerHTML = `
                         <div class="unauthorized">
                             <i class="fas fa-shield-alt"></i>
