@@ -800,7 +800,7 @@
       }
     }
 
-    // 生成用戶行
+    // 生成用戶行（添加複選框）
     function generateUserRow(docId, user) {
       const isDisabled = user.isDisabled === true;
       const isTeacher = user.role === 'teacher';
@@ -864,8 +864,12 @@
       }
       menuHtml += `</div>`;
       
+      // 返回表格行，添加複選框列
       return `
         <tr ${isDisabled ? 'class="disabled-row"' : ''}>
+          <td style="width: 40px; text-align: center;">
+            <input type="checkbox" class="user-checkbox" data-userid="${docId}" onclick="event.stopPropagation()">
+          </td>
           <td style="max-width:200px;">${nameHtml} </div>
           <td style="max-width:200px;">${escapeHtml(user.email || '-')} </div>
           <td class="phone-cell" id="phone-${docId}">
@@ -935,7 +939,7 @@
       if (!usersList) return;
       
       if (!loadMore) {
-        usersList.innerHTML = ' <td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中... </div>';
+        usersList.innerHTML = ' <td colspan="16" class="loading"><span class="loading-spinner"></span> 載入中... </div>';
         if (loadMoreContainer) loadMoreContainer.style.display = 'none';
       }
       
@@ -947,14 +951,14 @@
         let constraints = [];
         
         if (!currentUserIsAdmin && !currentUserIsTeacher) {
-          usersList.innerHTML = ' <td colspan="15" class="loading">無權限訪問 </div>';
+          usersList.innerHTML = ' <td colspan="16" class="loading">無權限訪問 </div>';
           isLoading = false;
           return;
         }
         
         if (!currentUserIsAdmin && currentUserIsTeacher) {
           if (!currentUserBranch) {
-            usersList.innerHTML = ' <td colspan="15" class="loading">您的帳號尚未分配班級，請聯絡管理員 </div>';
+            usersList.innerHTML = ' <td colspan="16" class="loading">您的帳號尚未分配班級，請聯絡管理員 </div>';
             isLoading = false;
             return;
           }
@@ -1020,9 +1024,11 @@
         });
         
         if (filteredDocs.length === 0 && !loadMore) {
-          usersList.innerHTML = ' <td colspan="15" class="loading">📭 沒有找到符合條件的用戶 </div>';
+          usersList.innerHTML = ' <td colspan="16" class="loading">📭 沒有找到符合條件的用戶 </div>';
         } else {
           usersList.innerHTML = html;
+          // 重新綁定複選框事件
+          bindCheckboxEvents();
         }
         
         if (loadMoreContainer) {
@@ -1030,7 +1036,7 @@
         }
       } catch (error) {
         console.error('載入用戶失敗:', error);
-        if (!loadMore) usersList.innerHTML = ` <td colspan="15" class="loading">載入失敗: ${error.message} </div>`;
+        if (!loadMore) usersList.innerHTML = ` <td colspan="16" class="loading">載入失敗: ${error.message} </div>`;
       } finally {
         isLoading = false;
       }
@@ -1064,6 +1070,39 @@
       } catch (error) {
         console.error('更新統計失敗:', error);
       }
+    }
+
+    // ===== 複選框相關函數 =====
+    window.toggleSelectAll = () => {
+      const selectAll = document.getElementById('selectAllCheckbox');
+      const checkboxes = document.querySelectorAll('.user-checkbox');
+      checkboxes.forEach(cb => {
+        cb.checked = selectAll.checked;
+      });
+      updateSelectedCount();
+    };
+    
+    function updateSelectedCount() {
+      const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+      const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.userid);
+      window.selectedUserIds = selectedIds;
+      
+      const selectedCountSpan = document.getElementById('selectedCount');
+      if (selectedCountSpan) {
+        selectedCountSpan.textContent = selectedIds.length;
+      }
+      
+      const selectedDiv = document.getElementById('selectedCountDiv');
+      if (selectedDiv) {
+        selectedDiv.style.display = selectedIds.length > 0 ? 'block' : 'none';
+      }
+    }
+    
+    function bindCheckboxEvents() {
+      document.querySelectorAll('.user-checkbox').forEach(cb => {
+        cb.removeEventListener('change', updateSelectedCount);
+        cb.addEventListener('change', updateSelectedCount);
+      });
     }
 
     // ===== Branch 編輯 =====
@@ -1513,7 +1552,7 @@
       const term = document.getElementById('searchInput').value.trim().toLowerCase();
       const usersList = document.getElementById('usersList');
       if (!term) { await reloadUsers(); return; }
-      usersList.innerHTML = ' <td colspan="15" class="loading"><span class="loading-spinner"></span> 搜尋中... </div>';
+      usersList.innerHTML = ' <td colspan="16" class="loading"><span class="loading-spinner"></span> 搜尋中... </div>';
       try {
         const snapshot = await getDocs(query(collection(db, 'users'), limit(200)));
         let html = '', count = 0;
@@ -1528,9 +1567,9 @@
             html += generateUserRow(doc.id, user);
           }
         });
-        usersList.innerHTML = count ? html : ` <td colspan="15" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶 </div>`;
+        usersList.innerHTML = count ? html : ` <td colspan="16" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶 </div>`;
       } catch (error) {
-        usersList.innerHTML = ` <td colspan="15" class="loading">搜尋失敗: ${error.message} </div>`;
+        usersList.innerHTML = ` <td colspan="16" class="loading">搜尋失敗: ${error.message} </div>`;
       }
     }
     
@@ -1667,18 +1706,16 @@
       }
     };
     
-    // 發送通知函數（修復特定班級輸入欄自動顯示）
+    // 發送通知函數
     window.openSendNotification = () => {
-      selectedUserIdsForNotification = [];
-      
-      // 獲取當前頁面已選中的用戶（如果有複選框功能）
-      const checkboxes = document.querySelectorAll('.user-select-checkbox:checked');
-      const selectedUserIds = Array.from(checkboxes).map(cb => cb.dataset.userid);
-      window.selectedUserIds = selectedUserIds;
+      // 獲取當前頁面已選中的用戶
+      const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+      const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.userid);
+      window.selectedUserIds = selectedIds;
       
       // 更新顯示
-      document.getElementById('selectedCount').textContent = selectedUserIds.length;
-      document.getElementById('selectedCountDiv').style.display = selectedUserIds.length > 0 ? 'block' : 'none';
+      document.getElementById('selectedCount').textContent = selectedIds.length;
+      document.getElementById('selectedCountDiv').style.display = selectedIds.length > 0 ? 'block' : 'none';
       
       // 清空輸入框
       document.getElementById('notifTitle').value = '';
@@ -1696,7 +1733,7 @@
         selectedDiv.style.display = 'none';
       } else if (targetSelect.value === 'selected') {
         branchDiv.style.display = 'none';
-        selectedDiv.style.display = selectedUserIds.length > 0 ? 'block' : 'none';
+        selectedDiv.style.display = selectedIds.length > 0 ? 'block' : 'none';
       } else {
         branchDiv.style.display = 'none';
         selectedDiv.style.display = 'none';
@@ -1900,14 +1937,17 @@
           ` : ''}
           
           <div class="users-table">
-             <table>
+              <table>
               <thead>
-                 <tr>
+                  <tr>
+                  <th style="width: 40px;">
+                    <input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()">
+                  </th>
                   <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>班級</th><th>年級</th><th>教材</th><th>註冊時間</th><th>最近上線</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th>
-                 </tr>
+                  </tr>
               </thead>
-              <tbody id="usersList"> <tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中... </td></tr></tbody>
-             </table>
+              <tbody id="usersList"> <tr><td colspan="16" class="loading"><span class="loading-spinner"></span> 載入中...  </td></tr></tbody>
+              </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
         </div>
