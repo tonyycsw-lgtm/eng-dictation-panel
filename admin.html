@@ -585,7 +585,7 @@
     } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
     import { 
       getFirestore, collection, getDocs, getCountFromServer, doc, getDoc, updateDoc,
-      query, orderBy, limit, startAfter, where 
+      query, orderBy, limit, startAfter, where, setDoc, addDoc, arrayUnion
     } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -623,6 +623,9 @@
     let currentUserIsAdmin = false;
     let currentUserIsTeacher = false;
     let currentUserBranch = null;
+    
+    // 用於批量通知的已選用戶
+    let selectedUserIdsForNotification = [];
 
     // XSS 防護
     function escapeHtml(str) {
@@ -1542,6 +1545,232 @@
     
     window.logout = async () => { await signOut(auth); window.location.reload(); };
     
+    // ============================================
+    // 通知相關函數
+    // ============================================
+    
+    // 通知設置相關
+    window.toggleNotificationSettings = () => {
+      const panel = document.getElementById('notificationSettingsPanel');
+      if (panel) {
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        if (panel.style.display === 'block') {
+          loadNotificationSettings();
+        }
+      }
+    };
+    
+    window.loadNotificationSettings = async () => {
+      try {
+        const settingsRef = doc(db, 'settings', 'notifications');
+        const settingsSnap = await getDoc(settingsRef);
+        if (settingsSnap.exists()) {
+          const data = settingsSnap.data();
+          if (data.inApp) {
+            document.getElementById('notifyNewUnit').checked = data.inApp.scenarios?.new_unit !== false;
+            document.getElementById('notifyAnnouncement').checked = data.inApp.scenarios?.announcement !== false;
+            document.getElementById('notifyAccountDisabled').checked = data.inApp.scenarios?.account_disabled !== false;
+            document.getElementById('notifyAccountEnabled').checked = data.inApp.scenarios?.account_enabled !== false;
+            document.getElementById('notifyTrialExpiring').checked = data.inApp.scenarios?.trial_expiring !== false;
+            document.getElementById('notifySubscriptionExpiring').checked = data.inApp.scenarios?.subscription_expiring !== false;
+            document.getElementById('notifySystemMaintenance').checked = data.inApp.scenarios?.system_maintenance !== false;
+          }
+          if (data.email) {
+            document.getElementById('emailEnabled').checked = data.email.enabled || false;
+            if (data.email.enabled) {
+              document.getElementById('emailSettings').style.display = 'block';
+            }
+            const provider = data.email.provider || 'resend';
+            document.getElementById('emailProvider').value = provider;
+            toggleEmailProviderSettings(provider);
+            if (data.email.credentials?.resend?.apiKey) {
+              document.getElementById('resendApiKey').value = data.email.credentials.resend.apiKey;
+            }
+            if (data.email.credentials?.ses) {
+              document.getElementById('sesAccessKey').value = data.email.credentials.ses.accessKeyId || '';
+              document.getElementById('sesSecretKey').value = data.email.credentials.ses.secretAccessKey || '';
+              document.getElementById('sesRegion').value = data.email.credentials.ses.region || 'us-east-1';
+            }
+            document.getElementById('fromName').value = data.email.fromName || '英語默書系統';
+            document.getElementById('fromEmail').value = data.email.fromEmail || '';
+          }
+        }
+      } catch (error) {
+        console.error('載入通知設置失敗:', error);
+      }
+    };
+    
+    window.saveNotificationSettings = async () => {
+      try {
+        const settings = {
+          inApp: {
+            scenarios: {
+              new_unit: document.getElementById('notifyNewUnit').checked,
+              announcement: document.getElementById('notifyAnnouncement').checked,
+              account_disabled: document.getElementById('notifyAccountDisabled').checked,
+              account_enabled: document.getElementById('notifyAccountEnabled').checked,
+              trial_expiring: document.getElementById('notifyTrialExpiring').checked,
+              subscription_expiring: document.getElementById('notifySubscriptionExpiring').checked,
+              system_maintenance: document.getElementById('notifySystemMaintenance').checked
+            }
+          },
+          email: {
+            enabled: document.getElementById('emailEnabled').checked,
+            provider: document.getElementById('emailProvider').value,
+            credentials: {},
+            fromName: document.getElementById('fromName').value,
+            fromEmail: document.getElementById('fromEmail').value,
+            updatedAt: new Date().toISOString(),
+            updatedBy: auth.currentUser.uid
+          }
+        };
+        
+        const provider = settings.email.provider;
+        if (provider === 'resend') {
+          settings.email.credentials.resend = { apiKey: document.getElementById('resendApiKey').value };
+        } else if (provider === 'ses') {
+          settings.email.credentials.ses = {
+            accessKeyId: document.getElementById('sesAccessKey').value,
+            secretAccessKey: document.getElementById('sesSecretKey').value,
+            region: document.getElementById('sesRegion').value
+          };
+        }
+        
+        await setDoc(doc(db, 'settings', 'notifications'), settings, { merge: true });
+        showToast('通知設置已儲存', 'success');
+      } catch (error) {
+        console.error('儲存通知設置失敗:', error);
+        showToast('儲存失敗：' + error.message);
+      }
+    };
+    
+    window.testEmail = async () => {
+      const email = prompt('請輸入測試收件信箱：');
+      if (!email) return;
+      
+      try {
+        // 調用 Cloud Function 發送測試郵件
+        const sendEmailFunc = firebase.functions().httpsCallable('sendEmail');
+        const result = await sendEmailFunc({
+          to: email,
+          subject: '英語默書系統測試郵件',
+          html: '<h2>測試郵件</h2><p>如果您收到此郵件，表示郵件通知功能正常運作。</p>'
+        });
+        if (result.data.success) {
+          showToast('測試郵件已發送', 'success');
+        } else {
+          showToast('發送失敗', 'error');
+        }
+      } catch (error) {
+        console.error('測試郵件發送失敗:', error);
+        showToast('發送失敗：' + error.message);
+      }
+    };
+    
+    // 發送通知函數
+    window.openSendNotification = () => {
+      selectedUserIdsForNotification = [];
+      document.getElementById('selectedCount').textContent = '0';
+      document.getElementById('selectedCountDiv').style.display = 'none';
+      document.getElementById('branchSelectDiv').style.display = 'none';
+      document.getElementById('notifTitle').value = '';
+      document.getElementById('notifContent').value = '';
+      document.getElementById('sendNotificationModal').style.display = 'flex';
+      
+      document.getElementById('notifTarget').addEventListener('change', function() {
+        const branchDiv = document.getElementById('branchSelectDiv');
+        const selectedDiv = document.getElementById('selectedCountDiv');
+        if (this.value === 'branch') {
+          branchDiv.style.display = 'block';
+          selectedDiv.style.display = 'none';
+        } else if (this.value === 'selected') {
+          branchDiv.style.display = 'none';
+          selectedDiv.style.display = 'block';
+        } else {
+          branchDiv.style.display = 'none';
+          selectedDiv.style.display = 'none';
+        }
+      });
+    };
+    
+    window.closeSendNotification = () => {
+      document.getElementById('sendNotificationModal').style.display = 'none';
+    };
+    
+    window.setSelectedUsersForNotification = (userIds) => {
+      selectedUserIdsForNotification = userIds;
+      document.getElementById('selectedCount').textContent = userIds.length;
+    };
+    
+    window.sendNotification = async () => {
+      const title = document.getElementById('notifTitle').value.trim();
+      const content = document.getElementById('notifContent').value.trim();
+      const type = document.getElementById('notifType').value;
+      const target = document.getElementById('notifTarget').value;
+      const sendEmail = document.getElementById('sendEmailCheckbox')?.checked || false;
+      
+      if (!title || !content) {
+        showToast('請填寫標題和內容');
+        return;
+      }
+      
+      let targetUsers = [];
+      
+      if (target === 'all') {
+        targetUsers = [];
+      } else if (target === 'branch') {
+        const branch = document.getElementById('notifBranch').value.trim();
+        if (!branch) {
+          showToast('請輸入班級名稱');
+          return;
+        }
+        targetUsers = { type: 'branch', value: branch };
+      } else if (target === 'selected') {
+        if (selectedUserIdsForNotification.length === 0) {
+          showToast('請先選取用戶');
+          return;
+        }
+        targetUsers = { type: 'selected', value: selectedUserIdsForNotification };
+      }
+      
+      try {
+        const notificationRef = collection(db, 'notifications');
+        await addDoc(notificationRef, {
+          title,
+          content,
+          type,
+          targetUsers,
+          senderId: auth.currentUser.uid,
+          senderName: auth.currentUser.displayName || auth.currentUser.email,
+          senderRole: currentUserIsAdmin ? 'admin' : 'teacher',
+          sendEmail: sendEmail && currentUserIsAdmin,
+          createdAt: new Date().toISOString(),
+          isReadBy: []
+        });
+        
+        showToast('通知已發送', 'success');
+        closeSendNotification();
+      } catch (error) {
+        console.error('發送通知失敗:', error);
+        showToast('發送失敗：' + error.message);
+      }
+    };
+    
+    function toggleEmailProviderSettings(provider) {
+      const resendDiv = document.getElementById('resendSettings');
+      const sesDiv = document.getElementById('sesSettings');
+      if (provider === 'resend') {
+        if (resendDiv) resendDiv.style.display = 'block';
+        if (sesDiv) sesDiv.style.display = 'none';
+      } else if (provider === 'ses') {
+        if (resendDiv) resendDiv.style.display = 'none';
+        if (sesDiv) sesDiv.style.display = 'block';
+      }
+    }
+    
+    // ============================================
+    // 載入管理介面
+    // ============================================
     async function loadAdminInterface(container, user) {
       currentUserBranch = await getCurrentUserBranch();
       
@@ -1551,13 +1780,78 @@
             <h1><i class="fas fa-chalkboard-teacher"></i> 會員管理後台 · 英語默書系統</h1>
             <div><span style="margin-right:15px;">${escapeHtml(user.email)} ${currentUserIsAdmin ? '👑 管理員' : (currentUserIsTeacher ? '🏫 老師' : '')} ${currentUserBranch ? `(${escapeHtml(currentUserBranch)})` : ''}</span><button onclick="logout()" class="btn-toggle">登出</button></div>
           </div>
+          
           <div class="stats">
             <div class="stat-card"><div class="label">總會員數</div><div class="value" id="totalUsers">-</div></div>
             <div class="stat-card"><div class="label">🚫 已停用</div><div class="value" id="disabledUsers">-</div></div>
             <div class="stat-card"><div class="label">付費會員</div><div class="value" id="premiumUsers">-</div></div>
             <div class="stat-card"><div class="label">免費會員</div><div class="value" id="freeUsers">-</div></div>
           </div>
-          <div class="search-bar"><input type="text" id="searchInput" placeholder="搜尋 Email、名稱、電話或備註..."><button onclick="searchUsers()"><i class="fas fa-search"></i> 搜尋</button></div>
+          
+          ${currentUserIsAdmin ? `
+          <div class="notifications-section" style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <h3 style="font-size: 18px;"><i class="fas fa-bell"></i> 通知設置</h3>
+              <button class="btn-toggle" onclick="toggleNotificationSettings()">⚙️ 管理</button>
+            </div>
+            <div id="notificationSettingsPanel" style="display: none;">
+              <div style="margin-bottom: 20px;">
+                <h4 style="font-size: 14px; margin-bottom: 10px;">📢 站內通知場景</h4>
+                <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                  <label><input type="checkbox" id="notifyNewUnit" checked> 新單元上線</label>
+                  <label><input type="checkbox" id="notifyAnnouncement" checked> 活動通知</label>
+                  <label><input type="checkbox" id="notifyAccountDisabled" checked> 帳號停用</label>
+                  <label><input type="checkbox" id="notifyAccountEnabled" checked> 帳號啟用</label>
+                  <label><input type="checkbox" id="notifyTrialExpiring" checked> 試用期到期提醒</label>
+                  <label><input type="checkbox" id="notifySubscriptionExpiring" checked> 付費到期提醒</label>
+                  <label><input type="checkbox" id="notifySystemMaintenance" checked> 系統維護通知</label>
+                </div>
+              </div>
+              <div style="margin-bottom: 20px;">
+                <h4 style="font-size: 14px; margin-bottom: 10px;">📧 郵件通知設置</h4>
+                <label><input type="checkbox" id="emailEnabled"> 啟用郵件通知</label>
+                <div id="emailSettings" style="margin-top: 10px; margin-left: 20px; display: none;">
+                  <div style="margin-bottom: 10px;">
+                    <label>郵件服務商：</label>
+                    <select id="emailProvider">
+                      <option value="resend">Resend</option>
+                      <option value="ses">Amazon SES</option>
+                    </select>
+                  </div>
+                  <div id="resendSettings">
+                    <label>Resend API Key：</label>
+                    <input type="password" id="resendApiKey" style="width: 300px; padding: 6px; margin-left: 10px;">
+                  </div>
+                  <div id="sesSettings" style="display: none;">
+                    <div><label>AWS Access Key ID：</label><input type="password" id="sesAccessKey" style="width: 250px; margin: 5px 0;"></div>
+                    <div><label>AWS Secret Access Key：</label><input type="password" id="sesSecretKey" style="width: 250px; margin: 5px 0;"></div>
+                    <div><label>AWS Region：</label><select id="sesRegion"><option value="us-east-1">us-east-1</option><option value="us-west-2">us-west-2</option><option value="ap-northeast-1">ap-northeast-1</option></select></div>
+                  </div>
+                  <div style="margin-top: 10px;">
+                    <label>寄件人名稱：</label><input type="text" id="fromName" value="英語默書系統" style="width: 200px; margin-left: 10px;">
+                    <label style="margin-left: 20px;">寄件人信箱：</label><input type="email" id="fromEmail" placeholder="noreply@yourdomain.com" style="width: 250px; margin-left: 10px;">
+                  </div>
+                  <button class="btn-toggle" onclick="testEmail()" style="margin-top: 10px;">📧 測試發送</button>
+                </div>
+              </div>
+              <button class="btn-toggle" onclick="saveNotificationSettings()">💾 儲存設定</button>
+            </div>
+          </div>
+          ` : ''}
+          
+          <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="搜尋 Email、名稱、電話或備註...">
+            <button onclick="searchUsers()"><i class="fas fa-search"></i> 搜尋</button>
+          </div>
+          
+          ${currentUserIsAdmin || currentUserIsTeacher ? `
+          <div style="margin-bottom: 15px;">
+            <button class="btn-toggle" onclick="openSendNotification()" style="background: #4f46e5; color: white;">
+              <i class="fas fa-paper-plane"></i> 發送通知
+            </button>
+          </div>
+          ` : ''}
+          
           <div class="filters">
             <button class="filter-btn" onclick="filterUsers('all', event)">全部</button>
             <button class="filter-btn" onclick="filterUsers('premium', event)">付費會員</button>
@@ -1568,6 +1862,7 @@
             <button class="filter-btn" onclick="filterUsers('teacher', event)">👨‍🏫 老師</button>
             <button class="filter-btn" onclick="filterUsers('disabled', event)">🚫 已停用</button>
           </div>
+          
           ${currentUserIsAdmin ? `
           <div class="filters" style="margin-top: 10px;">
             <span class="branch-filter-label">🏷️ 班級過濾：</span>
@@ -1576,16 +1871,66 @@
             <button class="filter-btn" onclick="showBranchPrompt()">+ 自訂</button>
           </div>
           ` : ''}
+          
           <div class="users-table">
-             <table>
+            <table>
               <thead>
-                 <tr>
+                <tr>
                   <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>班級</th><th>年級</th><th>教材</th><th>註冊時間</th><th>最近上線</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th>
-                 </tr>
+                </tr>
               </thead>
-              <tbody id="usersList"> <td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中... </td></tbody>
-             </table>
+              <tbody id="usersList"><tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
+            </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
+          </div>
+        </div>
+        
+        <!-- 發送通知彈窗 -->
+        <div id="sendNotificationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10001; align-items: center; justify-content: center;">
+          <div style="background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 500px;">
+            <h3 style="margin-bottom: 20px;"><i class="fas fa-bell"></i> 發送通知</h3>
+            <div style="margin-bottom: 15px;">
+              <label>標題：</label>
+              <input type="text" id="notifTitle" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label>內容：</label>
+              <textarea id="notifContent" rows="4" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;"></textarea>
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label>通知類型：</label>
+              <select id="notifType" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <option value="new_unit">📚 新單元上線</option>
+                <option value="announcement">📢 活動通知</option>
+                ${currentUserIsAdmin ? '<option value="account_disabled">🔒 帳號停用通知</option>' : ''}
+                ${currentUserIsAdmin ? '<option value="account_enabled">🔓 帳號啟用通知</option>' : ''}
+                <option value="system_maintenance">⚙️ 系統維護通知</option>
+              </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label>發送對象：</label>
+              <select id="notifTarget" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <option value="all">全部用戶</option>
+                ${currentUserIsAdmin ? '<option value="branch">特定班級</option>' : (currentUserIsTeacher && currentUserBranch ? '<option value="branch">我的班級</option>' : '')}
+                <option value="selected">已選用戶</option>
+              </select>
+            </div>
+            <div id="branchSelectDiv" style="display: none; margin-bottom: 15px;">
+              <label>班級：</label>
+              <input type="text" id="notifBranch" placeholder="請輸入班級名稱" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+            </div>
+            <div id="selectedCountDiv" style="display: none; margin-bottom: 15px; color: #4f46e5;">
+              已選中 <span id="selectedCount">0</span> 位用戶
+            </div>
+            ${currentUserIsAdmin ? `
+            <div style="margin-bottom: 15px;">
+              <label><input type="checkbox" id="sendEmailCheckbox"> 同時發送郵件通知（限重要通知）</label>
+            </div>
+            ` : ''}
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+              <button class="btn-toggle" onclick="closeSendNotification()">取消</button>
+              <button class="btn-toggle" onclick="sendNotification()" style="background: #4f46e5; color: white;">發送</button>
+            </div>
           </div>
         </div>
       `;
@@ -1641,6 +1986,21 @@
       
       window.searchUsers = () => performSearch();
       window.loadMoreUsers = () => loadUsers(currentFilter, true);
+      
+      // 添加郵件服務商切換事件
+      const emailProvider = document.getElementById('emailProvider');
+      if (emailProvider) {
+        emailProvider.addEventListener('change', (e) => {
+          toggleEmailProviderSettings(e.target.value);
+        });
+      }
+      
+      const emailEnabled = document.getElementById('emailEnabled');
+      if (emailEnabled) {
+        emailEnabled.addEventListener('change', (e) => {
+          document.getElementById('emailSettings').style.display = e.target.checked ? 'block' : 'none';
+        });
+      }
       
       await updateStats();
       await loadUsers('all', false);

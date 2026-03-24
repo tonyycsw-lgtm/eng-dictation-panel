@@ -674,7 +674,24 @@
                 <div class="loading" style="width: 20px; height: 20px;"></div>
                 <span>載入中...</span>
             </div>
-            <div id="userActions"></div>
+            <div id="userActions" style="display: flex; align-items: center; gap: 10px;">
+    <div style="position: relative;">
+        <button onclick="showNotificationPanel()" style="background: none; border: none; cursor: pointer; position: relative;">
+            <i class="fas fa-bell" style="font-size: 18px; color: #64748b;"></i>
+            <span id="notificationBadge" style="position: absolute; top: -5px; right: -8px; background: #ef4444; color: white; font-size: 10px; padding: 2px 5px; border-radius: 10px; display: none;"></span>
+        </button>
+        <div id="notificationPanel" style="display: none; position: absolute; top: 40px; right: 0; width: 320px; max-height: 400px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; overflow: hidden;">
+            <div style="padding: 12px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between;">
+                <span style="font-weight: 600;">通知</span>
+                <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: #4f46e5; cursor: pointer; font-size: 12px;">全部已讀</button>
+            </div>
+            <div id="notificationList" style="max-height: 350px; overflow-y: auto;"></div>
+        </div>
+    </div>
+    <button class="logout-btn" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i> 登出
+    </button>
+</div>
         </div>
         
         <div class="header">

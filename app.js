@@ -1,5 +1,5 @@
 // === 導入 Firebase 模組 ===
-import { auth, db, doc, getDoc, setDoc, updateDoc, increment, signOut, onAuthStateChanged } from './firebase-config.js';
+import { auth, db, doc, getDoc, setDoc, updateDoc, increment, signOut, onAuthStateChanged, collection, getDocs, query, orderBy, limit, where, addDoc, arrayUnion } from './firebase-config.js';
 
 // === 應用配置 ===
 const CONFIG = {
@@ -22,6 +22,10 @@ let currentUserRole = 'user';
 let currentUserBranch = null;
 let isGuestMode = false;
 let lastSyncTime = null;
+
+// 通知相關變量
+let notifications = [];
+let unreadCount = 0;
 
 // === 改良的音頻播放器 ===
 class StableAudioPlayer {
@@ -158,6 +162,192 @@ function formatTime(minutes) {
     return mins > 0 ? `${hours} 小時 ${mins} 分鐘` : `${hours} 小時`;
 }
 
+// 格式化相對時間
+function formatRelativeTime(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMinutes = Math.floor((now - date) / (1000 * 60));
+    
+    if (diffMinutes < 1) return '剛剛';
+    if (diffMinutes < 60) return `${diffMinutes}分鐘前`;
+    if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}小時前`;
+    if (diffMinutes < 10080) return `${Math.floor(diffMinutes / 1440)}天前`;
+    return `${Math.floor(diffMinutes / 10080)}週前`;
+}
+
+// === 通知相關函數 =====
+// 位置：在輔助函數之後，用戶相關函數之前
+
+// 載入通知
+async function loadNotifications() {
+    if (!currentUser) return;
+    
+    try {
+        const notificationsRef = collection(db, 'notifications');
+        const q = query(
+            notificationsRef,
+            orderBy('createdAt', 'desc'),
+            limit(50)
+        );
+        const snapshot = await getDocs(q);
+        
+        notifications = [];
+        snapshot.forEach(doc => {
+            const notif = doc.data();
+            // 檢查通知是否發送給當前用戶
+            const isTargeted = isNotificationForUser(notif);
+            if (isTargeted) {
+                notifications.push({
+                    id: doc.id,
+                    ...notif,
+                    isRead: notif.isReadBy?.includes(currentUser.uid) || false
+                });
+            }
+        });
+        
+        unreadCount = notifications.filter(n => !n.isRead).length;
+        updateNotificationBadge();
+        renderNotificationList();
+        
+    } catch (error) {
+        console.error('載入通知失敗:', error);
+    }
+}
+
+// 檢查通知是否發送給當前用戶
+function isNotificationForUser(notif) {
+    const target = notif.targetUsers;
+    
+    // 無目標（全部用戶）
+    if (!target || (Array.isArray(target) && target.length === 0) || target.type === undefined) {
+        return true;
+    }
+    
+    // 特定班級
+    if (target.type === 'branch') {
+        return currentUserBranch === target.value;
+    }
+    
+    // 已選用戶
+    if (target.type === 'selected') {
+        return target.value.includes(currentUser.uid);
+    }
+    
+    return true;
+}
+
+// 更新通知圖標
+function updateNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    if (badge) {
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+// 標記為已讀
+async function markNotificationAsRead(notificationId) {
+    try {
+        const notifRef = doc(db, 'notifications', notificationId);
+        await updateDoc(notifRef, {
+            isReadBy: arrayUnion(currentUser.uid)
+        });
+        
+        const notif = notifications.find(n => n.id === notificationId);
+        if (notif) {
+            notif.isRead = true;
+            unreadCount--;
+            updateNotificationBadge();
+            renderNotificationList();
+        }
+    } catch (error) {
+        console.error('標記已讀失敗:', error);
+    }
+}
+
+// 標記全部已讀
+async function markAllNotificationsAsRead() {
+    const unreadNotifs = notifications.filter(n => !n.isRead);
+    for (const notif of unreadNotifs) {
+        await markNotificationAsRead(notif.id);
+    }
+}
+
+// 渲染通知列表
+function renderNotificationList() {
+    const container = document.getElementById('notificationList');
+    if (!container) return;
+    
+    if (notifications.length === 0) {
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #94a3b8;">暫無通知</div>';
+        return;
+    }
+    
+    container.innerHTML = notifications.map(notif => `
+        <div class="notification-item ${notif.isRead ? 'read' : 'unread'}" 
+             onclick="openNotificationDetail('${notif.id}')"
+             style="padding: 12px; border-bottom: 1px solid #e2e8f0; cursor: pointer; ${!notif.isRead ? 'background: #f0f9ff;' : ''}">
+            <div style="display: flex; justify-content: space-between;">
+                <span style="font-weight: 600;">${escapeHtml(notif.title)}</span>
+                <span style="font-size: 11px; color: #94a3b8;">${formatRelativeTime(notif.createdAt)}</span>
+            </div>
+            <div style="font-size: 13px; color: #475569; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${escapeHtml(notif.content)}
+            </div>
+            ${!notif.isRead ? '<span style="display: inline-block; width: 8px; height: 8px; background: #4f46e5; border-radius: 50%; margin-top: 6px;"></span>' : ''}
+        </div>
+    `).join('');
+}
+
+// 顯示通知詳情彈窗
+window.openNotificationDetail = async (notificationId) => {
+    const notif = notifications.find(n => n.id === notificationId);
+    if (!notif) return;
+    
+    if (!notif.isRead) {
+        await markNotificationAsRead(notificationId);
+        notif.isRead = true;
+        unreadCount--;
+        updateNotificationBadge();
+        renderNotificationList();
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="notification-detail-modal" style="background: white; border-radius: 16px; padding: 24px; max-width: 400px; width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 18px;">${escapeHtml(notif.title)}</h3>
+                <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+            </div>
+            <div style="font-size: 14px; color: #64748b; margin-bottom: 16px;">
+                ${formatRelativeTime(notif.createdAt)} · 來自 ${escapeHtml(notif.senderName || '系統')}
+            </div>
+            <div style="font-size: 15px; line-height: 1.5; color: #1e293b; white-space: pre-wrap;">
+                ${escapeHtml(notif.content)}
+            </div>
+            <button class="close-btn" onclick="this.closest('.modal-overlay').remove()" style="margin-top: 20px; width: 100%;">關閉</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+};
+
+// 顯示通知面板
+window.showNotificationPanel = () => {
+    const panel = document.getElementById('notificationPanel');
+    if (panel) {
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        if (panel.style.display === 'block') {
+            renderNotificationList();
+        }
+    }
+};
+
 // === 獲取用戶角色 ===
 async function getUserRole(userId) {
     try {
@@ -261,6 +451,19 @@ function updateUserInterface() {
         `;
         
         userActionsDiv.innerHTML = `
+            <div style="position: relative; margin-right: 15px;">
+                <button onclick="showNotificationPanel()" style="background: none; border: none; cursor: pointer; position: relative;">
+                    <i class="fas fa-bell" style="font-size: 18px; color: #64748b;"></i>
+                    <span id="notificationBadge" style="position: absolute; top: -5px; right: -8px; background: #ef4444; color: white; font-size: 10px; padding: 2px 5px; border-radius: 10px; display: none;"></span>
+                </button>
+                <div id="notificationPanel" style="display: none; position: absolute; top: 40px; right: 0; width: 320px; max-height: 400px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; overflow: hidden;">
+                    <div style="padding: 12px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between;">
+                        <span style="font-weight: 600;">通知</span>
+                        <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: #4f46e5; cursor: pointer; font-size: 12px;">全部已讀</button>
+                    </div>
+                    <div id="notificationList" style="max-height: 350px; overflow-y: auto;"></div>
+                </div>
+            </div>
             <button class="logout-btn" id="logoutBtn">
                 <i class="fas fa-sign-out-alt"></i> 登出
             </button>
@@ -814,6 +1017,7 @@ function resetAllUnitsData(event) {
 
 // === 初始化 ===
 async function initPage() {
+    // 監聽 Firebase 認證狀態
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             console.log('✅ 用戶已登入:', user.email);
@@ -861,6 +1065,10 @@ async function initPage() {
             }
             
             updateUserInterface();
+            
+            // ===== 載入通知 =====
+            await loadNotifications();
+            // ==================
             
             // 載入單元
             if (currentUnitId && appData) {
@@ -935,5 +1143,9 @@ window.showTab = showTab;
 window.resetCurrentTabData = resetCurrentTabData;
 window.resetAllUnitsData = resetAllUnitsData;
 window.audioPlayer = audioPlayer;
+window.openNotificationDetail = openNotificationDetail;
+window.showNotificationPanel = showNotificationPanel;
+window.markAllNotificationsAsRead = markAllNotificationsAsRead;
 
+// 啟動應用
 window.addEventListener('load', initPage);
