@@ -143,7 +143,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 1400px;
+      min-width: 1500px;
     }
     
     th {
@@ -293,7 +293,7 @@
     }
     
     .disabled-row {
-      /* 已移除背景色和透明度，與正常行完全一致 */
+      /* 與正常行一致 */
     }
     
     /* 徽章樣式 */
@@ -315,7 +315,7 @@
       color: #991b1b;
     }
     
-    /* 到期提醒樣式 */
+    /* 到期提醒 */
     .expiring-soon {
       color: #f97316;
       font-weight: 500;
@@ -371,12 +371,12 @@
       background: #f1f5f9;
     }
     
-    .phone-cell, .notes-cell, .displayname-cell {
+    .phone-cell, .notes-cell, .displayname-cell, .branch-cell {
       position: relative;
       white-space: nowrap;
     }
     
-    .phone-display, .notes-display, .displayname-display, .grade-display, .publisher-display {
+    .phone-display, .notes-display, .displayname-display, .grade-display, .publisher-display, .branch-display {
       display: inline-block;
       margin-right: 8px;
       max-width: 120px;
@@ -384,46 +384,45 @@
       text-overflow: ellipsis;
     }
     
-/* 備註欄懸停顯示完整內容 - 修復抖動 */
-.notes-cell {
-  max-width: 180px;
-  position: relative;
-}
-
-.notes-display {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
-  max-width: 150px;
-}
-
-/* 懸停在整個單元格上時顯示完整內容 */
-.notes-cell:hover .notes-display {
-  overflow: visible;
-  white-space: normal;
-  position: absolute;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 4px 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  z-index: 10;
-  max-width: 280px;
-  width: 280px;
-  min-width: 200px;
-  word-break: break-word;
-  left: 0;
-  top: 100%;
-  margin-top: 4px;
-}
+    /* 備註欄懸停顯示完整內容 */
+    .notes-cell {
+      max-width: 180px;
+      position: relative;
+    }
+    
+    .notes-display {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+      max-width: 150px;
+    }
+    
+    .notes-cell:hover .notes-display {
+      overflow: visible;
+      white-space: normal;
+      position: absolute;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 4px 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 10;
+      width: 280px;
+      max-width: 280px;
+      min-width: 200px;
+      word-break: break-word;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+    }
     
     .phone-unset, .notes-unset, .publisher-unset {
       color: #94a3b8;
       font-style: italic;
     }
     
-    .edit-input, .phone-input, .notes-input, .publisher-input, .displayname-input {
+    .edit-input, .phone-input, .notes-input, .publisher-input, .displayname-input, .branch-input {
       width: 120px;
       padding: 4px 8px;
       border: 1px solid #cbd5e1;
@@ -432,7 +431,7 @@
       margin-right: 4px;
     }
     
-    .grade-select, .plan-select {
+    .grade-select {
       width: 80px;
       padding: 4px 6px;
       border: 1px solid #cbd5e1;
@@ -608,6 +607,7 @@
 
     // 全域變數
     let currentFilter = 'all';
+    let currentBranchFilter = 'all';
     let lastVisible = null;
     let isLoading = false;
     let hasMore = true;
@@ -615,6 +615,7 @@
     
     let currentUserIsAdmin = false;
     let currentUserIsTeacher = false;
+    let currentUserBranch = null;
 
     // XSS 防護
     function escapeHtml(str) {
@@ -773,12 +774,29 @@
       menu.style.top = `${top}px`;
     }
 
+    // 獲取當前用戶的 Branch
+    async function getCurrentUserBranch() {
+      if (!auth.currentUser) return null;
+      try {
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          return userSnap.data().branch || null;
+        }
+        return null;
+      } catch (error) {
+        console.error('獲取 Branch 失敗:', error);
+        return null;
+      }
+    }
+
     // 生成用戶行
     function generateUserRow(docId, user) {
       const isDisabled = user.isDisabled === true;
       const isTeacher = user.role === 'teacher';
       const isAdmin = user.role === 'admin';
       const trialStatus = getTrialStatus(user.trialEndAt);
+      const branchDisplay = user.branch || '-';
       
       // 用戶名稱
       let nameHtml = `
@@ -792,19 +810,14 @@
       if (isAdmin) nameHtml += `<span class="admin-badge"><i class="fas fa-crown"></i> 管理員</span>`;
       else if (isTeacher) nameHtml += `<span class="teacher-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>`;
       
-      // 方案徽章（合併後）
+      // 方案徽章
       const planMap = { 'free': '免費', 'monthly': '月費', 'annual': '年費', 'custom': '自訂' };
       const planText = planMap[user.plan] || user.plan || '-';
       const isPremium = user.premium === true;
       const planBadgeClass = isPremium ? 'premium-true' : 'premium-false';
       
-      // 電話
       const phoneDisplay = user.phoneNumber || '未設定';
-      
-      // 備註
       const notesDisplay = user.notes || '未填寫';
-      
-      // 有效期顯示
       const expiryDisplay = getExpiryDisplay(user.expiresAt);
       
       // 操作菜單
@@ -841,7 +854,7 @@
       
       return `
         <tr ${isDisabled ? 'class="disabled-row"' : ''}>
-          <td>${nameHtml}</td>
+          <td style="max-width:200px;">${nameHtml}</td>
           <td style="max-width:200px;">${escapeHtml(user.email || '-')}</td>
           <td class="phone-cell" id="phone-${docId}">
             <span class="phone-display editable-click ${!user.phoneNumber ? 'phone-unset' : ''}" onclick="editPhone('${docId}')">${escapeHtml(phoneDisplay)}</span>
@@ -855,6 +868,12 @@
             <button class="btn-icon btn-edit-notes" onclick="editNotes('${docId}')"><i class="fas fa-pen"></i></button>
             <button class="btn-icon btn-save-notes" onclick="saveNotes('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-notes" onclick="cancelEditNotes('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
+          </td>
+          <td id="branch-${docId}" class="branch-cell">
+            <span class="branch-display editable-click" onclick="editBranch('${docId}')">${escapeHtml(branchDisplay)}</span>
+            <input type="text" class="branch-input" value="${escapeHtml(user.branch || '')}" style="display:none;" placeholder="請輸入邀請碼" maxlength="5">
+            <button class="btn-icon btn-save-branch" onclick="saveBranch('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
+            <button class="btn-icon btn-cancel-branch" onclick="cancelEditBranch('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
           </td>
           <td id="grade-${docId}">
             <span class="grade-display editable-click" onclick="editGrade('${docId}')">${escapeHtml(user.grade || '未設定')}</span>
@@ -897,14 +916,14 @@
       `;
     }
 
-    // 載入用戶列表
+    // 載入用戶列表（支援 Branch 過濾）
     async function loadUsers(filter, loadMore = false) {
       const usersList = document.getElementById('usersList');
       const loadMoreContainer = document.getElementById('loadMoreContainer');
       if (!usersList) return;
       
       if (!loadMore) {
-        usersList.innerHTML = '<tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr>';
+        usersList.innerHTML = '<tr><td colspan="16" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr>';
         if (loadMoreContainer) loadMoreContainer.style.display = 'none';
       }
       
@@ -913,40 +932,66 @@
       
       try {
         const usersRef = collection(db, 'users');
-        let q;
+        let constraints = [];
         
-        if (filter === 'all') {
-          q = lastVisible ? query(usersRef, orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-            : query(usersRef, orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
-        } else if (filter === 'premium') {
-          q = lastVisible ? query(usersRef, where('premium', '==', true), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-            : query(usersRef, where('premium', '==', true), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+        // 非管理員且非老師：無權限
+        if (!currentUserIsAdmin && !currentUserIsTeacher) {
+          usersList.innerHTML = '<tr><td colspan="16" class="loading">無權限訪問</td></tr>';
+          isLoading = false;
+          return;
+        }
+        
+        // 老師：只看到自己 Branch 的用戶（且必須有 Branch）
+        if (!currentUserIsAdmin && currentUserIsTeacher) {
+          if (!currentUserBranch) {
+            usersList.innerHTML = '<tr><td colspan="16" class="loading">您的帳號尚未分配班級，請聯絡管理員</td></tr>';
+            isLoading = false;
+            return;
+          }
+          constraints.push(where('branch', '==', currentUserBranch));
+        }
+        
+        // 管理員：可選擇 Branch 過濾
+        if (currentUserIsAdmin && currentBranchFilter !== 'all') {
+          constraints.push(where('branch', '==', currentBranchFilter));
+        }
+        
+        // 添加其他過濾條件
+        if (filter === 'premium') {
+          constraints.push(where('premium', '==', true));
         } else if (filter === 'free') {
-          q = lastVisible ? query(usersRef, where('premium', '==', false), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-            : query(usersRef, where('premium', '==', false), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+          constraints.push(where('premium', '==', false));
         } else if (filter === 'trial-active') {
           const now = new Date().toISOString();
-          q = lastVisible ? query(usersRef, where('trialEndAt', '>', now), orderBy('trialEndAt', 'asc'), startAfter(lastVisible), limit(PAGE_SIZE))
-            : query(usersRef, where('trialEndAt', '>', now), orderBy('trialEndAt', 'asc'), limit(PAGE_SIZE));
+          constraints.push(where('trialEndAt', '>', now));
         } else if (filter === 'expiring-soon') {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const sevenDaysLater = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-          q = lastVisible ? query(usersRef, where('premium', '==', true), where('expiresAt', '>', today.toISOString()), where('expiresAt', '<=', sevenDaysLater.toISOString()), orderBy('expiresAt', 'asc'), startAfter(lastVisible), limit(PAGE_SIZE))
-            : query(usersRef, where('premium', '==', true), where('expiresAt', '>', today.toISOString()), where('expiresAt', '<=', sevenDaysLater.toISOString()), orderBy('expiresAt', 'asc'), limit(PAGE_SIZE));
+          constraints.push(where('premium', '==', true));
+          constraints.push(where('expiresAt', '>', today.toISOString()));
+          constraints.push(where('expiresAt', '<=', sevenDaysLater.toISOString()));
         } else if (filter === 'expired') {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          q = lastVisible ? query(usersRef, where('premium', '==', true), where('expiresAt', '<=', today.toISOString()), orderBy('expiresAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-            : query(usersRef, where('premium', '==', true), where('expiresAt', '<=', today.toISOString()), orderBy('expiresAt', 'desc'), limit(PAGE_SIZE));
+          constraints.push(where('premium', '==', true));
+          constraints.push(where('expiresAt', '<=', today.toISOString()));
         } else if (filter === 'teacher') {
-          q = lastVisible ? query(usersRef, where('role', '==', 'teacher'), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-            : query(usersRef, where('role', '==', 'teacher'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+          constraints.push(where('role', '==', 'teacher'));
         } else if (filter === 'disabled') {
-          q = lastVisible ? query(usersRef, where('isDisabled', '==', true), orderBy('disabledAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-            : query(usersRef, where('isDisabled', '==', true), orderBy('disabledAt', 'desc'), limit(PAGE_SIZE));
+          constraints.push(where('isDisabled', '==', true));
+        }
+        
+        // 構建查詢
+        let q;
+        if (constraints.length > 0) {
+          q = lastVisible 
+            ? query(usersRef, ...constraints, orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+            : query(usersRef, ...constraints, orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
         } else {
-          q = query(usersRef, orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+          q = lastVisible 
+            ? query(usersRef, orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+            : query(usersRef, orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
         }
         
         const snapshot = await getDocs(q);
@@ -962,7 +1007,7 @@
         if (loadMoreContainer) loadMoreContainer.style.display = hasMore ? 'block' : 'none';
       } catch (error) {
         console.error('載入用戶失敗:', error);
-        if (!loadMore) usersList.innerHTML = ` 者<td colspan="14" class="loading">載入失敗: ${error.message} </tr>`;
+        if (!loadMore) usersList.innerHTML = `<tr><td colspan="16" class="loading">載入失敗: ${error.message}</td></tr>`;
       } finally {
         isLoading = false;
       }
@@ -972,10 +1017,23 @@
     async function updateStats() {
       try {
         const usersRef = collection(db, 'users');
-        const total = await getCountFromServer(usersRef);
-        const disabled = await getCountFromServer(query(usersRef, where('isDisabled', '==', true)));
-        const premium = await getCountFromServer(query(usersRef, where('premium', '==', true)));
-        const free = await getCountFromServer(query(usersRef, where('premium', '==', false)));
+        let totalQuery = usersRef;
+        let disabledQuery = query(usersRef, where('isDisabled', '==', true));
+        let premiumQuery = query(usersRef, where('premium', '==', true));
+        let freeQuery = query(usersRef, where('premium', '==', false));
+        
+        // 老師：只統計自己 Branch
+        if (!currentUserIsAdmin && currentUserIsTeacher && currentUserBranch) {
+          totalQuery = query(usersRef, where('branch', '==', currentUserBranch));
+          disabledQuery = query(usersRef, where('branch', '==', currentUserBranch), where('isDisabled', '==', true));
+          premiumQuery = query(usersRef, where('branch', '==', currentUserBranch), where('premium', '==', true));
+          freeQuery = query(usersRef, where('branch', '==', currentUserBranch), where('premium', '==', false));
+        }
+        
+        const total = await getCountFromServer(totalQuery);
+        const disabled = await getCountFromServer(disabledQuery);
+        const premium = await getCountFromServer(premiumQuery);
+        const free = await getCountFromServer(freeQuery);
         
         document.getElementById('totalUsers').textContent = total.data().count;
         document.getElementById('disabledUsers').textContent = disabled.data().count;
@@ -985,6 +1043,64 @@
         console.error('更新統計失敗:', error);
       }
     }
+
+    // ===== Branch 編輯 =====
+    window.editBranch = (userId) => {
+      if (!currentUserIsAdmin) return;
+      const cell = document.getElementById(`branch-${userId}`);
+      const display = cell.querySelector('.branch-display');
+      const input = cell.querySelector('.branch-input');
+      const saveBtn = cell.querySelector('.btn-save-branch');
+      const cancelBtn = cell.querySelector('.btn-cancel-branch');
+      input.value = display.textContent === '-' ? '' : display.textContent;
+      display.style.display = 'none';
+      input.style.display = 'inline-block';
+      saveBtn.style.display = 'inline-block';
+      cancelBtn.style.display = 'inline-block';
+      input.focus();
+    };
+    
+    window.saveBranch = async (userId) => {
+      const cell = document.getElementById(`branch-${userId}`);
+      const input = cell.querySelector('.branch-input');
+      let newBranch = input.value.trim().toUpperCase();
+      
+      // 驗證格式（如果非空）
+      if (newBranch && !/^[A-Z]{2}[0-9]{3}$/.test(newBranch)) {
+        showToast('邀請碼格式錯誤，請輸入 5 位字符（首2字母+後3數字）');
+        return;
+      }
+      
+      try {
+        const userRef = doc(db, 'users', userId);
+        await updateDoc(userRef, {
+          branch: newBranch || null,
+          updatedAt: new Date().toISOString()
+        });
+        
+        const display = cell.querySelector('.branch-display');
+        display.textContent = newBranch || '-';
+        display.style.display = 'inline';
+        input.style.display = 'none';
+        cell.querySelector('.btn-save-branch').style.display = 'none';
+        cell.querySelector('.btn-cancel-branch').style.display = 'none';
+        
+        console.log(`✅ Branch 已更新: ${userId} -> ${newBranch}`);
+        await reloadUsers();
+      } catch (error) {
+        showToast('更新失敗：' + error.message);
+      }
+    };
+    
+    window.cancelEditBranch = (userId) => {
+      const cell = document.getElementById(`branch-${userId}`);
+      const display = cell.querySelector('.branch-display');
+      const input = cell.querySelector('.branch-input');
+      display.style.display = 'inline';
+      input.style.display = 'none';
+      cell.querySelector('.btn-save-branch').style.display = 'none';
+      cell.querySelector('.btn-cancel-branch').style.display = 'none';
+    };
 
     // ===== 用戶名稱編輯 =====
     window.editDisplayName = (userId) => {
@@ -1254,7 +1370,6 @@
         let expiresAt = null, premium = false;
         if (plan === 'monthly') { premium = true; now.setMonth(now.getMonth() + 1); expiresAt = now.toISOString(); }
         else if (plan === 'annual') { premium = true; now.setFullYear(now.getFullYear() + 1); expiresAt = now.toISOString(); }
-        else if (plan === 'custom') { premium = true; }
         await updateDoc(doc(db, 'users', userId), { premium, plan, expiresAt, updatedAt: new Date().toISOString() });
         await reloadUsers();
         await updateStats();
@@ -1375,21 +1490,25 @@
       const term = document.getElementById('searchInput').value.trim().toLowerCase();
       const usersList = document.getElementById('usersList');
       if (!term) { await reloadUsers(); return; }
-      usersList.innerHTML = ' 者<td colspan="14" class="loading"><span class="loading-spinner"></span> 搜尋中... </tr>';
+      usersList.innerHTML = ' 者<td colspan="16" class="loading"><span class="loading-spinner"></span> 搜尋中...  </div>';
       try {
         const snapshot = await getDocs(query(collection(db, 'users'), limit(200)));
         let html = '', count = 0;
         snapshot.forEach(doc => {
           const user = doc.data();
+          // 老師過濾
+          if (!currentUserIsAdmin && currentUserIsTeacher && currentUserBranch) {
+            if (user.branch !== currentUserBranch) return;
+          }
           const searchFields = [(user.email || '').toLowerCase(), (user.displayName || '').toLowerCase(), (user.phoneNumber || '').toLowerCase(), (user.notes || '').toLowerCase()];
           if (searchFields.some(f => f.includes(term))) {
             count++;
             html += generateUserRow(doc.id, user);
           }
         });
-        usersList.innerHTML = count ? html : ` 者<td colspan="14" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶 </tr>`;
+        usersList.innerHTML = count ? html : ` 者<td colspan="16" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶  </div>`;
       } catch (error) {
-        usersList.innerHTML = ` 者<td colspan="14" class="loading">搜尋失敗: ${error.message} </tr>`;
+        usersList.innerHTML = ` 者<td colspan="16" class="loading">搜尋失敗: ${error.message}  </div>`;
       }
     }
     
@@ -1405,11 +1524,14 @@
     window.logout = async () => { await signOut(auth); window.location.reload(); };
     
     async function loadAdminInterface(container, user) {
+      // 獲取當前用戶 Branch
+      currentUserBranch = await getCurrentUserBranch();
+      
       container.innerHTML = `
         <div class="container">
           <div class="header">
             <h1><i class="fas fa-chalkboard-teacher"></i> 會員管理後台 · 英語默書系統</h1>
-            <div><span style="margin-right:15px;">${escapeHtml(user.email)} ${currentUserIsAdmin ? '👑 管理員' : (currentUserIsTeacher ? '🏫 老師' : '')}</span><button onclick="logout()" class="btn-toggle">登出</button></div>
+            <div><span style="margin-right:15px;">${escapeHtml(user.email)} ${currentUserIsAdmin ? '👑 管理員' : (currentUserIsTeacher ? '🏫 老師' : '')} ${currentUserBranch ? `📌 ${escapeHtml(currentUserBranch)}` : ''}</span><button onclick="logout()" class="btn-toggle">登出</button></div>
           </div>
           <div class="stats">
             <div class="stat-card"><div class="label">總會員數</div><div class="value" id="totalUsers">-</div></div>
@@ -1428,14 +1550,24 @@
             <button class="filter-btn" onclick="filterUsers('teacher', event)">👨‍🏫 老師</button>
             <button class="filter-btn" onclick="filterUsers('disabled', event)">🚫 已停用</button>
           </div>
+          ${currentUserIsAdmin ? `
+          <div class="filters" style="margin-top: 10px;">
+            <span style="margin-right: 10px; font-size: 13px; color: #64748b;">🏷️ 班級過濾：</span>
+            <button class="filter-btn ${currentBranchFilter === 'all' ? 'active' : ''}" onclick="filterByBranch('all', event)">全部班級</button>
+            <button class="filter-btn ${currentBranchFilter === 'A1' ? 'active' : ''}" onclick="filterByBranch('A1', event)">A1</button>
+            <button class="filter-btn ${currentBranchFilter === 'A2' ? 'active' : ''}" onclick="filterByBranch('A2', event)">A2</button>
+            <button class="filter-btn ${currentBranchFilter === 'B1' ? 'active' : ''}" onclick="filterByBranch('B1', event)">B1</button>
+            <button class="filter-btn" onclick="showBranchPrompt()">+ 自訂</button>
+          </div>
+          ` : ''}
           <div class="users-table">
             <table>
               <thead>
                 <tr>
-                  <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>年級</th><th>教材</th><th>註冊時間</th><th>最近上線</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th>
+                  <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>班級</th><th>年級</th><th>教材</th><th>註冊時間</th><th>最近上線</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th>
                 </tr>
               </thead>
-              <tbody id="usersList"><tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
+              <tbody id="usersList"><tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
             </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
@@ -1443,13 +1575,32 @@
       `;
       
       window.filterUsers = (filter, ev) => {
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.filters:first-of-type .filter-btn').forEach(btn => btn.classList.remove('active'));
         if (ev && ev.target) ev.target.classList.add('active');
         currentFilter = filter;
         lastVisible = null;
         hasMore = true;
         loadUsers(filter, false);
       };
+      
+      window.filterByBranch = (branch, ev) => {
+        document.querySelectorAll('.filters:last-of-type .filter-btn').forEach(btn => btn.classList.remove('active'));
+        if (ev && ev.target) ev.target.classList.add('active');
+        currentBranchFilter = branch;
+        lastVisible = null;
+        hasMore = true;
+        loadUsers(currentFilter, false);
+      };
+      
+      window.showBranchPrompt = () => {
+        const branch = prompt('請輸入班級代碼（例如：MU123，5位字符，首2字母+後3數字）');
+        if (branch && /^[A-Za-z]{2}[0-9]{3}$/.test(branch)) {
+          filterByBranch(branch.toUpperCase());
+        } else if (branch) {
+          alert('格式錯誤，請輸入 5 位字符（首2字母+後3數字）');
+        }
+      };
+      
       window.searchUsers = () => performSearch();
       window.loadMoreUsers = () => loadUsers(currentFilter, true);
       
