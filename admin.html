@@ -614,7 +614,7 @@
 
     // 全域變數
     let currentFilter = 'all';
-    let currentBranchFilter = 'empty';  // 預設為 empty，因為移除了「全部班級」
+    let currentBranchFilter = 'all';
     let lastVisible = null;
     let isLoading = false;
     let hasMore = true;
@@ -864,27 +864,27 @@
       
       return `
         <tr ${isDisabled ? 'class="disabled-row"' : ''}>
-          <td style="max-width:200px;">${nameHtml}</td>
-          <td style="max-width:200px;">${escapeHtml(user.email || '-')}</td>
+          <td style="max-width:200px;">${nameHtml} </div>
+          <td style="max-width:200px;">${escapeHtml(user.email || '-')} </div>
           <td class="phone-cell" id="phone-${docId}">
             <span class="phone-display editable-click ${!user.phoneNumber ? 'phone-unset' : ''}" onclick="editPhone('${docId}')">${escapeHtml(phoneDisplay)}</span>
             <input type="text" class="phone-input" value="${escapeHtml(user.phoneNumber || '')}" style="display:none;">
             <button class="btn-icon btn-save-phone" onclick="savePhone('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-phone" onclick="cancelEditPhone('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
-          </td>
+           </div>
           <td class="notes-cell" id="notes-${docId}">
             <span class="notes-display ${!user.notes ? 'notes-unset' : ''}">${escapeHtml(notesDisplay)}</span>
             <input type="text" class="notes-input" value="${escapeHtml(user.notes || '')}" style="display:none;">
             <button class="btn-icon btn-edit-notes" onclick="editNotes('${docId}')"><i class="fas fa-pen"></i></button>
             <button class="btn-icon btn-save-notes" onclick="saveNotes('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-notes" onclick="cancelEditNotes('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
-          </td>
+           </div>
           <td id="branch-${docId}" class="branch-cell">
             <span class="branch-display editable-click" onclick="editBranch('${docId}')">${escapeHtml(branchDisplay)}</span>
             <input type="text" class="branch-input" value="${escapeHtml(user.branch || '')}" style="display:none;" placeholder="請輸入班級" maxlength="20">
             <button class="btn-icon btn-save-branch" onclick="saveBranch('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-branch" onclick="cancelEditBranch('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
-          </td>
+           </div>
           <td id="grade-${docId}">
             <span class="grade-display editable-click" onclick="editGrade('${docId}')">${escapeHtml(user.grade || '未設定')}</span>
             <select class="grade-select" style="display: none;">
@@ -896,37 +896,37 @@
             </select>
             <button class="btn-icon btn-save-grade" onclick="saveGrade('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-grade" onclick="cancelEditGrade('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
-          </td>
+           </div>
           <td id="publisher-${docId}" class="${!user.publisher ? 'publisher-unset' : ''}">
             <span class="publisher-display editable-click" onclick="editPublisher('${docId}')">${escapeHtml(user.publisher || '未設定')}</span>
             <input type="text" class="publisher-input" style="display:none;" value="${escapeHtml(user.publisher || '')}" placeholder="請輸入教材名稱">
             <button class="btn-icon btn-save-publisher" onclick="savePublisher('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-publisher" onclick="cancelEditPublisher('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
-          </td>
-          <td>${formatDate(user.createdAt)}</td>
-          <td>${formatDate(user.lastActiveAt || user.lastLoginAt)}</td>
-          <td>${getOnlineStatus(user.lastActiveAt || user.lastLoginAt, isDisabled)}</td>
-          <td><span class="premium-badge ${planBadgeClass}">${planText}</span></td>
-          <td>${expiryDisplay}  </div>
-          <td>
+           </div>
+          <td class="date-cell">${formatDate(user.createdAt)}</div>
+          <td class="date-cell">${formatDate(user.lastActiveAt || user.lastLoginAt)}</div>
+          <td class="status-cell">${getOnlineStatus(user.lastActiveAt || user.lastLoginAt, isDisabled)}</div>
+          <td class="plan-cell"><span class="premium-badge ${planBadgeClass}">${planText}</span></div>
+          <td class="expiry-cell">${expiryDisplay}</div>
+          <td class="trial-cell">
             <span class="trial-display ${trialStatus}" onclick="editTrial('${docId}')">
               ${formatTrialDate(user.trialEndAt)} ${getTrialBadge(user.trialEndAt)}
             </span>
-           </div>
-          <td>${isDisabled ? '<span class="disabled-badge"><i class="fas fa-ban"></i> 已停用</span>' : '<span class="active-badge"><i class="fas fa-check-circle"></i> 正常</span>'} </div>
-          <td>
+          </div>
+          <td class="status-badge-cell">${isDisabled ? '<span class="disabled-badge"><i class="fas fa-ban"></i> 已停用</span>' : '<span class="active-badge"><i class="fas fa-check-circle"></i> 正常</span>'}</div>
+          <td class="action-cell">
             <div class="action-menu">
               <button class="action-btn" data-userid="${docId}" onclick="toggleActionMenu('${docId}', event)">
                 操作 <i class="fas fa-chevron-down"></i>
               </button>
               ${menuHtml}
             </div>
-           </div>
-         </tr>
+          </div>
+        </tr>
       `;
     }
 
-    // 載入用戶列表（支援前端過濾「未填寫」）
+    // 載入用戶列表
     async function loadUsers(filter, loadMore = false) {
       const usersList = document.getElementById('usersList');
       const loadMoreContainer = document.getElementById('loadMoreContainer');
@@ -1014,7 +1014,7 @@
         if (currentUserIsAdmin && currentBranchFilter === 'empty') {
           filteredDocs = snapshot.docs.filter(doc => {
             const branch = doc.data().branch;
-            return !branch || branch === '';  // branch 為空或不存在
+            return !branch || branch === '';
           });
         }
         
@@ -1092,13 +1092,11 @@
       const input = cell.querySelector('.branch-input');
       let newBranch = input.value.trim();
       
-      // 管理員編輯：無格式驗證，只限制長度
       if (newBranch && newBranch.length > 20) {
         showToast('班級名稱過長，請限制在 20 字以內');
         return;
       }
       
-      // 如果為空，設為 null
       if (!newBranch) newBranch = null;
       
       try {
@@ -1554,7 +1552,6 @@
     window.logout = async () => { await signOut(auth); window.location.reload(); };
     
     async function loadAdminInterface(container, user) {
-      // 獲取當前用戶 Branch
       currentUserBranch = await getCurrentUserBranch();
       
       container.innerHTML = `
@@ -1571,19 +1568,20 @@
           </div>
           <div class="search-bar"><input type="text" id="searchInput" placeholder="搜尋 Email、名稱、電話或備註..."><button onclick="searchUsers()"><i class="fas fa-search"></i> 搜尋</button></div>
           <div class="filters">
-            <button class="filter-btn active" onclick="filterUsers('all', event)">全部</button>
+            <button class="filter-btn" onclick="filterUsers('all', event)">全部</button>
             <button class="filter-btn" onclick="filterUsers('premium', event)">付費會員</button>
             <button class="filter-btn" onclick="filterUsers('free', event)">免費會員</button>
             <button class="filter-btn" onclick="filterUsers('trial-active', event)">⏳ 試用中</button>
             <button class="filter-btn" onclick="filterUsers('expiring-soon', event)">⚠️ 即將到期</button>
             <button class="filter-btn" onclick="filterUsers('expired', event)">❌ 已過期</button>
-            <button class="filter-btn" onclick="filterUsers('teacher', event)">👨‍🏫 老師</button>
+            <button class="filter-btn" onclick="filterUsers('teacher', event)">🏫 老師</button>
             <button class="filter-btn" onclick="filterUsers('disabled', event)">🚫 已停用</button>
           </div>
           ${currentUserIsAdmin ? `
           <div class="filters" style="margin-top: 10px;">
             <span class="branch-filter-label">🏷️ 班級過濾：</span>
-            <button class="filter-btn ${currentBranchFilter === 'empty' ? 'active' : ''}" onclick="filterByBranch('empty', event)">未填寫</button>
+            <button class="filter-btn" onclick="filterByBranch('all', event)">全部</button>
+            <button class="filter-btn" onclick="filterByBranch('empty', event)">未填寫</button>
             <button class="filter-btn" onclick="showBranchPrompt()">+ 自訂</button>
           </div>
           ` : ''}
@@ -1648,7 +1646,6 @@
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const userData = userDoc.data() || {};
         
-        // ===== 🔥 檢查帳號是否停用（停用帳號不能登入後台）=====
         if (userData.isDisabled === true) {
           console.log('🔒 帳號已被停用，拒絕登入後台');
           await signOut(auth);
