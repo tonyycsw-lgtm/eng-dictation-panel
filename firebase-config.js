@@ -18,6 +18,7 @@ import {
     updateDoc, 
     deleteDoc, 
     collection, 
+    addDoc,
     query, 
     where, 
     getDocs, 
@@ -25,7 +26,9 @@ import {
     orderBy,
     limit,
     startAfter,
-    getCountFromServer
+    getCountFromServer,
+    arrayUnion,
+    arrayRemove
 } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 // 英語系統的 Firebase 專案設定
@@ -57,9 +60,16 @@ export {
     setDoc, 
     updateDoc, 
     deleteDoc,
+    collection,
+    addDoc,
+    query,
+    where,
+    getDocs,
     increment,
     orderBy,
     limit,
     startAfter,
-    getCountFromServer
+    getCountFromServer,
+    arrayUnion,
+    arrayRemove
 };
