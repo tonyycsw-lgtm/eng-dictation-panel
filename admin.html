@@ -843,7 +843,6 @@
           menuHtml += `<div class="menu-item" data-action="setTeacher"><i class="fas fa-chalkboard-teacher"></i> 設為老師</div>`;
         }
         
-        // ===== 🔥 管理員不顯示停用/啟用選項 =====
         if (!isAdmin) {
           menuHtml += `<div class="menu-divider"></div>`;
           if (isDisabled) {
@@ -922,7 +921,7 @@
               ${menuHtml}
             </div>
           </div>
-        </tr>
+         </div>
       `;
     }
 
@@ -933,7 +932,7 @@
       if (!usersList) return;
       
       if (!loadMore) {
-        usersList.innerHTML = '<tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr>';
+        usersList.innerHTML = ' <td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中... </div>';
         if (loadMoreContainer) loadMoreContainer.style.display = 'none';
       }
       
@@ -944,29 +943,25 @@
         const usersRef = collection(db, 'users');
         let constraints = [];
         
-        // 非管理員且非老師：無權限
         if (!currentUserIsAdmin && !currentUserIsTeacher) {
-          usersList.innerHTML = '<tr><td colspan="15" class="loading">無權限訪問</td></tr>';
+          usersList.innerHTML = ' <td colspan="15" class="loading">無權限訪問 </div>';
           isLoading = false;
           return;
         }
         
-        // 老師：只看到自己 Branch 的用戶（且必須有 Branch）
         if (!currentUserIsAdmin && currentUserIsTeacher) {
           if (!currentUserBranch) {
-            usersList.innerHTML = '<tr><td colspan="15" class="loading">您的帳號尚未分配班級，請聯絡管理員</td></tr>';
+            usersList.innerHTML = ' <td colspan="15" class="loading">您的帳號尚未分配班級，請聯絡管理員 </div>';
             isLoading = false;
             return;
           }
           constraints.push(where('branch', '==', currentUserBranch));
         }
         
-        // 管理員：自訂班級過濾（後端），「未填寫」不在此處理
         if (currentUserIsAdmin && currentBranchFilter !== 'empty' && currentBranchFilter !== 'all') {
           constraints.push(where('branch', '==', currentBranchFilter));
         }
         
-        // 添加其他過濾條件
         if (filter === 'premium') {
           constraints.push(where('premium', '==', true));
         } else if (filter === 'free') {
@@ -992,7 +987,6 @@
           constraints.push(where('isDisabled', '==', true));
         }
         
-        // 構建查詢
         let q;
         if (constraints.length > 0) {
           q = lastVisible 
@@ -1008,7 +1002,6 @@
         lastVisible = snapshot.docs[snapshot.docs.length - 1];
         hasMore = snapshot.docs.length === PAGE_SIZE;
         
-        // ===== 🔥 前端過濾：管理員的「未填寫」過濾 =====
         let filteredDocs = snapshot.docs;
         
         if (currentUserIsAdmin && currentBranchFilter === 'empty') {
@@ -1024,7 +1017,7 @@
         });
         
         if (filteredDocs.length === 0 && !loadMore) {
-          usersList.innerHTML = '<tr><td colspan="15" class="loading">📭 沒有找到符合條件的用戶</td></tr>';
+          usersList.innerHTML = ' <td colspan="15" class="loading">📭 沒有找到符合條件的用戶 </div>';
         } else {
           usersList.innerHTML = html;
         }
@@ -1034,7 +1027,7 @@
         }
       } catch (error) {
         console.error('載入用戶失敗:', error);
-        if (!loadMore) usersList.innerHTML = `<tr><td colspan="15" class="loading">載入失敗: ${error.message}</td></tr>`;
+        if (!loadMore) usersList.innerHTML = ` <td colspan="15" class="loading">載入失敗: ${error.message} </div>`;
       } finally {
         isLoading = false;
       }
@@ -1049,7 +1042,6 @@
         let premiumQuery = query(usersRef, where('premium', '==', true));
         let freeQuery = query(usersRef, where('premium', '==', false));
         
-        // 老師：只統計自己 Branch
         if (!currentUserIsAdmin && currentUserIsTeacher && currentUserBranch) {
           totalQuery = query(usersRef, where('branch', '==', currentUserBranch));
           disabledQuery = query(usersRef, where('branch', '==', currentUserBranch), where('isDisabled', '==', true));
@@ -1071,7 +1063,7 @@
       }
     }
 
-    // ===== Branch 編輯（管理員無格式限制）=====
+    // ===== Branch 編輯 =====
     window.editBranch = (userId) => {
       if (!currentUserIsAdmin) return;
       const cell = document.getElementById(`branch-${userId}`);
@@ -1518,13 +1510,12 @@
       const term = document.getElementById('searchInput').value.trim().toLowerCase();
       const usersList = document.getElementById('usersList');
       if (!term) { await reloadUsers(); return; }
-      usersList.innerHTML = '<tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 搜尋中...</td></tr>';
+      usersList.innerHTML = ' <td colspan="15" class="loading"><span class="loading-spinner"></span> 搜尋中... </div>';
       try {
         const snapshot = await getDocs(query(collection(db, 'users'), limit(200)));
         let html = '', count = 0;
         snapshot.forEach(doc => {
           const user = doc.data();
-          // 老師過濾
           if (!currentUserIsAdmin && currentUserIsTeacher && currentUserBranch) {
             if (user.branch !== currentUserBranch) return;
           }
@@ -1534,9 +1525,9 @@
             html += generateUserRow(doc.id, user);
           }
         });
-        usersList.innerHTML = count ? html : `<tr><td colspan="15" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶</td></tr>`;
+        usersList.innerHTML = count ? html : ` <td colspan="15" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶 </div>`;
       } catch (error) {
-        usersList.innerHTML = `<tr><td colspan="15" class="loading">搜尋失敗: ${error.message}</td></tr>`;
+        usersList.innerHTML = ` <td colspan="15" class="loading">搜尋失敗: ${error.message} </div>`;
       }
     }
     
@@ -1574,7 +1565,7 @@
             <button class="filter-btn" onclick="filterUsers('trial-active', event)">⏳ 試用中</button>
             <button class="filter-btn" onclick="filterUsers('expiring-soon', event)">⚠️ 即將到期</button>
             <button class="filter-btn" onclick="filterUsers('expired', event)">❌ 已過期</button>
-            <button class="filter-btn" onclick="filterUsers('teacher', event)">🏫 老師</button>
+            <button class="filter-btn" onclick="filterUsers('teacher', event)">👨‍🏫 老師</button>
             <button class="filter-btn" onclick="filterUsers('disabled', event)">🚫 已停用</button>
           </div>
           ${currentUserIsAdmin ? `
@@ -1586,22 +1577,31 @@
           </div>
           ` : ''}
           <div class="users-table">
-            <table>
+             <table>
               <thead>
-                <tr>
+                 <tr>
                   <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>班級</th><th>年級</th><th>教材</th><th>註冊時間</th><th>最近上線</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th>
-                </tr>
+                 </tr>
               </thead>
-              <tbody id="usersList"><tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
-            </table>
+              <tbody id="usersList"> <td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中... </td></tbody>
+             </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
         </div>
       `;
       
       window.filterUsers = (filter, ev) => {
-        document.querySelectorAll('.filters:first-of-type .filter-btn').forEach(btn => btn.classList.remove('active'));
-        if (ev && ev.target) ev.target.classList.add('active');
+        const mainFilters = document.querySelector('.filters');
+        if (mainFilters) {
+          mainFilters.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+          });
+        }
+        
+        if (filter !== 'all' && ev && ev.target) {
+          ev.target.classList.add('active');
+        }
+        
         currentFilter = filter;
         lastVisible = null;
         hasMore = true;
@@ -1609,8 +1609,18 @@
       };
       
       window.filterByBranch = (branch, ev) => {
-        document.querySelectorAll('.filters:last-of-type .filter-btn').forEach(btn => btn.classList.remove('active'));
-        if (ev && ev.target) ev.target.classList.add('active');
+        const allFilters = document.querySelectorAll('.filters');
+        const branchFilters = allFilters[1];
+        if (branchFilters) {
+          branchFilters.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+          });
+        }
+        
+        if (branch !== 'all' && ev && ev.target) {
+          ev.target.classList.add('active');
+        }
+        
         currentBranchFilter = branch;
         lastVisible = null;
         hasMore = true;
