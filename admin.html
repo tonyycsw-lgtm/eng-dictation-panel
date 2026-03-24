@@ -108,6 +108,7 @@
       gap: 10px;
       margin-bottom: 20px;
       flex-wrap: wrap;
+      align-items: center;
     }
     
     .filter-btn {
@@ -130,6 +131,12 @@
       background: #4f46e5;
       color: white;
       border-color: #4f46e5;
+    }
+    
+    .branch-filter-label {
+      font-size: 13px;
+      color: #64748b;
+      margin-right: 5px;
     }
     
     .users-table {
@@ -871,7 +878,7 @@
           </td>
           <td id="branch-${docId}" class="branch-cell">
             <span class="branch-display editable-click" onclick="editBranch('${docId}')">${escapeHtml(branchDisplay)}</span>
-            <input type="text" class="branch-input" value="${escapeHtml(user.branch || '')}" style="display:none;" placeholder="請輸入邀請碼" maxlength="5">
+            <input type="text" class="branch-input" value="${escapeHtml(user.branch || '')}" style="display:none;" placeholder="請輸入班級" maxlength="20">
             <button class="btn-icon btn-save-branch" onclick="saveBranch('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-branch" onclick="cancelEditBranch('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
           </td>
@@ -896,34 +903,34 @@
           <td>${formatDate(user.createdAt)}</td>
           <td>${formatDate(user.lastActiveAt || user.lastLoginAt)}</td>
           <td>${getOnlineStatus(user.lastActiveAt || user.lastLoginAt, isDisabled)}</td>
-          <td><span class="premium-badge ${planBadgeClass}">${planText}</span></td>
+          <td><span class="premium-badge ${planBadgeClass}">${planText}</span> </td>
           <td>${expiryDisplay}</td>
           <td>
             <span class="trial-display ${trialStatus}" onclick="editTrial('${docId}')">
               ${formatTrialDate(user.trialEndAt)} ${getTrialBadge(user.trialEndAt)}
             </span>
-          </td>
+           </td>
           <td>${isDisabled ? '<span class="disabled-badge"><i class="fas fa-ban"></i> 已停用</span>' : '<span class="active-badge"><i class="fas fa-check-circle"></i> 正常</span>'}</td>
-          <td>
+           <td>
             <div class="action-menu">
               <button class="action-btn" data-userid="${docId}" onclick="toggleActionMenu('${docId}', event)">
                 操作 <i class="fas fa-chevron-down"></i>
               </button>
               ${menuHtml}
             </div>
-          </td>
-        </tr>
+           </td>
+         </tr>
       `;
     }
 
-    // 載入用戶列表（支援 Branch 過濾）
+    // 載入用戶列表
     async function loadUsers(filter, loadMore = false) {
       const usersList = document.getElementById('usersList');
       const loadMoreContainer = document.getElementById('loadMoreContainer');
       if (!usersList) return;
       
       if (!loadMore) {
-        usersList.innerHTML = '<tr><td colspan="16" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr>';
+        usersList.innerHTML = '<tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr>';
         if (loadMoreContainer) loadMoreContainer.style.display = 'none';
       }
       
@@ -936,7 +943,7 @@
         
         // 非管理員且非老師：無權限
         if (!currentUserIsAdmin && !currentUserIsTeacher) {
-          usersList.innerHTML = '<tr><td colspan="16" class="loading">無權限訪問</td></tr>';
+          usersList.innerHTML = '<tr><td colspan="15" class="loading">無權限訪問</td></tr>';
           isLoading = false;
           return;
         }
@@ -944,7 +951,7 @@
         // 老師：只看到自己 Branch 的用戶（且必須有 Branch）
         if (!currentUserIsAdmin && currentUserIsTeacher) {
           if (!currentUserBranch) {
-            usersList.innerHTML = '<tr><td colspan="16" class="loading">您的帳號尚未分配班級，請聯絡管理員</td></tr>';
+            usersList.innerHTML = '<tr><td colspan="15" class="loading">您的帳號尚未分配班級，請聯絡管理員</td></tr>';
             isLoading = false;
             return;
           }
@@ -952,8 +959,12 @@
         }
         
         // 管理員：可選擇 Branch 過濾
-        if (currentUserIsAdmin && currentBranchFilter !== 'all') {
-          constraints.push(where('branch', '==', currentBranchFilter));
+        if (currentUserIsAdmin) {
+          if (currentBranchFilter === 'empty') {
+            constraints.push(where('branch', '==', null));
+          } else if (currentBranchFilter !== 'all') {
+            constraints.push(where('branch', '==', currentBranchFilter));
+          }
         }
         
         // 添加其他過濾條件
@@ -1007,7 +1018,7 @@
         if (loadMoreContainer) loadMoreContainer.style.display = hasMore ? 'block' : 'none';
       } catch (error) {
         console.error('載入用戶失敗:', error);
-        if (!loadMore) usersList.innerHTML = `<tr><td colspan="16" class="loading">載入失敗: ${error.message}</td></tr>`;
+        if (!loadMore) usersList.innerHTML = `<tr><td colspan="15" class="loading">載入失敗: ${error.message}</td></tr>`;
       } finally {
         isLoading = false;
       }
@@ -1044,7 +1055,7 @@
       }
     }
 
-    // ===== Branch 編輯 =====
+    // ===== Branch 編輯（管理員無格式限制）=====
     window.editBranch = (userId) => {
       if (!currentUserIsAdmin) return;
       const cell = document.getElementById(`branch-${userId}`);
@@ -1063,18 +1074,21 @@
     window.saveBranch = async (userId) => {
       const cell = document.getElementById(`branch-${userId}`);
       const input = cell.querySelector('.branch-input');
-      let newBranch = input.value.trim().toUpperCase();
+      let newBranch = input.value.trim();
       
-      // 驗證格式（如果非空）
-      if (newBranch && !/^[A-Z]{2}[0-9]{3}$/.test(newBranch)) {
-        showToast('邀請碼格式錯誤，請輸入 5 位字符（首2字母+後3數字）');
+      // 管理員編輯：無格式驗證，只限制長度
+      if (newBranch && newBranch.length > 20) {
+        showToast('班級名稱過長，請限制在 20 字以內');
         return;
       }
+      
+      // 如果為空，設為 null
+      if (!newBranch) newBranch = null;
       
       try {
         const userRef = doc(db, 'users', userId);
         await updateDoc(userRef, {
-          branch: newBranch || null,
+          branch: newBranch,
           updatedAt: new Date().toISOString()
         });
         
@@ -1490,7 +1504,7 @@
       const term = document.getElementById('searchInput').value.trim().toLowerCase();
       const usersList = document.getElementById('usersList');
       if (!term) { await reloadUsers(); return; }
-      usersList.innerHTML = ' 者<td colspan="16" class="loading"><span class="loading-spinner"></span> 搜尋中...  </div>';
+      usersList.innerHTML = '<tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 搜尋中...</td></tr>';
       try {
         const snapshot = await getDocs(query(collection(db, 'users'), limit(200)));
         let html = '', count = 0;
@@ -1506,9 +1520,9 @@
             html += generateUserRow(doc.id, user);
           }
         });
-        usersList.innerHTML = count ? html : ` 者<td colspan="16" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶  </div>`;
+        usersList.innerHTML = count ? html : `<tr><td colspan="15" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶</td></tr>`;
       } catch (error) {
-        usersList.innerHTML = ` 者<td colspan="16" class="loading">搜尋失敗: ${error.message}  </div>`;
+        usersList.innerHTML = `<tr><td colspan="15" class="loading">搜尋失敗: ${error.message}</td></tr>`;
       }
     }
     
@@ -1531,7 +1545,7 @@
         <div class="container">
           <div class="header">
             <h1><i class="fas fa-chalkboard-teacher"></i> 會員管理後台 · 英語默書系統</h1>
-            <div><span style="margin-right:15px;">${escapeHtml(user.email)} ${currentUserIsAdmin ? '👑 管理員' : (currentUserIsTeacher ? '🏫 老師' : '')} ${currentUserBranch ? `📌 ${escapeHtml(currentUserBranch)}` : ''}</span><button onclick="logout()" class="btn-toggle">登出</button></div>
+            <div><span style="margin-right:15px;">${escapeHtml(user.email)} ${currentUserIsAdmin ? '👑 管理員' : (currentUserIsTeacher ? '🏫 老師' : '')} ${currentUserBranch ? `(${escapeHtml(currentUserBranch)})` : ''}</span><button onclick="logout()" class="btn-toggle">登出</button></div>
           </div>
           <div class="stats">
             <div class="stat-card"><div class="label">總會員數</div><div class="value" id="totalUsers">-</div></div>
@@ -1552,11 +1566,9 @@
           </div>
           ${currentUserIsAdmin ? `
           <div class="filters" style="margin-top: 10px;">
-            <span style="margin-right: 10px; font-size: 13px; color: #64748b;">🏷️ 班級過濾：</span>
+            <span class="branch-filter-label">🏷️ 班級過濾：</span>
             <button class="filter-btn ${currentBranchFilter === 'all' ? 'active' : ''}" onclick="filterByBranch('all', event)">全部班級</button>
-            <button class="filter-btn ${currentBranchFilter === 'A1' ? 'active' : ''}" onclick="filterByBranch('A1', event)">A1</button>
-            <button class="filter-btn ${currentBranchFilter === 'A2' ? 'active' : ''}" onclick="filterByBranch('A2', event)">A2</button>
-            <button class="filter-btn ${currentBranchFilter === 'B1' ? 'active' : ''}" onclick="filterByBranch('B1', event)">B1</button>
+            <button class="filter-btn ${currentBranchFilter === 'empty' ? 'active' : ''}" onclick="filterByBranch('empty', event)">未填寫</button>
             <button class="filter-btn" onclick="showBranchPrompt()">+ 自訂</button>
           </div>
           ` : ''}
@@ -1593,11 +1605,14 @@
       };
       
       window.showBranchPrompt = () => {
-        const branch = prompt('請輸入班級代碼（例如：MU123，5位字符，首2字母+後3數字）');
-        if (branch && /^[A-Za-z]{2}[0-9]{3}$/.test(branch)) {
-          filterByBranch(branch.toUpperCase());
-        } else if (branch) {
-          alert('格式錯誤，請輸入 5 位字符（首2字母+後3數字）');
+        const branch = prompt('請輸入班級名稱（可自由輸入，限 20 字以內）');
+        if (branch && branch.trim()) {
+          const trimmedBranch = branch.trim();
+          if (trimmedBranch.length > 20) {
+            alert('班級名稱過長，請限制在 20 字以內');
+            return;
+          }
+          filterByBranch(trimmedBranch);
         }
       };
       
