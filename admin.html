@@ -614,7 +614,7 @@
 
     // 全域變數
     let currentFilter = 'all';
-    let currentBranchFilter = 'all';
+    let currentBranchFilter = 'empty';  // 預設為 empty，因為移除了「全部班級」
     let lastVisible = null;
     let isLoading = false;
     let hasMore = true;
@@ -843,11 +843,14 @@
           menuHtml += `<div class="menu-item" data-action="setTeacher"><i class="fas fa-chalkboard-teacher"></i> 設為老師</div>`;
         }
         
-        menuHtml += `<div class="menu-divider"></div>`;
-        if (isDisabled) {
-          menuHtml += `<div class="menu-item" data-action="enableUser"><i class="fas fa-check-circle"></i> 啟用帳號</div>`;
-        } else {
-          menuHtml += `<div class="menu-item" data-action="disableUser"><i class="fas fa-ban"></i> 停用帳號</div>`;
+        // ===== 🔥 管理員不顯示停用/啟用選項 =====
+        if (!isAdmin) {
+          menuHtml += `<div class="menu-divider"></div>`;
+          if (isDisabled) {
+            menuHtml += `<div class="menu-item" data-action="enableUser"><i class="fas fa-check-circle"></i> 啟用帳號</div>`;
+          } else {
+            menuHtml += `<div class="menu-item" data-action="disableUser"><i class="fas fa-ban"></i> 停用帳號</div>`;
+          }
         }
         
         menuHtml += `
@@ -903,27 +906,27 @@
           <td>${formatDate(user.createdAt)}</td>
           <td>${formatDate(user.lastActiveAt || user.lastLoginAt)}</td>
           <td>${getOnlineStatus(user.lastActiveAt || user.lastLoginAt, isDisabled)}</td>
-          <td><span class="premium-badge ${planBadgeClass}">${planText}</span> </td>
-          <td>${expiryDisplay}</td>
+          <td><span class="premium-badge ${planBadgeClass}">${planText}</span></td>
+          <td>${expiryDisplay}  </div>
           <td>
             <span class="trial-display ${trialStatus}" onclick="editTrial('${docId}')">
               ${formatTrialDate(user.trialEndAt)} ${getTrialBadge(user.trialEndAt)}
             </span>
-           </td>
-          <td>${isDisabled ? '<span class="disabled-badge"><i class="fas fa-ban"></i> 已停用</span>' : '<span class="active-badge"><i class="fas fa-check-circle"></i> 正常</span>'}</td>
-           <td>
+           </div>
+          <td>${isDisabled ? '<span class="disabled-badge"><i class="fas fa-ban"></i> 已停用</span>' : '<span class="active-badge"><i class="fas fa-check-circle"></i> 正常</span>'} </div>
+          <td>
             <div class="action-menu">
               <button class="action-btn" data-userid="${docId}" onclick="toggleActionMenu('${docId}', event)">
                 操作 <i class="fas fa-chevron-down"></i>
               </button>
               ${menuHtml}
             </div>
-           </td>
+           </div>
          </tr>
       `;
     }
 
-    // 載入用戶列表
+    // 載入用戶列表（支援前端過濾「未填寫」）
     async function loadUsers(filter, loadMore = false) {
       const usersList = document.getElementById('usersList');
       const loadMoreContainer = document.getElementById('loadMoreContainer');
@@ -958,13 +961,9 @@
           constraints.push(where('branch', '==', currentUserBranch));
         }
         
-        // 管理員：可選擇 Branch 過濾
-        if (currentUserIsAdmin) {
-          if (currentBranchFilter === 'empty') {
-            constraints.push(where('branch', '==', null));
-          } else if (currentBranchFilter !== 'all') {
-            constraints.push(where('branch', '==', currentBranchFilter));
-          }
+        // 管理員：自訂班級過濾（後端），「未填寫」不在此處理
+        if (currentUserIsAdmin && currentBranchFilter !== 'empty' && currentBranchFilter !== 'all') {
+          constraints.push(where('branch', '==', currentBranchFilter));
         }
         
         // 添加其他過濾條件
@@ -1009,13 +1008,30 @@
         lastVisible = snapshot.docs[snapshot.docs.length - 1];
         hasMore = snapshot.docs.length === PAGE_SIZE;
         
+        // ===== 🔥 前端過濾：管理員的「未填寫」過濾 =====
+        let filteredDocs = snapshot.docs;
+        
+        if (currentUserIsAdmin && currentBranchFilter === 'empty') {
+          filteredDocs = snapshot.docs.filter(doc => {
+            const branch = doc.data().branch;
+            return !branch || branch === '';  // branch 為空或不存在
+          });
+        }
+        
         let html = loadMore ? usersList.innerHTML : '';
-        snapshot.forEach(doc => {
+        filteredDocs.forEach(doc => {
           html += generateUserRow(doc.id, doc.data());
         });
         
-        usersList.innerHTML = html;
-        if (loadMoreContainer) loadMoreContainer.style.display = hasMore ? 'block' : 'none';
+        if (filteredDocs.length === 0 && !loadMore) {
+          usersList.innerHTML = '<tr><td colspan="15" class="loading">📭 沒有找到符合條件的用戶</td></tr>';
+        } else {
+          usersList.innerHTML = html;
+        }
+        
+        if (loadMoreContainer) {
+          loadMoreContainer.style.display = hasMore ? 'block' : 'none';
+        }
       } catch (error) {
         console.error('載入用戶失敗:', error);
         if (!loadMore) usersList.innerHTML = `<tr><td colspan="15" class="loading">載入失敗: ${error.message}</td></tr>`;
@@ -1567,7 +1583,6 @@
           ${currentUserIsAdmin ? `
           <div class="filters" style="margin-top: 10px;">
             <span class="branch-filter-label">🏷️ 班級過濾：</span>
-            <button class="filter-btn ${currentBranchFilter === 'all' ? 'active' : ''}" onclick="filterByBranch('all', event)">全部班級</button>
             <button class="filter-btn ${currentBranchFilter === 'empty' ? 'active' : ''}" onclick="filterByBranch('empty', event)">未填寫</button>
             <button class="filter-btn" onclick="showBranchPrompt()">+ 自訂</button>
           </div>
@@ -1632,14 +1647,26 @@
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const userData = userDoc.data() || {};
+        
+        // ===== 🔥 檢查帳號是否停用（停用帳號不能登入後台）=====
+        if (userData.isDisabled === true) {
+          console.log('🔒 帳號已被停用，拒絕登入後台');
+          await signOut(auth);
+          alert('您的帳號已被停用，請聯絡管理員');
+          window.location.href = './login.html';
+          return;
+        }
+        
         currentUserIsAdmin = userData.role === 'admin';
         currentUserIsTeacher = userData.role === 'teacher';
+        
         if (!currentUserIsAdmin && !currentUserIsTeacher) {
           appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-shield-alt"></i><h2>無權限訪問</h2><p>此頁面僅限管理員或老師使用</p><p>您的帳號：${escapeHtml(user.email)}</p><button onclick="logout()" class="btn-toggle">登出</button></div>`;
           return;
         }
         await loadAdminInterface(appDiv, user);
       } catch (error) {
+        console.error('權限檢查失敗:', error);
         appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-exclamation-triangle"></i><h2>發生錯誤</h2><p>${error.message}</p><button onclick="logout()" class="btn-toggle">登出</button></div>`;
       }
     });
