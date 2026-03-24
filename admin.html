@@ -1667,30 +1667,57 @@
       }
     };
     
-    // 發送通知函數
+    // 發送通知函數（修復特定班級輸入欄自動顯示）
     window.openSendNotification = () => {
       selectedUserIdsForNotification = [];
-      document.getElementById('selectedCount').textContent = '0';
-      document.getElementById('selectedCountDiv').style.display = 'none';
-      document.getElementById('branchSelectDiv').style.display = 'none';
+      
+      // 獲取當前頁面已選中的用戶（如果有複選框功能）
+      const checkboxes = document.querySelectorAll('.user-select-checkbox:checked');
+      const selectedUserIds = Array.from(checkboxes).map(cb => cb.dataset.userid);
+      window.selectedUserIds = selectedUserIds;
+      
+      // 更新顯示
+      document.getElementById('selectedCount').textContent = selectedUserIds.length;
+      document.getElementById('selectedCountDiv').style.display = selectedUserIds.length > 0 ? 'block' : 'none';
+      
+      // 清空輸入框
       document.getElementById('notifTitle').value = '';
       document.getElementById('notifContent').value = '';
-      document.getElementById('sendNotificationModal').style.display = 'flex';
+      document.getElementById('notifBranch').value = '';
       
-      document.getElementById('notifTarget').addEventListener('change', function() {
-        const branchDiv = document.getElementById('branchSelectDiv');
-        const selectedDiv = document.getElementById('selectedCountDiv');
+      // 獲取目標選擇器
+      const targetSelect = document.getElementById('notifTarget');
+      const branchDiv = document.getElementById('branchSelectDiv');
+      const selectedDiv = document.getElementById('selectedCountDiv');
+      
+      // 設置初始顯示狀態
+      if (targetSelect.value === 'branch') {
+        branchDiv.style.display = 'block';
+        selectedDiv.style.display = 'none';
+      } else if (targetSelect.value === 'selected') {
+        branchDiv.style.display = 'none';
+        selectedDiv.style.display = selectedUserIds.length > 0 ? 'block' : 'none';
+      } else {
+        branchDiv.style.display = 'none';
+        selectedDiv.style.display = 'none';
+      }
+      
+      // 綁定 change 事件
+      targetSelect.onchange = function() {
         if (this.value === 'branch') {
           branchDiv.style.display = 'block';
           selectedDiv.style.display = 'none';
         } else if (this.value === 'selected') {
           branchDiv.style.display = 'none';
-          selectedDiv.style.display = 'block';
+          selectedDiv.style.display = window.selectedUserIds.length > 0 ? 'block' : 'none';
         } else {
           branchDiv.style.display = 'none';
           selectedDiv.style.display = 'none';
         }
-      });
+      };
+      
+      // 顯示彈窗
+      document.getElementById('sendNotificationModal').style.display = 'flex';
     };
     
     window.closeSendNotification = () => {
@@ -1726,11 +1753,11 @@
         }
         targetUsers = { type: 'branch', value: branch };
       } else if (target === 'selected') {
-        if (selectedUserIdsForNotification.length === 0) {
+        if (window.selectedUserIds && window.selectedUserIds.length === 0) {
           showToast('請先選取用戶');
           return;
         }
-        targetUsers = { type: 'selected', value: selectedUserIdsForNotification };
+        targetUsers = { type: 'selected', value: window.selectedUserIds };
       }
       
       try {
@@ -1873,14 +1900,14 @@
           ` : ''}
           
           <div class="users-table">
-            <table>
+             <table>
               <thead>
-                <tr>
+                 <tr>
                   <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>班級</th><th>年級</th><th>教材</th><th>註冊時間</th><th>最近上線</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th>
-                </tr>
+                 </tr>
               </thead>
-              <tbody id="usersList"><tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
-            </table>
+              <tbody id="usersList"> <tr><td colspan="15" class="loading"><span class="loading-spinner"></span> 載入中... </td></tr></tbody>
+             </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
         </div>
