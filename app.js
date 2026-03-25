@@ -23,6 +23,13 @@ let currentUserBranch = null;
 let isGuestMode = false;
 let lastSyncTime = null;
 
+// 訪客模式專用
+let guestGrade = 'P2';      // 訪客可選年級: P2, P5, S1
+let guestPublisher = '示範'; // 訪客教材名稱
+
+// 訪客可選年級列表
+const GUEST_GRADES = ['P2', 'P5', 'S1'];
+
 // 通知相關變量
 let notifications = [];
 let unreadCount = 0;
@@ -176,12 +183,23 @@ function formatRelativeTime(dateString) {
     return `${Math.floor(diffMinutes / 10080)}週前`;
 }
 
-// === 通知相關函數 =====
-// 位置：在輔助函數之後，用戶相關函數之前
+// === 訪客模式函數 ===
+function isGuestModeActive() {
+    return localStorage.getItem('guestMode') === 'true';
+}
 
-// 載入通知
+function getGuestGrade() {
+    return localStorage.getItem('guestGrade') || 'P2';
+}
+
+function setGuestGrade(grade) {
+    localStorage.setItem('guestGrade', grade);
+    guestGrade = grade;
+}
+
+// === 通知相關函數 ===
 async function loadNotifications() {
-    if (!currentUser) return;
+    if (!currentUser || isGuestMode) return;
     
     try {
         const notificationsRef = collection(db, 'notifications');
@@ -195,7 +213,6 @@ async function loadNotifications() {
         notifications = [];
         snapshot.forEach(doc => {
             const notif = doc.data();
-            // 檢查通知是否發送給當前用戶
             const isTargeted = isNotificationForUser(notif);
             if (isTargeted) {
                 notifications.push({
@@ -215,21 +232,17 @@ async function loadNotifications() {
     }
 }
 
-// 檢查通知是否發送給當前用戶
 function isNotificationForUser(notif) {
     const target = notif.targetUsers;
     
-    // 無目標（全部用戶）
     if (!target || (Array.isArray(target) && target.length === 0) || target.type === undefined) {
         return true;
     }
     
-    // 特定班級
     if (target.type === 'branch') {
         return currentUserBranch === target.value;
     }
     
-    // 已選用戶
     if (target.type === 'selected') {
         return target.value.includes(currentUser.uid);
     }
@@ -237,7 +250,6 @@ function isNotificationForUser(notif) {
     return true;
 }
 
-// 更新通知圖標
 function updateNotificationBadge() {
     const badge = document.getElementById('notificationBadge');
     if (badge) {
@@ -250,7 +262,6 @@ function updateNotificationBadge() {
     }
 }
 
-// 標記為已讀
 async function markNotificationAsRead(notificationId) {
     try {
         const notifRef = doc(db, 'notifications', notificationId);
@@ -270,7 +281,6 @@ async function markNotificationAsRead(notificationId) {
     }
 }
 
-// 標記全部已讀
 async function markAllNotificationsAsRead() {
     const unreadNotifs = notifications.filter(n => !n.isRead);
     for (const notif of unreadNotifs) {
@@ -278,7 +288,6 @@ async function markAllNotificationsAsRead() {
     }
 }
 
-// 渲染通知列表
 function renderNotificationList() {
     const container = document.getElementById('notificationList');
     if (!container) return;
@@ -289,8 +298,7 @@ function renderNotificationList() {
     }
     
     container.innerHTML = notifications.map(notif => `
-        <div class="notification-item ${notif.isRead ? 'read' : 'unread'}" 
-             onclick="openNotificationDetail('${notif.id}')"
+        <div class="notification-item" onclick="openNotificationDetail('${notif.id}')"
              style="padding: 12px; border-bottom: 1px solid #e2e8f0; cursor: pointer; ${!notif.isRead ? 'background: #f0f9ff;' : ''}">
             <div style="display: flex; justify-content: space-between;">
                 <span style="font-weight: 600;">${escapeHtml(notif.title)}</span>
@@ -304,23 +312,18 @@ function renderNotificationList() {
     `).join('');
 }
 
-// 顯示通知詳情彈窗
 window.openNotificationDetail = async (notificationId) => {
     const notif = notifications.find(n => n.id === notificationId);
     if (!notif) return;
     
     if (!notif.isRead) {
         await markNotificationAsRead(notificationId);
-        notif.isRead = true;
-        unreadCount--;
-        updateNotificationBadge();
-        renderNotificationList();
     }
     
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
-        <div class="notification-detail-modal" style="background: white; border-radius: 16px; padding: 24px; max-width: 400px; width: 90%;">
+        <div style="background: white; border-radius: 16px; padding: 24px; max-width: 400px; width: 90%;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <h3 style="font-size: 18px;">${escapeHtml(notif.title)}</h3>
                 <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
@@ -337,7 +340,6 @@ window.openNotificationDetail = async (notificationId) => {
     document.body.appendChild(modal);
 };
 
-// 顯示通知面板
 window.showNotificationPanel = () => {
     const panel = document.getElementById('notificationPanel');
     if (panel) {
@@ -414,7 +416,7 @@ async function syncActivityToCloud() {
     }
 }
 
-// === 用戶介面更新 ===
+// === 用戶介面更新（含訪客模式）===
 function updateUserInterface() {
     const userInfoDiv = document.getElementById('userInfo');
     const userActionsDiv = document.getElementById('userActions');
@@ -422,7 +424,69 @@ function updateUserInterface() {
     
     if (!userInfoDiv) return;
     
-    if (currentUser && !isGuestMode) {
+    if (isGuestMode) {
+        // 訪客模式 UI
+        const guestGradeDisplay = getGuestGrade();
+        
+        userInfoDiv.innerHTML = `
+            <div style="width:40px;height:40px;border-radius:50%;background:#a0aec0;display:flex;align-items:center;justify-content:center;color:white;">
+                <i class="fas fa-user"></i>
+            </div>
+            <div>
+                <div class="user-name">訪客模式 · ${guestPublisher}</div>
+                <div class="user-email">年級: ${guestGradeDisplay} | 進度儲存在本機</div>
+            </div>
+            <div class="sync-status" style="color:#f59e0b;">
+                <i class="fas fa-info-circle"></i> 訪客模式
+            </div>
+        `;
+        
+        userActionsDiv.innerHTML = `
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <select id="guestGradeSelect" style="padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; background: white;">
+                    <option value="P2" ${guestGradeDisplay === 'P2' ? 'selected' : ''}>P2 年級</option>
+                    <option value="P5" ${guestGradeDisplay === 'P5' ? 'selected' : ''}>P5 年級</option>
+                    <option value="S1" ${guestGradeDisplay === 'S1' ? 'selected' : ''}>S1 年級</option>
+                </select>
+                <button class="logout-btn" id="switchToLoginBtn" style="background: #4f46e5;">
+                    <i class="fas fa-sign-in-alt"></i> 登入
+                </button>
+            </div>
+        `;
+        
+        // 年級切換事件
+        const gradeSelect = document.getElementById('guestGradeSelect');
+        if (gradeSelect) {
+            gradeSelect.addEventListener('change', async (e) => {
+                const newGrade = e.target.value;
+                setGuestGrade(newGrade);
+                showToast(`已切換至 ${newGrade} 年級`, 'success');
+                // 重新載入單元
+                await loadUnitsIndex();
+                updateUnitSelect();
+                if (unitsIndex.units.length > 0) {
+                    const availableUnits = filterUnitsForGuest(unitsIndex.units);
+                    if (availableUnits.length > 0) {
+                        await loadUnit(availableUnits[0].id);
+                    }
+                }
+            });
+        }
+        
+        const switchBtn = document.getElementById('switchToLoginBtn');
+        if (switchBtn) {
+            switchBtn.addEventListener('click', () => {
+                // 清除訪客模式標記，跳轉到登入頁
+                localStorage.removeItem('guestMode');
+                localStorage.removeItem('guestGrade');
+                window.location.href = './login.html';
+            });
+        }
+        
+        if (uploadWrapper) uploadWrapper.style.display = 'none';
+        
+    } else if (currentUser && !isGuestMode) {
+        // 已登入用戶 UI
         const photoURL = currentUser.photoURL || '';
         const displayName = currentUser.displayName || currentUser.email || '用戶';
         const email = currentUser.email || '';
@@ -471,7 +535,6 @@ function updateUserInterface() {
         
         document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
         
-        // 上傳按鈕權限控制
         if (uploadWrapper) {
             if (currentUserRole === 'admin' || currentUserRole === 'teacher') {
                 uploadWrapper.style.display = 'flex';
@@ -506,6 +569,25 @@ async function handleLogout() {
         console.error('登出失敗:', error);
         window.location.href = './login.html';
     }
+}
+
+// === 訪客單元過濾 ===
+function filterUnitsForGuest(units) {
+    const guestGradeValue = getGuestGrade();
+    return units.filter(unit => 
+        unit.grade === guestGradeValue && 
+        unit.publisher === guestPublisher
+    );
+}
+
+// === 已登入用戶單元過濾 ===
+function filterUnitsForUser(units) {
+    if (!currentUserGrade) return units;
+    if (!currentUserPublisher) return units;
+    return units.filter(unit => 
+        unit.grade === currentUserGrade && 
+        unit.publisher === currentUserPublisher
+    );
 }
 
 // === 數據管理 ===
@@ -916,7 +998,33 @@ async function loadUnit(unitId) {
 function updateUnitSelect() {
     const unitSelect = document.getElementById('unit-select');
     unitSelect.innerHTML = '';
-    unitsIndex.units.forEach(unit => {
+    
+    let availableUnits = [];
+    
+    if (isGuestMode) {
+        availableUnits = filterUnitsForGuest(unitsIndex.units);
+    } else if (currentUser) {
+        // 已登入用戶的過濾邏輯（根據用戶的年級和教材）
+        if (currentUserGrade && currentUserPublisher) {
+            availableUnits = unitsIndex.units.filter(unit => 
+                unit.grade === currentUserGrade && 
+                unit.publisher === currentUserPublisher
+            );
+        } else {
+            availableUnits = unitsIndex.units;
+        }
+    } else {
+        availableUnits = unitsIndex.units;
+    }
+    
+    if (availableUnits.length === 0) {
+        unitSelect.innerHTML = '<option value="">沒有可用的單元</option>';
+        document.getElementById('words-grid').innerHTML = '<div class="loading">📭 沒有找到符合的單元</div>';
+        document.getElementById('sentences-grid').innerHTML = '';
+        return;
+    }
+    
+    availableUnits.forEach(unit => {
         const option = document.createElement('option');
         option.value = unit.id;
         option.textContent = unit.title;
@@ -1015,14 +1123,72 @@ function resetAllUnitsData(event) {
     }
 }
 
+// === 全局變量（已登入用戶）===
+let currentUserGrade = null;
+let currentUserPublisher = null;
+
+// === 獲取用戶年級和教材 ===
+async function getUserGradeAndPublisher(userId) {
+    try {
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const data = userSnap.data();
+            currentUserGrade = data.grade || null;
+            currentUserPublisher = data.publisher || null;
+            console.log('📚 用戶年級:', currentUserGrade, '教材:', currentUserPublisher);
+        }
+    } catch (error) {
+        console.error('獲取用戶年級/教材失敗:', error);
+    }
+}
+
 // === 初始化 ===
 async function initPage() {
-    // 監聽 Firebase 認證狀態
+    // 檢查訪客模式
+    const guestModeFlag = localStorage.getItem('guestMode');
+    if (guestModeFlag === 'true') {
+        isGuestMode = true;
+        guestGrade = getGuestGrade();
+        console.log('👤 訪客模式啟動，年級:', guestGrade);
+        
+        // 載入單元索引
+        const indexLoaded = await loadUnitsIndex();
+        if (indexLoaded && unitsIndex.units.length) {
+            updateUnitSelect();
+            const availableUnits = filterUnitsForGuest(unitsIndex.units);
+            if (availableUnits.length > 0) {
+                await loadUnit(availableUnits[0].id);
+            }
+            document.getElementById('unit-select').addEventListener('change', function() {
+                loadUnit(this.value);
+            });
+        } else {
+            document.getElementById('words-grid').innerHTML = '<div class="loading">無法載入單元列表</div>';
+        }
+        
+        updateUserInterface();
+        
+        // 統計彈窗
+        document.getElementById('show-unit-stats')?.addEventListener('click', () => {
+            document.getElementById('unit-stats-modal').classList.add('active');
+            updateUnitStatsDisplay();
+        });
+        document.getElementById('close-stats')?.addEventListener('click', () => {
+            document.getElementById('unit-stats-modal').classList.remove('active');
+        });
+        document.getElementById('unit-stats-modal')?.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
+        });
+        
+        return;
+    }
+    
+    // 監聽 Firebase 認證狀態（非訪客模式）
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             console.log('✅ 用戶已登入:', user.email);
             
-            // 檢查帳號是否停用
             const isDisabled = await isUserDisabled(user.uid);
             if (isDisabled) {
                 console.log('🔒 帳號已被停用，拒絕登入');
@@ -1033,20 +1199,19 @@ async function initPage() {
             }
             
             currentUser = user;
+            isGuestMode = false;
             
-            // 獲取用戶角色和 Branch
             currentUserRole = await getUserRole(user.uid);
             currentUserBranch = await getUserBranch(user.uid);
+            await getUserGradeAndPublisher(user.uid);
             console.log('👤 用戶角色:', currentUserRole, 'Branch:', currentUserBranch);
             
-            // 載入本地數據
             const savedStarData = localStorage.getItem('starData');
             if (savedStarData) starData = JSON.parse(savedStarData);
             
             const savedStats = localStorage.getItem('learningStats');
             if (savedStats) learningStats = JSON.parse(savedStats);
             
-            // 更新用戶活躍度
             try {
                 const userRef = doc(db, 'users', user.uid);
                 const userSnap = await getDoc(userRef);
@@ -1065,19 +1230,28 @@ async function initPage() {
             }
             
             updateUserInterface();
-            
-            // ===== 載入通知 =====
             await loadNotifications();
-            // ==================
             
-            // 載入單元
-            if (currentUnitId && appData) {
-                generateCards();
-                Object.keys(starData).forEach(key => {
-                    createStars(key, starData[key]);
-                    disableButtons(key);
+            // 載入單元索引
+            const indexLoaded = await loadUnitsIndex();
+            if (indexLoaded && unitsIndex.units.length) {
+                updateUnitSelect();
+                let unitToLoad = getUrlParam('unit');
+                if (!unitToLoad || !unitsIndex.units.find(u => u.id === unitToLoad)) {
+                    const availableUnits = filterUnitsForUser(unitsIndex.units);
+                    if (availableUnits.length > 0) {
+                        unitToLoad = availableUnits[0].id;
+                    } else {
+                        unitToLoad = CONFIG.DEFAULT_UNIT;
+                    }
+                }
+                await loadUnit(unitToLoad);
+                document.getElementById('unit-select').addEventListener('change', function() {
+                    loadUnit(this.value);
                 });
-                updateStats();
+                document.getElementById('unit-upload').addEventListener('change', handleFileUpload);
+            } else {
+                document.getElementById('words-grid').innerHTML = '<div class="loading">無法載入單元列表</div>';
             }
             
         } else {
@@ -1085,32 +1259,15 @@ async function initPage() {
         }
     });
     
-    // 載入單元索引
-    const indexLoaded = await loadUnitsIndex();
-    if (indexLoaded && unitsIndex.units.length) {
-        updateUnitSelect();
-        let unitToLoad = getUrlParam('unit');
-        if (!unitToLoad || !unitsIndex.units.find(u => u.id === unitToLoad)) {
-            unitToLoad = CONFIG.DEFAULT_UNIT;
-        }
-        await loadUnit(unitToLoad);
-        document.getElementById('unit-select').addEventListener('change', function() {
-            loadUnit(this.value);
-        });
-        document.getElementById('unit-upload').addEventListener('change', handleFileUpload);
-    } else {
-        document.getElementById('words-grid').innerHTML = '<div class="loading">無法載入單元列表</div>';
-    }
-    
     // 統計彈窗
-    document.getElementById('show-unit-stats').addEventListener('click', () => {
+    document.getElementById('show-unit-stats')?.addEventListener('click', () => {
         document.getElementById('unit-stats-modal').classList.add('active');
         updateUnitStatsDisplay();
     });
-    document.getElementById('close-stats').addEventListener('click', () => {
+    document.getElementById('close-stats')?.addEventListener('click', () => {
         document.getElementById('unit-stats-modal').classList.remove('active');
     });
-    document.getElementById('unit-stats-modal').addEventListener('click', (e) => {
+    document.getElementById('unit-stats-modal')?.addEventListener('click', (e) => {
         if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
     });
     

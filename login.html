@@ -86,6 +86,7 @@
       background: white;
       border: 1px solid #e5e7eb;
       color: #1f2937;
+      margin-bottom: 16px;
     }
 
     .btn-google:hover {
@@ -96,6 +97,52 @@
 
     .btn-google i {
       color: #4285f4;
+    }
+
+    .btn-guest {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      color: #374151;
+    }
+
+    .btn-guest:hover {
+      background: #e5e7eb;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .divider {
+      text-align: center;
+      margin: 28px 0 12px;
+      font-size: 13px;
+      color: #9ca3af;
+      position: relative;
+    }
+
+    .divider span {
+      background: rgba(255,255,255,0.9);
+      padding: 0 12px;
+      position: relative;
+      z-index: 1;
+      font-weight: 400;
+    }
+
+    .divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: #e5e7eb;
+      z-index: 0;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 32px;
     }
 
     .error-message {
@@ -115,7 +162,7 @@
       pointer-events: none;
     }
 
-    /* 彈窗樣式 */
+    /* 首次登入彈窗樣式 */
     .overlay {
       position: fixed;
       top: 0;
@@ -234,21 +281,14 @@
       margin-top: -12px;
       margin-bottom: 20px;
     }
-
-    .footer-note {
-      text-align: center;
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 32px;
-    }
   </style>
 </head>
 <body>
   <div class="login-card">
     <div class="brand">
       <i class="fas fa-book-open"></i>
-      <h2>歡迎回來</h2>
-      <p>登入以繼續你的學習進度</p>
+      <h2>歡迎使用</h2>
+      <p>開始你的英語默書練習</p>
     </div>
 
     <div class="error-message" id="errorMessage"></div>
@@ -258,12 +298,21 @@
       使用 Google 登入
     </button>
 
+    <div class="divider">
+      <span>或</span>
+    </div>
+
+    <button class="btn btn-guest" id="guestLoginBtn">
+      <i class="fas fa-user"></i>
+      訪客體驗（無需登入）
+    </button>
+
     <div class="footer-note">
-      首次登入需設定年級
+      訪客模式僅供體驗，進度儲存在本機
     </div>
   </div>
 
-  <!-- 首次登入彈窗 -->
+  <!-- 首次登入彈窗（僅 Google 登入用戶） -->
   <div class="overlay" id="firstLoginOverlay">
     <div class="overlay-content">
       <h3>歡迎！首次使用</h3>
@@ -328,6 +377,7 @@
     const db = getFirestore(app);
 
     const googleBtn = document.getElementById('googleLoginBtn');
+    const guestBtn = document.getElementById('guestLoginBtn');
     const errorDiv = document.getElementById('errorMessage');
     const overlay = document.getElementById('firstLoginOverlay');
     const inviteCodeInput = document.getElementById('inviteCode');
@@ -372,19 +422,16 @@
       
       hideFormError();
       
-      // 驗證年級
       if (!grade) {
         showFormError('請選擇年級');
         return;
       }
       
-      // 驗證邀請碼格式
       if (inviteCode && !validateInviteCode(inviteCode)) {
         showFormError('你輸入的邀請碼無效，請重新輸入；如果沒有邀請碼，可以先留空');
         return;
       }
       
-      // 處理邀請碼（轉大寫）
       let branch = null;
       if (inviteCode) {
         branch = inviteCode.toUpperCase();
@@ -396,7 +443,6 @@
       try {
         const userRef = doc(db, 'users', pendingUser.uid);
         
-        // 創建用戶資料
         await setDoc(userRef, {
           email: pendingUser.email,
           displayName: pendingUser.displayName || pendingUser.email || '會員',
@@ -414,7 +460,6 @@
         
         console.log('✅ 用戶資料已建立:', { branch, grade });
         
-        // 關閉彈窗，跳轉到主頁
         overlay.style.display = 'none';
         window.location.href = './index.html';
         
@@ -441,18 +486,15 @@
         
         console.log('✅ Google 登入成功:', user.email);
         
-        // 檢查是否為首次登入
         const userRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
         
         if (!userSnap.exists()) {
-          // 首次登入，顯示彈窗
           pendingUser = user;
           overlay.style.display = 'flex';
           googleBtn.classList.remove('loading');
           googleBtn.disabled = false;
         } else {
-          // 已存在用戶，直接跳轉
           window.location.href = './index.html';
         }
         
@@ -468,10 +510,17 @@
       }
     });
 
+    // 訪客登入
+    guestBtn.addEventListener('click', () => {
+      // 設定訪客模式標記
+      localStorage.setItem('guestMode', 'true');
+      localStorage.setItem('guestGrade', 'P2');  // 預設年級 P2
+      window.location.href = './index.html';
+    });
+
     // 確認按鈕
     confirmBtn.addEventListener('click', handleFirstLoginSubmit);
     
-    // 按 Enter 鍵提交
     inviteCodeInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') handleFirstLoginSubmit();
     });
