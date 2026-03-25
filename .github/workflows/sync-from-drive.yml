@@ -120,103 +120,103 @@ jobs:
           echo "🎉 所有 JSON 檔案驗證通過"
 
       - name: Create index file
-  run: |
-    cd data
-    
-    # 建立 units-index.json
-    echo '{' > units-index.json
-    echo '  "units": [' >> units-index.json
-    
-    first=true
-    
-    # 遍歷所有 JSON 檔案（排除索引本身）
-    for file in *.json; do
-      if [ "$file" = "units-index.json" ]; then
-        continue
-      fi
-      
-      if [ -f "$file" ]; then
-        if [ "$first" = true ]; then
-          first=false
-        else
-          echo ',' >> units-index.json
-        fi
-        
-        # 使用 jq 讀取英語系統的欄位
-        UNIT_ID=$(jq -r '.unit_id' "$file" 2>/dev/null)
-        UNIT_TITLE=$(jq -r '.unit_title' "$file" 2>/dev/null)
-        UNIT_DESC=$(jq -r '.unit_description // ""' "$file" 2>/dev/null)
-        
-        # ===== 🔥 新增：讀取 grade 和 publisher =====
-        GRADE=$(jq -r '.grade // ""' "$file" 2>/dev/null)
-        PUBLISHER=$(jq -r '.publisher // ""' "$file" 2>/dev/null)
-        # ===========================================
-        
-        DIFFICULTY=$(jq -r '.difficulty // "intermediate"' "$file" 2>/dev/null)
-        WORDS_COUNT=$(jq '.words | length' "$file" 2>/dev/null)
-        SENTENCES_COUNT=$(jq '.sentences | length' "$file" 2>/dev/null)
-        CREATED_DATE=$(date +%Y-%m-%d)
-        
-        # 如果 unit_id 為空，使用檔名（不含 .json）
-        if [ -z "$UNIT_ID" ] || [ "$UNIT_ID" = "null" ]; then
-          UNIT_ID=$(basename "$file" .json)
-        fi
-        
-        # 如果 unit_title 為空，使用檔名
-        if [ -z "$UNIT_TITLE" ] || [ "$UNIT_TITLE" = "null" ]; then
-          UNIT_TITLE=$(basename "$file" .json)
-        fi
-        
-        # 寫入索引（包含 grade 和 publisher）
-        echo '    {' >> units-index.json
-        echo '      "id": "'"$UNIT_ID"'",' >> units-index.json
-        echo '      "title": "'"$UNIT_TITLE"'",' >> units-index.json
-        echo '      "description": "'"$UNIT_DESC"'",' >> units-index.json
-        
-        # ===== 🔥 新增：寫入 grade 和 publisher =====
-        if [ -n "$GRADE" ] && [ "$GRADE" != "null" ]; then
-          echo '      "grade": "'"$GRADE"'",' >> units-index.json
-        fi
-        if [ -n "$PUBLISHER" ] && [ "$PUBLISHER" != "null" ]; then
-          echo '      "publisher": "'"$PUBLISHER"'",' >> units-index.json
-        fi
-        # ===========================================
-        
-        echo '      "words_count": '"$WORDS_COUNT", >> units-index.json
-        echo '      "sentences_count": '"$SENTENCES_COUNT", >> units-index.json
-        echo '      "difficulty": "'"$DIFFICULTY"'",' >> units-index.json
-        echo '      "created": "'"$CREATED_DATE"'"' >> units-index.json
-        echo -n '    }' >> units-index.json
-        
-        # 檢查 grade 和 publisher 是否缺失（警告但不中斷）
-        if [ -z "$GRADE" ] || [ "$GRADE" = "null" ]; then
-          echo "⚠️ 警告: $(basename "$file") 缺少 grade 欄位"
-        fi
-        if [ -z "$PUBLISHER" ] || [ "$PUBLISHER" = "null" ]; then
-          echo "⚠️ 警告: $(basename "$file") 缺少 publisher 欄位"
-        fi
-        
-        echo "📄 已加入索引: $UNIT_TITLE ($UNIT_ID) - $GRADE / $PUBLISHER"
-      fi
-    done
-    
-    echo '' >> units-index.json
-    echo '  ]' >> units-index.json
-    echo '}' >> units-index.json
-    
-    # 驗證索引檔案
-    if jq empty units-index.json 2>/dev/null; then
-      INDEX_COUNT=$(jq '.units | length' units-index.json)
-      echo "✅ 索引檔已產生，共 $INDEX_COUNT 個單元"
-      
-      # 顯示索引內容（用於調試）
-      echo "📋 索引內容預覽："
-      head -30 units-index.json
-    else
-      echo "❌ 索引檔案格式錯誤"
-      cat units-index.json
-      exit 1
-    fi
+        run: |
+          cd data
+          
+          # 建立 units-index.json
+          echo '{' > units-index.json
+          echo '  "units": [' >> units-index.json
+          
+          first=true
+          
+          # 遍歷所有 JSON 檔案（排除索引本身）
+          for file in *.json; do
+            if [ "$file" = "units-index.json" ]; then
+              continue
+            fi
+            
+            if [ -f "$file" ]; then
+              if [ "$first" = true ]; then
+                first=false
+              else
+                echo ',' >> units-index.json
+              fi
+              
+              # 使用 jq 讀取英語系統的欄位
+              UNIT_ID=$(jq -r '.unit_id' "$file" 2>/dev/null)
+              UNIT_TITLE=$(jq -r '.unit_title' "$file" 2>/dev/null)
+              UNIT_DESC=$(jq -r '.unit_description // ""' "$file" 2>/dev/null)
+              
+              # ===== 讀取 grade 和 publisher =====
+              GRADE=$(jq -r '.grade // ""' "$file" 2>/dev/null)
+              PUBLISHER=$(jq -r '.publisher // ""' "$file" 2>/dev/null)
+              # ==================================
+              
+              DIFFICULTY=$(jq -r '.difficulty // "intermediate"' "$file" 2>/dev/null)
+              WORDS_COUNT=$(jq '.words | length' "$file" 2>/dev/null)
+              SENTENCES_COUNT=$(jq '.sentences | length' "$file" 2>/dev/null)
+              CREATED_DATE=$(date +%Y-%m-%d)
+              
+              # 如果 unit_id 為空，使用檔名（不含 .json）
+              if [ -z "$UNIT_ID" ] || [ "$UNIT_ID" = "null" ]; then
+                UNIT_ID=$(basename "$file" .json)
+              fi
+              
+              # 如果 unit_title 為空，使用檔名
+              if [ -z "$UNIT_TITLE" ] || [ "$UNIT_TITLE" = "null" ]; then
+                UNIT_TITLE=$(basename "$file" .json)
+              fi
+              
+              # 寫入索引（包含 grade 和 publisher）
+              echo '    {' >> units-index.json
+              echo '      "id": "'"$UNIT_ID"'",' >> units-index.json
+              echo '      "title": "'"$UNIT_TITLE"'",' >> units-index.json
+              echo '      "description": "'"$UNIT_DESC"'",' >> units-index.json
+              
+              # ===== 寫入 grade 和 publisher =====
+              if [ -n "$GRADE" ] && [ "$GRADE" != "null" ]; then
+                echo '      "grade": "'"$GRADE"'",' >> units-index.json
+              fi
+              if [ -n "$PUBLISHER" ] && [ "$PUBLISHER" != "null" ]; then
+                echo '      "publisher": "'"$PUBLISHER"'",' >> units-index.json
+              fi
+              # ==================================
+              
+              echo '      "words_count": '"$WORDS_COUNT", >> units-index.json
+              echo '      "sentences_count": '"$SENTENCES_COUNT", >> units-index.json
+              echo '      "difficulty": "'"$DIFFICULTY"'",' >> units-index.json
+              echo '      "created": "'"$CREATED_DATE"'"' >> units-index.json
+              echo -n '    }' >> units-index.json
+              
+              # 檢查 grade 和 publisher 是否缺失（警告但不中斷）
+              if [ -z "$GRADE" ] || [ "$GRADE" = "null" ]; then
+                echo "⚠️ 警告: $(basename "$file") 缺少 grade 欄位"
+              fi
+              if [ -z "$PUBLISHER" ] || [ "$PUBLISHER" = "null" ]; then
+                echo "⚠️ 警告: $(basename "$file") 缺少 publisher 欄位"
+              fi
+              
+              echo "📄 已加入索引: $UNIT_TITLE ($UNIT_ID) - $GRADE / $PUBLISHER"
+            fi
+          done
+          
+          echo '' >> units-index.json
+          echo '  ]' >> units-index.json
+          echo '}' >> units-index.json
+          
+          # 驗證索引檔案
+          if jq empty units-index.json 2>/dev/null; then
+            INDEX_COUNT=$(jq '.units | length' units-index.json)
+            echo "✅ 索引檔已產生，共 $INDEX_COUNT 個單元"
+            
+            # 顯示索引內容（用於調試）
+            echo "📋 索引內容預覽："
+            head -30 units-index.json
+          else
+            echo "❌ 索引檔案格式錯誤"
+            cat units-index.json
+            exit 1
+          fi
 
       - name: Commit and push changes
         run: |
