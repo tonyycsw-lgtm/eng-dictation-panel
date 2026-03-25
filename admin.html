@@ -611,6 +611,9 @@
 
     const auth = getAuth(app);
     const db = getFirestore(app);
+    
+    // 初始化 Firebase Functions
+    const functions = firebase.functions();
 
     // 全域變數
     let currentFilter = 'all';
@@ -869,7 +872,7 @@
         <tr ${isDisabled ? 'class="disabled-row"' : ''}>
           <td style="width: 40px; text-align: center;">
             <input type="checkbox" class="user-checkbox" data-userid="${docId}" onclick="event.stopPropagation()">
-          </td>
+           </div>
           <td style="max-width:200px;">${nameHtml} </div>
           <td style="max-width:200px;">${escapeHtml(user.email || '-')} </div>
           <td class="phone-cell" id="phone-${docId}">
@@ -1585,7 +1588,7 @@
     window.logout = async () => { await signOut(auth); window.location.reload(); };
     
     // ============================================
-    // 通知相關函數
+    // 通知相關函數（使用 Cloud Functions）
     // ============================================
     
     // 通知設置相關
@@ -1601,82 +1604,98 @@
     
     window.loadNotificationSettings = async () => {
       try {
-        const settingsRef = doc(db, 'settings', 'notifications');
-        const settingsSnap = await getDoc(settingsRef);
-        if (settingsSnap.exists()) {
-          const data = settingsSnap.data();
-          if (data.inApp) {
-            document.getElementById('notifyNewUnit').checked = data.inApp.scenarios?.new_unit !== false;
-            document.getElementById('notifyAnnouncement').checked = data.inApp.scenarios?.announcement !== false;
-            document.getElementById('notifyAccountDisabled').checked = data.inApp.scenarios?.account_disabled !== false;
-            document.getElementById('notifyAccountEnabled').checked = data.inApp.scenarios?.account_enabled !== false;
-            document.getElementById('notifyTrialExpiring').checked = data.inApp.scenarios?.trial_expiring !== false;
-            document.getElementById('notifySubscriptionExpiring').checked = data.inApp.scenarios?.subscription_expiring !== false;
-            document.getElementById('notifySystemMaintenance').checked = data.inApp.scenarios?.system_maintenance !== false;
+        // 調用 Cloud Function 獲取設置（不返回 API Key）
+        const getSettings = functions.httpsCallable('getEmailSettings');
+        const result = await getSettings();
+        const data = result.data;
+        
+        if (data.email) {
+          document.getElementById('emailEnabled').checked = data.email.enabled || false;
+          if (data.email.enabled) {
+            document.getElementById('emailSettings').style.display = 'block';
           }
-          if (data.email) {
-            document.getElementById('emailEnabled').checked = data.email.enabled || false;
-            if (data.email.enabled) {
-              document.getElementById('emailSettings').style.display = 'block';
-            }
-            const provider = data.email.provider || 'resend';
-            document.getElementById('emailProvider').value = provider;
-            toggleEmailProviderSettings(provider);
-            if (data.email.credentials?.resend?.apiKey) {
-              document.getElementById('resendApiKey').value = data.email.credentials.resend.apiKey;
-            }
-            if (data.email.credentials?.ses) {
-              document.getElementById('sesAccessKey').value = data.email.credentials.ses.accessKeyId || '';
-              document.getElementById('sesSecretKey').value = data.email.credentials.ses.secretAccessKey || '';
-              document.getElementById('sesRegion').value = data.email.credentials.ses.region || 'us-east-1';
-            }
-            document.getElementById('fromName').value = data.email.fromName || '英語默書系統';
-            document.getElementById('fromEmail').value = data.email.fromEmail || '';
+          document.getElementById('emailProvider').value = data.email.provider || 'resend';
+          toggleEmailProviderSettings(data.email.provider || 'resend');
+          
+          // 顯示是否已配置
+          const resendConfigured = data.email.configured?.resend;
+          const sesConfigured = data.email.configured?.ses;
+          
+          const resendHint = document.getElementById('resendHint');
+          if (resendHint) {
+            resendHint.innerHTML = resendConfigured ? '✅ 已配置' : '⚠️ 未配置，請輸入 API Key';
+            resendHint.style.color = resendConfigured ? '#10b981' : '#f97316';
           }
+          
+          const sesHint = document.getElementById('sesHint');
+          if (sesHint) {
+            sesHint.innerHTML = sesConfigured ? '✅ 已配置' : '⚠️ 未配置，請輸入憑證';
+            sesHint.style.color = sesConfigured ? '#10b981' : '#f97316';
+          }
+          
+          document.getElementById('fromName').value = data.email.fromName || '英語默書系統';
+          document.getElementById('fromEmail').value = data.email.fromEmail || '';
         }
       } catch (error) {
         console.error('載入通知設置失敗:', error);
+        showToast('載入設置失敗：' + error.message);
       }
     };
     
     window.saveNotificationSettings = async () => {
       try {
-        const settings = {
-          inApp: {
-            scenarios: {
-              new_unit: document.getElementById('notifyNewUnit').checked,
-              announcement: document.getElementById('notifyAnnouncement').checked,
-              account_disabled: document.getElementById('notifyAccountDisabled').checked,
-              account_enabled: document.getElementById('notifyAccountEnabled').checked,
-              trial_expiring: document.getElementById('notifyTrialExpiring').checked,
-              subscription_expiring: document.getElementById('notifySubscriptionExpiring').checked,
-              system_maintenance: document.getElementById('notifySystemMaintenance').checked
-            }
-          },
-          email: {
-            enabled: document.getElementById('emailEnabled').checked,
-            provider: document.getElementById('emailProvider').value,
-            credentials: {},
-            fromName: document.getElementById('fromName').value,
-            fromEmail: document.getElementById('fromEmail').value,
-            updatedAt: new Date().toISOString(),
-            updatedBy: auth.currentUser.uid
-          }
-        };
+        const enabled = document.getElementById('emailEnabled').checked;
+        const provider = document.getElementById('emailProvider').value;
+        const fromName = document.getElementById('fromName').value;
+        const fromEmail = document.getElementById('fromEmail').value;
         
-        const provider = settings.email.provider;
+        // 獲取 API Key（如果輸入）
+        let resendApiKey = null;
+        let sesAccessKey = null;
+        let sesSecretKey = null;
+        let sesRegion = null;
+        
         if (provider === 'resend') {
-          settings.email.credentials.resend = { apiKey: document.getElementById('resendApiKey').value };
+          const apiKeyInput = document.getElementById('resendApiKey');
+          if (apiKeyInput.value.trim()) {
+            resendApiKey = apiKeyInput.value.trim();
+          }
         } else if (provider === 'ses') {
-          settings.email.credentials.ses = {
-            accessKeyId: document.getElementById('sesAccessKey').value,
-            secretAccessKey: document.getElementById('sesSecretKey').value,
-            region: document.getElementById('sesRegion').value
-          };
+          const accessKeyInput = document.getElementById('sesAccessKey');
+          const secretKeyInput = document.getElementById('sesSecretKey');
+          if (accessKeyInput.value.trim() && secretKeyInput.value.trim()) {
+            sesAccessKey = accessKeyInput.value.trim();
+            sesSecretKey = secretKeyInput.value.trim();
+            sesRegion = document.getElementById('sesRegion').value;
+          }
         }
         
-        await setDoc(doc(db, 'settings', 'notifications'), settings, { merge: true });
+        // 調用 Cloud Function 儲存設置
+        const updateSettings = functions.httpsCallable('updateEmailSettings');
+        await updateSettings({
+          enabled,
+          provider,
+          resendApiKey,
+          sesAccessKey,
+          sesSecretKey,
+          sesRegion,
+          fromName,
+          fromEmail
+        });
+        
         showToast('通知設置已儲存', 'success');
+        
+        // 清空輸入框（安全起見）
+        if (provider === 'resend') {
+          document.getElementById('resendApiKey').value = '';
+        } else if (provider === 'ses') {
+          document.getElementById('sesAccessKey').value = '';
+          document.getElementById('sesSecretKey').value = '';
+        }
+        
+        // 重新載入設置以更新狀態
+        await loadNotificationSettings();
+        
       } catch (error) {
         console.error('儲存通知設置失敗:', error);
         showToast('儲存失敗：' + error.message);
@@ -1688,18 +1707,9 @@
       if (!email) return;
       
       try {
-        // 調用 Cloud Function 發送測試郵件
-        const sendEmailFunc = firebase.functions().httpsCallable('sendEmail');
-        const result = await sendEmailFunc({
-          to: email,
-          subject: '英語默書系統測試郵件',
-          html: '<h2>測試郵件</h2><p>如果您收到此郵件，表示郵件通知功能正常運作。</p>'
-        });
-        if (result.data.success) {
-          showToast('測試郵件已發送', 'success');
-        } else {
-          showToast('發送失敗', 'error');
-        }
+        const testEmailFunc = functions.httpsCallable('testEmail');
+        await testEmailFunc({ to: email });
+        showToast('測試郵件已發送', 'success');
       } catch (error) {
         console.error('測試郵件發送失敗:', error);
         showToast('發送失敗：' + error.message);
@@ -1885,11 +1895,14 @@
                   <div id="resendSettings">
                     <label>Resend API Key：</label>
                     <input type="password" id="resendApiKey" style="width: 300px; padding: 6px; margin-left: 10px;">
+                    <span id="resendHint" style="font-size: 12px; margin-left: 10px;"></span>
+                    <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">僅首次設定需要輸入，後續可留空</div>
                   </div>
                   <div id="sesSettings" style="display: none;">
-                    <div><label>AWS Access Key ID：</label><input type="password" id="sesAccessKey" style="width: 250px; margin: 5px 0;"></div>
+                    <div><label>AWS Access Key ID：</label><input type="password" id="sesAccessKey" style="width: 250px; margin: 5px 0;"><span id="sesHint" style="font-size: 12px; margin-left: 10px;"></span></div>
                     <div><label>AWS Secret Access Key：</label><input type="password" id="sesSecretKey" style="width: 250px; margin: 5px 0;"></div>
                     <div><label>AWS Region：</label><select id="sesRegion"><option value="us-east-1">us-east-1</option><option value="us-west-2">us-west-2</option><option value="ap-northeast-1">ap-northeast-1</option></select></div>
+                    <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">僅首次設定需要輸入，後續可留空</div>
                   </div>
                   <div style="margin-top: 10px;">
                     <label>寄件人名稱：</label><input type="text" id="fromName" value="英語默書系統" style="width: 200px; margin-left: 10px;">
@@ -1946,7 +1959,7 @@
                   <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>班級</th><th>年級</th><th>教材</th><th>註冊時間</th><th>最近上線</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th>
                   </tr>
               </thead>
-              <tbody id="usersList"> <tr><td colspan="16" class="loading"><span class="loading-spinner"></span> 載入中...  </td></tr></tbody>
+              <tbody id="usersList"> <tr><td colspan="16" class="loading"><span class="loading-spinner"></span> 載入中... </td></tr></tbody>
               </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
