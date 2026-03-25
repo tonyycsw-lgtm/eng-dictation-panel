@@ -339,6 +339,7 @@ function renderNotificationList() {
     `).join('');
 }
 
+// ===== 修復版：通知詳情彈窗（防止重複）=====
 window.openNotificationDetail = async (notificationId) => {
     const notif = notifications.find(n => n.id === notificationId);
     if (!notif) return;
@@ -347,33 +348,107 @@ window.openNotificationDetail = async (notificationId) => {
         await markNotificationAsRead(notificationId);
     }
     
+    // 移除已存在的彈窗，避免重複
+    const existingModal = document.querySelector('.notification-detail-overlay');
+    if (existingModal) existingModal.remove();
+    
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
+    modal.className = 'notification-detail-overlay';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+    `;
+    
     modal.innerHTML = `
-        <div style="background: white; border-radius: 16px; padding: 24px; max-width: 400px; width: 90%;">
+        <div style="background: white; border-radius: 16px; padding: 24px; max-width: 400px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="font-size: 18px;">${escapeHtml(notif.title)}</h3>
-                <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+                <h3 style="font-size: 18px; margin: 0;">${escapeHtml(notif.title)}</h3>
+                <button class="close-modal-btn" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;">&times;</button>
             </div>
             <div style="font-size: 14px; color: #64748b; margin-bottom: 16px;">
                 ${formatRelativeTime(notif.createdAt)} · 來自 ${escapeHtml(notif.senderName || '系統')}
             </div>
-            <div style="font-size: 15px; line-height: 1.5; color: #1e293b; white-space: pre-wrap;">
+            <div style="font-size: 15px; line-height: 1.5; color: #1e293b; white-space: pre-wrap; margin-bottom: 20px;">
                 ${escapeHtml(notif.content)}
             </div>
-            <button class="close-btn" onclick="this.closest('.modal-overlay').remove()" style="margin-top: 20px; width: 100%;">關閉</button>
+            <button class="close-modal-btn" style="width: 100%; background: #4f46e5; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 500;">關閉</button>
         </div>
     `;
+    
+    // 添加關閉事件
+    const closeButtons = modal.querySelectorAll('.close-modal-btn');
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            modal.remove();
+        });
+    });
+    
+    // 點擊背景關閉
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
     document.body.appendChild(modal);
 };
 
+// ===== 修復版：通知面板（點擊外部關閉 + ESC 鍵）=====
+let notificationClickHandler = null;
+let notificationEscapeHandler = null;
+
+function handleNotificationClickOutside(event) {
+    const panel = document.getElementById('notificationPanel');
+    const bellButton = document.querySelector('button[onclick*="showNotificationPanel"]');
+    
+    if (panel && panel.contains(event.target)) return;
+    if (bellButton && bellButton.contains(event.target)) return;
+    
+    if (panel && panel.style.display === 'block') {
+        panel.style.display = 'none';
+        document.removeEventListener('click', handleNotificationClickOutside);
+        document.removeEventListener('keydown', handleNotificationEscapeKey);
+    }
+}
+
+function handleNotificationEscapeKey(event) {
+    if (event.key === 'Escape') {
+        const panel = document.getElementById('notificationPanel');
+        if (panel && panel.style.display === 'block') {
+            panel.style.display = 'none';
+            document.removeEventListener('click', handleNotificationClickOutside);
+            document.removeEventListener('keydown', handleNotificationEscapeKey);
+        }
+    }
+}
+
 window.showNotificationPanel = () => {
     const panel = document.getElementById('notificationPanel');
-    if (panel) {
-        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-        if (panel.style.display === 'block') {
-            renderNotificationList();
-        }
+    if (!panel) return;
+    
+    const isVisible = panel.style.display === 'block';
+    
+    if (isVisible) {
+        panel.style.display = 'none';
+        document.removeEventListener('click', handleNotificationClickOutside);
+        document.removeEventListener('keydown', handleNotificationEscapeKey);
+    } else {
+        panel.style.display = 'block';
+        renderNotificationList();
+        
+        // 延遲添加監聽器，避免立即觸發
+        setTimeout(() => {
+            document.addEventListener('click', handleNotificationClickOutside);
+            document.addEventListener('keydown', handleNotificationEscapeKey);
+        }, 100);
     }
 };
 
@@ -487,7 +562,7 @@ function updateUserInterface() {
             gradeSelect.addEventListener('change', async (e) => {
                 const newGrade = e.target.value;
                 setGuestGrade(newGrade);
-                // 重新載入單元
+                // 靜默切換，無彈窗提示
                 await loadUnitsIndex();
                 updateUnitSelect();
                 if (unitsIndex.units.length > 0) {
@@ -502,7 +577,6 @@ function updateUserInterface() {
         const switchBtn = document.getElementById('switchToLoginBtn');
         if (switchBtn) {
             switchBtn.addEventListener('click', () => {
-                // 清除訪客模式標記，跳轉到登入頁
                 localStorage.removeItem('guestMode');
                 localStorage.removeItem('guestGrade');
                 window.location.href = './login.html';
@@ -1030,7 +1104,6 @@ function updateUnitSelect() {
     if (isGuestMode) {
         availableUnits = filterUnitsForGuest(unitsIndex.units);
     } else if (currentUser) {
-        // 已登入用戶的過濾邏輯（根據用戶的年級和教材）
         if (currentUserGrade && currentUserPublisher) {
             availableUnits = unitsIndex.units.filter(unit => 
                 unit.grade === currentUserGrade && 
