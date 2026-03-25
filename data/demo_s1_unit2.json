@@ -1,0 +1,112 @@
+{
+  "unit_id": "demo_s1_unit2",
+  "unit_title": "示範單元 2 - 校園生活 (S1)",
+  "unit_description": "學習校園生活的英文表達",
+  "grade": "S1",
+  "publisher": "示範",
+  "difficulty": "medium",
+  "words": [
+    {
+      "id": "demo_s1_u2_w1",
+      "english": "campus",
+      "translation": "校園",
+      "hint": "學校的地方",
+      "audio": "campus"
+    },
+    {
+      "id": "demo_s1_u2_w2",
+      "english": "subject",
+      "translation": "科目",
+      "hint": "學習的課程",
+      "audio": "subject"
+    },
+    {
+      "id": "demo_s1_u2_w3",
+      "english": "examination",
+      "translation": "考試",
+      "hint": "測試知識",
+      "audio": "examination"
+    },
+    {
+      "id": "demo_s1_u2_w4",
+      "english": "homework",
+      "translation": "家庭作業",
+      "hint": "回家做的功課",
+      "audio": "homework"
+    },
+    {
+      "id": "demo_s1_u2_w5",
+      "english": "library",
+      "translation": "圖書館",
+      "hint": "借書的地方",
+      "audio": "library"
+    },
+    {
+      "id": "demo_s1_u2_w6",
+      "english": "laboratory",
+      "translation": "實驗室",
+      "hint": "做實驗的地方",
+      "audio": "laboratory"
+    },
+    {
+      "id": "demo_s1_u2_w7",
+      "english": "canteen",
+      "translation": "食堂",
+      "hint": "吃飯的地方",
+      "audio": "canteen"
+    },
+    {
+      "id": "demo_s1_u2_w8",
+      "english": "classmate",
+      "translation": "同學",
+      "hint": "一起上課的人",
+      "audio": "classmate"
+    },
+    {
+      "id": "demo_s1_u2_w9",
+      "english": "teacher",
+      "translation": "老師",
+      "hint": "教導我們的人",
+      "audio": "teacher"
+    },
+    {
+      "id": "demo_s1_u2_w10",
+      "english": "extracurricular",
+      "translation": "課外的",
+      "hint": "課堂以外的活動",
+      "audio": "extracurricular"
+    }
+  ],
+  "sentences": [
+    {
+      "id": "demo_s1_u2_s1",
+      "english": "Our campus is very beautiful.",
+      "translation": "我們的校園很美麗。",
+      "audio": "Our campus is very beautiful."
+    },
+    {
+      "id": "demo_s1_u2_s2",
+      "english": "I like studying science subjects.",
+      "translation": "我喜歡學習理科科目。",
+      "audio": "I like studying science subjects."
+    },
+    {
+      "id": "demo_s1_u2_s3",
+      "english": "We have an examination next week.",
+      "translation": "我們下週有考試。",
+      "audio": "We have an examination next week."
+    },
+    {
+      "id": "demo_s1_u2_s4",
+      "english": "I often go to the library after school.",
+      "translation": "我放學後經常去圖書館。",
+      "audio": "I often go to the library after school."
+    },
+    {
+      "id": "demo_s1_u2_s5",
+      "english": "My classmates are very friendly.",
+      "translation": "我的同學們很友善。",
+      "audio": "My classmates are very friendly."
+    }
+  ]
+}

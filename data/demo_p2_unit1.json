@@ -1,0 +1,72 @@
+{
+  "unit_id": "demo_p2_unit1",
+  "unit_title": "示範單元 1 - 我的家庭 (P2)",
+  "unit_description": "學習家庭成員的英文單詞",
+  "grade": "P2",
+  "publisher": "示範",
+  "difficulty": "easy",
+  "words": [
+    {
+      "id": "demo_p2_u1_w1",
+      "english": "father",
+      "translation": "父親",
+      "hint": "爸爸",
+      "audio": "father"
+    },
+    {
+      "id": "demo_p2_u1_w2",
+      "english": "mother",
+      "translation": "母親",
+      "hint": "媽媽",
+      "audio": "mother"
+    },
+    {
+      "id": "demo_p2_u1_w3",
+      "english": "brother",
+      "translation": "兄弟",
+      "hint": "哥哥/弟弟",
+      "audio": "brother"
+    },
+    {
+      "id": "demo_p2_u1_w4",
+      "english": "sister",
+      "translation": "姐妹",
+      "hint": "姐姐/妹妹",
+      "audio": "sister"
+    },
+    {
+      "id": "demo_p2_u1_w5",
+      "english": "grandfather",
+      "translation": "祖父",
+      "hint": "爺爺/外公",
+      "audio": "grandfather"
+    },
+    {
+      "id": "demo_p2_u1_w6",
+      "english": "grandmother",
+      "translation": "祖母",
+      "hint": "奶奶/外婆",
+      "audio": "grandmother"
+    }
+  ],
+  "sentences": [
+    {
+      "id": "demo_p2_u1_s1",
+      "english": "This is my father.",
+      "translation": "這是我父親。",
+      "audio": "This is my father."
+    },
+    {
+      "id": "demo_p2_u1_s2",
+      "english": "I love my mother.",
+      "translation": "我愛我母親。",
+      "audio": "I love my mother."
+    },
+    {
+      "id": "demo_p2_u1_s3",
+      "english": "My brother is tall.",
+      "translation": "我的兄弟很高。",
+      "audio": "My brother is tall."
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "unit_id": "demo_p5_unit2",
+  "unit_title": "示範單元 2 - 節日慶祝 (P5)",
+  "unit_description": "學習節日相關的英文單詞",
+  "grade": "P5",
+  "publisher": "示範",
+  "difficulty": "medium",
+  "words": [
+    {
+      "id": "demo_p5_u2_w1",
+      "english": "festival",
+      "translation": "節日",
+      "hint": "慶祝的日子",
+      "audio": "festival"
+    },
+    {
+      "id": "demo_p5_u2_w2",
+      "english": "celebrate",
+      "translation": "慶祝",
+      "hint": "歡慶",
+      "audio": "celebrate"
+    },
+    {
+      "id": "demo_p5_u2_w3",
+      "english": "fireworks",
+      "translation": "煙花",
+      "hint": "夜空中綻放",
+      "audio": "fireworks"
+    },
+    {
+      "id": "demo_p5_u2_w4",
+      "english": "gift",
+      "translation": "禮物",
+      "hint": "送給別人的東西",
+      "audio": "gift"
+    },
+    {
+      "id": "demo_p5_u2_w5",
+      "english": "traditional",
+      "translation": "傳統的",
+      "hint": "代代相傳",
+      "audio": "traditional"
+    },
+    {
+      "id": "demo_p5_u2_w6",
+      "english": "family reunion",
+      "translation": "家庭團聚",
+      "hint": "家人聚在一起",
+      "audio": "family reunion"
+    },
+    {
+      "id": "demo_p5_u2_w7",
+      "english": "lantern",
+      "translation": "燈籠",
+      "hint": "元宵節提的燈",
+      "audio": "lantern"
+    },
+    {
+      "id": "demo_p5_u2_w8",
+      "english": "mooncake",
+      "translation": "月餅",
+      "hint": "中秋節食物",
+      "audio": "mooncake"
+    }
+  ],
+  "sentences": [
+    {
+      "id": "demo_p5_u2_s1",
+      "english": "We celebrate festivals with our family.",
+      "translation": "我們與家人一起慶祝節日。",
+      "audio": "We celebrate festivals with our family."
+    },
+    {
+      "id": "demo_p5_u2_s2",
+      "english": "The fireworks are beautiful.",
+      "translation": "煙花很美麗。",
+      "audio": "The fireworks are beautiful."
+    },
+    {
+      "id": "demo_p5_u2_s3",
+      "english": "I received a gift from my friend.",
+      "translation": "我收到朋友送的禮物。",
+      "audio": "I received a gift from my friend."
+    },
+    {
+      "id": "demo_p5_u2_s4",
+      "english": "Mooncakes are delicious.",
+      "translation": "月餅很好吃。",
+      "audio": "Mooncakes are delicious."
+    }
+  ]
+}

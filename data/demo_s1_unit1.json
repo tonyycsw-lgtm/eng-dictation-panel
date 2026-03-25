@@ -1,0 +1,112 @@
+{
+  "unit_id": "demo_s1_unit1",
+  "unit_title": "示範單元 1 - 自我介紹 (S1)",
+  "unit_description": "學習自我介紹的英文表達",
+  "grade": "S1",
+  "publisher": "示範",
+  "difficulty": "medium",
+  "words": [
+    {
+      "id": "demo_s1_u1_w1",
+      "english": "introduce",
+      "translation": "介紹",
+      "hint": "讓別人認識自己",
+      "audio": "introduce"
+    },
+    {
+      "id": "demo_s1_u1_w2",
+      "english": "hobby",
+      "translation": "興趣",
+      "hint": "喜歡做的事",
+      "audio": "hobby"
+    },
+    {
+      "id": "demo_s1_u1_w3",
+      "english": "ambition",
+      "translation": "抱負",
+      "hint": "將來的目標",
+      "audio": "ambition"
+    },
+    {
+      "id": "demo_s1_u1_w4",
+      "english": "personality",
+      "translation": "個性",
+      "hint": "性格特點",
+      "audio": "personality"
+    },
+    {
+      "id": "demo_s1_u1_w5",
+      "english": "experience",
+      "translation": "經驗",
+      "hint": "經歷過的事",
+      "audio": "experience"
+    },
+    {
+      "id": "demo_s1_u1_w6",
+      "english": "strength",
+      "translation": "優點",
+      "hint": "擅長的事",
+      "audio": "strength"
+    },
+    {
+      "id": "demo_s1_u1_w7",
+      "english": "weakness",
+      "translation": "缺點",
+      "hint": "需要改進的地方",
+      "audio": "weakness"
+    },
+    {
+      "id": "demo_s1_u1_w8",
+      "english": "future",
+      "translation": "未來",
+      "hint": "將來的時間",
+      "audio": "future"
+    },
+    {
+      "id": "demo_s1_u1_w9",
+      "english": "dream",
+      "translation": "夢想",
+      "hint": "想達成的事",
+      "audio": "dream"
+    },
+    {
+      "id": "demo_s1_u1_w10",
+      "english": "confident",
+      "translation": "自信的",
+      "hint": "對自己有信心",
+      "audio": "confident"
+    }
+  ],
+  "sentences": [
+    {
+      "id": "demo_s1_u1_s1",
+      "english": "Let me introduce myself. My name is Amy.",
+      "translation": "讓我自我介紹。我叫 Amy。",
+      "audio": "Let me introduce myself. My name is Amy."
+    },
+    {
+      "id": "demo_s1_u1_s2",
+      "english": "My hobby is reading books.",
+      "translation": "我的興趣是看書。",
+      "audio": "My hobby is reading books."
+    },
+    {
+      "id": "demo_s1_u1_s3",
+      "english": "I am a confident person.",
+      "translation": "我是一個自信的人。",
+      "audio": "I am a confident person."
+    },
+    {
+      "id": "demo_s1_u1_s4",
+      "english": "My dream is to become a teacher.",
+      "translation": "我的夢想是成為一名老師。",
+      "audio": "My dream is to become a teacher."
+    },
+    {
+      "id": "demo_s1_u1_s5",
+      "english": "I believe I can achieve my goal.",
+      "translation": "我相信我能達成目標。",
+      "audio": "I believe I can achieve my goal."
+    }
+  ]
+}

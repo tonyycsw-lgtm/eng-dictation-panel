@@ -1,0 +1,72 @@
+{
+  "unit_id": "demo_p2_unit2",
+  "unit_title": "示範單元 2 - 我的學校 (P2)",
+  "unit_description": "學習學校物品的英文單詞",
+  "grade": "P2",
+  "publisher": "示範",
+  "difficulty": "easy",
+  "words": [
+    {
+      "id": "demo_p2_u2_w1",
+      "english": "book",
+      "translation": "書",
+      "hint": "課本",
+      "audio": "book"
+    },
+    {
+      "id": "demo_p2_u2_w2",
+      "english": "pencil",
+      "translation": "鉛筆",
+      "hint": "寫字用",
+      "audio": "pencil"
+    },
+    {
+      "id": "demo_p2_u2_w3",
+      "english": "eraser",
+      "translation": "橡皮擦",
+      "hint": "擦掉筆跡",
+      "audio": "eraser"
+    },
+    {
+      "id": "demo_p2_u2_w4",
+      "english": "ruler",
+      "translation": "尺",
+      "hint": "量長度",
+      "audio": "ruler"
+    },
+    {
+      "id": "demo_p2_u2_w5",
+      "english": "schoolbag",
+      "translation": "書包",
+      "hint": "裝書的袋子",
+      "audio": "schoolbag"
+    },
+    {
+      "id": "demo_p2_u2_w6",
+      "english": "teacher",
+      "translation": "老師",
+      "hint": "教導我們的人",
+      "audio": "teacher"
+    }
+  ],
+  "sentences": [
+    {
+      "id": "demo_p2_u2_s1",
+      "english": "I have a new book.",
+      "translation": "我有一本新書。",
+      "audio": "I have a new book."
+    },
+    {
+      "id": "demo_p2_u2_s2",
+      "english": "My pencil is blue.",
+      "translation": "我的鉛筆是藍色的。",
+      "audio": "My pencil is blue."
+    },
+    {
+      "id": "demo_p2_u2_s3",
+      "english": "The teacher is kind.",
+      "translation": "老師很和藹。",
+      "audio": "The teacher is kind."
+    }
+  ]
+}

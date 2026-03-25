@@ -1,0 +1,92 @@
+{
+  "unit_id": "demo_p5_unit1",
+  "unit_title": "示範單元 1 - 日常生活 (P5)",
+  "unit_description": "學習日常活動的英文表達",
+  "grade": "P5",
+  "publisher": "示範",
+  "difficulty": "medium",
+  "words": [
+    {
+      "id": "demo_p5_u1_w1",
+      "english": "wake up",
+      "translation": "起床",
+      "hint": "早上醒來",
+      "audio": "wake up"
+    },
+    {
+      "id": "demo_p5_u1_w2",
+      "english": "brush teeth",
+      "translation": "刷牙",
+      "hint": "清潔牙齒",
+      "audio": "brush teeth"
+    },
+    {
+      "id": "demo_p5_u1_w3",
+      "english": "have breakfast",
+      "translation": "吃早餐",
+      "hint": "早晨的第一餐",
+      "audio": "have breakfast"
+    },
+    {
+      "id": "demo_p5_u1_w4",
+      "english": "go to school",
+      "translation": "上學",
+      "hint": "去學校",
+      "audio": "go to school"
+    },
+    {
+      "id": "demo_p5_u1_w5",
+      "english": "do homework",
+      "translation": "做功課",
+      "hint": "完成作業",
+      "audio": "do homework"
+    },
+    {
+      "id": "demo_p5_u1_w6",
+      "english": "watch TV",
+      "translation": "看電視",
+      "hint": "看電視節目",
+      "audio": "watch TV"
+    },
+    {
+      "id": "demo_p5_u1_w7",
+      "english": "go to bed",
+      "translation": "睡覺",
+      "hint": "上床睡覺",
+      "audio": "go to bed"
+    },
+    {
+      "id": "demo_p5_u1_w8",
+      "english": "take a shower",
+      "translation": "洗澡",
+      "hint": "淋浴",
+      "audio": "take a shower"
+    }
+  ],
+  "sentences": [
+    {
+      "id": "demo_p5_u1_s1",
+      "english": "I wake up at seven o'clock every morning.",
+      "translation": "我每天早上七點起床。",
+      "audio": "I wake up at seven o'clock every morning."
+    },
+    {
+      "id": "demo_p5_u1_s2",
+      "english": "After school, I do my homework.",
+      "translation": "放學後，我做功課。",
+      "audio": "After school, I do my homework."
+    },
+    {
+      "id": "demo_p5_u1_s3",
+      "english": "I go to bed before ten o'clock.",
+      "translation": "我十點前睡覺。",
+      "audio": "I go to bed before ten o'clock."
+    },
+    {
+      "id": "demo_p5_u1_s4",
+      "english": "Don't forget to brush your teeth.",
+      "translation": "別忘記刷牙。",
+      "audio": "Don't forget to brush your teeth."
+    }
+  ]
+}
