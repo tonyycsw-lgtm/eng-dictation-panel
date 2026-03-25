@@ -149,6 +149,33 @@ class StableAudioPlayer {
 
 const audioPlayer = new StableAudioPlayer();
 
+// === Toast 提示 ===
+function showToast(message, type = 'error') {
+    const existing = document.querySelector('.toast-message');
+    if (existing) existing.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast-message';
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        background: ${type === 'success' ? '#10b981' : '#ef4444'};
+        z-index: 10001;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: fadeInOut 3s ease forwards;
+        pointer-events: none;
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
 // === 輔助函數 ===
 function stopPropagation(event) {
     if (event) {
@@ -460,7 +487,6 @@ function updateUserInterface() {
             gradeSelect.addEventListener('change', async (e) => {
                 const newGrade = e.target.value;
                 setGuestGrade(newGrade);
-                showToast(`已切換至 ${newGrade} 年級`, 'success');
                 // 重新載入單元
                 await loadUnitsIndex();
                 updateUnitSelect();
