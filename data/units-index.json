@@ -65,6 +65,42 @@
       "sentences_count": 5,
       "difficulty": "medium",
       "created": "2026-03-25"
+    },
+    {
+      "id": "unit1",
+      "title": "Unit 1: Greetings and Introductions",
+      "description": "基礎問候和自我介紹用語",
+      "words_count": 12,
+      "sentences_count": 8,
+      "difficulty": "beginner",
+      "created": "2026-03-25"
+    },
+    {
+      "id": "unit2",
+      "title": "Unit 2: Family and Relationships",
+      "description": "家庭成員和關係稱謂",
+      "words_count": 15,
+      "sentences_count": 10,
+      "difficulty": "beginner",
+      "created": "2026-03-25"
+    },
+    {
+      "id": "unit4",
+      "title": "Unit 4: All about Pets",
+      "description": "核心詞彙：寵物、照護、情感與語篇連接",
+      "words_count": 105,
+      "sentences_count": 103,
+      "difficulty": "intermediate",
+      "created": "2026-03-25"
+    },
+    {
+      "id": "unit5",
+      "title": "Unit 5: The World of Gadgets",
+      "description": "科技產品和數碼詞彙",
+      "words_count": 10,
+      "sentences_count": 6,
+      "difficulty": "intermediate",
+      "created": "2026-03-25"
     }
   ]
 }
