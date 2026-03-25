@@ -19,20 +19,25 @@ let defaultStars = {};
 // 用戶狀態
 let currentUser = null;
 let currentUserRole = 'user';
-let currentUserBranch = null;
+let currentUserBranch = [];      // 改為陣列
 let isGuestMode = false;
 let lastSyncTime = null;
 
 // 訪客模式專用
-let guestGrade = 'P2';      // 訪客可選年級: P2, P5, S1
-let guestPublisher = '示範'; // 訪客教材名稱
-
-// 訪客可選年級列表
+let guestGrade = 'P2';
+let guestPublisher = '示範';
 const GUEST_GRADES = ['P2', 'P5', 'S1'];
 
 // 通知相關變量
 let notifications = [];
 let unreadCount = 0;
+
+// 輔助函數：檢查兩個陣列是否有交集
+function hasIntersection(arr1, arr2) {
+    if (!arr1 || !arr2) return false;
+    if (arr1.length === 0 || arr2.length === 0) return false;
+    return arr1.some(item => arr2.includes(item));
+}
 
 // === 改良的音頻播放器 ===
 class StableAudioPlayer {
@@ -196,7 +201,6 @@ function formatTime(minutes) {
     return mins > 0 ? `${hours} 小時 ${mins} 分鐘` : `${hours} 小時`;
 }
 
-// 格式化相對時間
 function formatRelativeTime(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -267,7 +271,8 @@ function isNotificationForUser(notif) {
     }
     
     if (target.type === 'branch') {
-        return currentUserBranch === target.value;
+        const userBranchArray = Array.isArray(currentUserBranch) ? currentUserBranch : (currentUserBranch ? [currentUserBranch] : []);
+        return userBranchArray.includes(target.value);
     }
     
     if (target.type === 'selected') {
@@ -339,7 +344,6 @@ function renderNotificationList() {
     `).join('');
 }
 
-// ===== 修復版：通知詳情彈窗（防止重複）=====
 window.openNotificationDetail = async (notificationId) => {
     const notif = notifications.find(n => n.id === notificationId);
     if (!notif) return;
@@ -348,7 +352,6 @@ window.openNotificationDetail = async (notificationId) => {
         await markNotificationAsRead(notificationId);
     }
     
-    // 移除已存在的彈窗，避免重複
     const existingModal = document.querySelector('.notification-detail-overlay');
     if (existingModal) existingModal.remove();
     
@@ -383,7 +386,6 @@ window.openNotificationDetail = async (notificationId) => {
         </div>
     `;
     
-    // 添加關閉事件
     const closeButtons = modal.querySelectorAll('.close-modal-btn');
     closeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -391,7 +393,6 @@ window.openNotificationDetail = async (notificationId) => {
         });
     });
     
-    // 點擊背景關閉
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.remove();
@@ -401,7 +402,6 @@ window.openNotificationDetail = async (notificationId) => {
     document.body.appendChild(modal);
 };
 
-// ===== 修復版：通知面板（點擊外部關閉 + ESC 鍵）=====
 let notificationClickHandler = null;
 let notificationEscapeHandler = null;
 
@@ -444,7 +444,6 @@ window.showNotificationPanel = () => {
         panel.style.display = 'block';
         renderNotificationList();
         
-        // 延遲添加監聽器，避免立即觸發
         setTimeout(() => {
             document.addEventListener('click', handleNotificationClickOutside);
             document.addEventListener('keydown', handleNotificationEscapeKey);
@@ -467,18 +466,21 @@ async function getUserRole(userId) {
     }
 }
 
-// === 獲取用戶 Branch ===
+// === 獲取用戶 Branch（陣列）===
 async function getUserBranch(userId) {
     try {
         const userRef = doc(db, 'users', userId);
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
-            return userSnap.data().branch || null;
+            const branch = userSnap.data().branch;
+            if (Array.isArray(branch)) return branch;
+            if (branch) return [branch];
+            return [];
         }
-        return null;
+        return [];
     } catch (error) {
         console.error('獲取 Branch 失敗:', error);
-        return null;
+        return [];
     }
 }
 
@@ -527,7 +529,6 @@ function updateUserInterface() {
     if (!userInfoDiv) return;
     
     if (isGuestMode) {
-        // 訪客模式 UI
         const guestGradeDisplay = getGuestGrade();
         
         userInfoDiv.innerHTML = `
@@ -556,13 +557,11 @@ function updateUserInterface() {
             </div>
         `;
         
-        // 年級切換事件
         const gradeSelect = document.getElementById('guestGradeSelect');
         if (gradeSelect) {
             gradeSelect.addEventListener('change', async (e) => {
                 const newGrade = e.target.value;
                 setGuestGrade(newGrade);
-                // 靜默切換，無彈窗提示
                 await loadUnitsIndex();
                 updateUnitSelect();
                 if (unitsIndex.units.length > 0) {
@@ -586,7 +585,6 @@ function updateUserInterface() {
         if (uploadWrapper) uploadWrapper.style.display = 'none';
         
     } else if (currentUser && !isGuestMode) {
-        // 已登入用戶 UI
         const photoURL = currentUser.photoURL || '';
         const displayName = currentUser.displayName || currentUser.email || '用戶';
         const email = currentUser.email || '';
@@ -599,8 +597,8 @@ function updateUserInterface() {
         }
         
         let branchLabel = '';
-        if (currentUserBranch) {
-            branchLabel = `<span style="background:#e2e8f0; color:#334155; padding:2px 8px; border-radius:20px; font-size:10px; margin-left:8px;">${escapeHtml(currentUserBranch)}</span>`;
+        if (currentUserBranch && currentUserBranch.length > 0) {
+            branchLabel = `<span style="background:#e2e8f0; color:#334155; padding:2px 8px; border-radius:20px; font-size:10px; margin-left:8px;">${escapeHtml(currentUserBranch.join(', '))}</span>`;
         }
         
         userInfoDiv.innerHTML = `
@@ -1244,14 +1242,12 @@ async function getUserGradeAndPublisher(userId) {
 
 // === 初始化 ===
 async function initPage() {
-    // 檢查訪客模式
     const guestModeFlag = localStorage.getItem('guestMode');
     if (guestModeFlag === 'true') {
         isGuestMode = true;
         guestGrade = getGuestGrade();
         console.log('👤 訪客模式啟動，年級:', guestGrade);
         
-        // 載入單元索引
         const indexLoaded = await loadUnitsIndex();
         if (indexLoaded && unitsIndex.units.length) {
             updateUnitSelect();
@@ -1268,7 +1264,6 @@ async function initPage() {
         
         updateUserInterface();
         
-        // 統計彈窗
         document.getElementById('show-unit-stats')?.addEventListener('click', () => {
             document.getElementById('unit-stats-modal').classList.add('active');
             updateUnitStatsDisplay();
@@ -1283,7 +1278,6 @@ async function initPage() {
         return;
     }
     
-    // 監聽 Firebase 認證狀態（非訪客模式）
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             console.log('✅ 用戶已登入:', user.email);
@@ -1331,7 +1325,6 @@ async function initPage() {
             updateUserInterface();
             await loadNotifications();
             
-            // 載入單元索引
             const indexLoaded = await loadUnitsIndex();
             if (indexLoaded && unitsIndex.units.length) {
                 updateUnitSelect();
@@ -1358,7 +1351,6 @@ async function initPage() {
         }
     });
     
-    // 統計彈窗
     document.getElementById('show-unit-stats')?.addEventListener('click', () => {
         document.getElementById('unit-stats-modal').classList.add('active');
         updateUnitStatsDisplay();
@@ -1370,7 +1362,6 @@ async function initPage() {
         if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
     });
     
-    // 學習時間記錄
     setInterval(() => {
         if (learningStats[currentUnitId]) {
             learningStats[currentUnitId].totalTime = (learningStats[currentUnitId].totalTime || 0) + 0.5;
