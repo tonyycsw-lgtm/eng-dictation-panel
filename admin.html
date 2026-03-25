@@ -587,9 +587,6 @@
       getFirestore, collection, getDocs, getCountFromServer, doc, getDoc, updateDoc,
       query, orderBy, limit, startAfter, where, setDoc, addDoc, arrayUnion
     } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-    import { 
-      getFunctions, httpsCallable 
-    } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-functions.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyABfaBvx5ovgYDGfCMyparh8JjqVtIRr8M",
@@ -614,7 +611,6 @@
 
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const functions = getFunctions(app);
 
     // 全域變數
     let currentFilter = 'all';
@@ -1589,10 +1585,10 @@
     window.logout = async () => { await signOut(auth); window.location.reload(); };
     
     // ============================================
-    // 通知相關函數（使用 Cloud Functions）
+    // 通知相關函數（僅站內通知）
     // ============================================
     
-    // 通知設置相關
+    // 通知設置相關（僅站內）
     window.toggleNotificationSettings = () => {
       const panel = document.getElementById('notificationSettingsPanel');
       if (panel) {
@@ -1605,37 +1601,20 @@
     
     window.loadNotificationSettings = async () => {
       try {
-        // 調用 Cloud Function 獲取設置（不返回 API Key）
-        const getSettings = httpsCallable(functions, 'getEmailSettings');
-        const result = await getSettings();
-        const data = result.data;
-        
-        if (data.email) {
-          document.getElementById('emailEnabled').checked = data.email.enabled || false;
-          if (data.email.enabled) {
-            document.getElementById('emailSettings').style.display = 'block';
+        // 從 Firestore 載入站內通知設置
+        const settingsRef = doc(db, 'settings', 'notifications');
+        const settingsSnap = await getDoc(settingsRef);
+        if (settingsSnap.exists()) {
+          const data = settingsSnap.data();
+          if (data.inApp) {
+            document.getElementById('notifyNewUnit').checked = data.inApp.scenarios?.new_unit !== false;
+            document.getElementById('notifyAnnouncement').checked = data.inApp.scenarios?.announcement !== false;
+            document.getElementById('notifyAccountDisabled').checked = data.inApp.scenarios?.account_disabled !== false;
+            document.getElementById('notifyAccountEnabled').checked = data.inApp.scenarios?.account_enabled !== false;
+            document.getElementById('notifyTrialExpiring').checked = data.inApp.scenarios?.trial_expiring !== false;
+            document.getElementById('notifySubscriptionExpiring').checked = data.inApp.scenarios?.subscription_expiring !== false;
+            document.getElementById('notifySystemMaintenance').checked = data.inApp.scenarios?.system_maintenance !== false;
           }
-          document.getElementById('emailProvider').value = data.email.provider || 'resend';
-          toggleEmailProviderSettings(data.email.provider || 'resend');
-          
-          // 顯示是否已配置
-          const resendConfigured = data.email.configured?.resend;
-          const sesConfigured = data.email.configured?.ses;
-          
-          const resendHint = document.getElementById('resendHint');
-          if (resendHint) {
-            resendHint.innerHTML = resendConfigured ? '✅ 已配置' : '⚠️ 未配置，請輸入 API Key';
-            resendHint.style.color = resendConfigured ? '#10b981' : '#f97316';
-          }
-          
-          const sesHint = document.getElementById('sesHint');
-          if (sesHint) {
-            sesHint.innerHTML = sesConfigured ? '✅ 已配置' : '⚠️ 未配置，請輸入憑證';
-            sesHint.style.color = sesConfigured ? '#10b981' : '#f97316';
-          }
-          
-          document.getElementById('fromName').value = data.email.fromName || '英語默書系統';
-          document.getElementById('fromEmail').value = data.email.fromEmail || '';
         }
       } catch (error) {
         console.error('載入通知設置失敗:', error);
@@ -1645,75 +1624,26 @@
     
     window.saveNotificationSettings = async () => {
       try {
-        const enabled = document.getElementById('emailEnabled').checked;
-        const provider = document.getElementById('emailProvider').value;
-        const fromName = document.getElementById('fromName').value;
-        const fromEmail = document.getElementById('fromEmail').value;
-        
-        // 獲取 API Key（如果輸入）
-        let resendApiKey = null;
-        let sesAccessKey = null;
-        let sesSecretKey = null;
-        let sesRegion = null;
-        
-        if (provider === 'resend') {
-          const apiKeyInput = document.getElementById('resendApiKey');
-          if (apiKeyInput.value.trim()) {
-            resendApiKey = apiKeyInput.value.trim();
+        const settings = {
+          inApp: {
+            scenarios: {
+              new_unit: document.getElementById('notifyNewUnit').checked,
+              announcement: document.getElementById('notifyAnnouncement').checked,
+              account_disabled: document.getElementById('notifyAccountDisabled').checked,
+              account_enabled: document.getElementById('notifyAccountEnabled').checked,
+              trial_expiring: document.getElementById('notifyTrialExpiring').checked,
+              subscription_expiring: document.getElementById('notifySubscriptionExpiring').checked,
+              system_maintenance: document.getElementById('notifySystemMaintenance').checked
+            }
           }
-        } else if (provider === 'ses') {
-          const accessKeyInput = document.getElementById('sesAccessKey');
-          const secretKeyInput = document.getElementById('sesSecretKey');
-          if (accessKeyInput.value.trim() && secretKeyInput.value.trim()) {
-            sesAccessKey = accessKeyInput.value.trim();
-            sesSecretKey = secretKeyInput.value.trim();
-            sesRegion = document.getElementById('sesRegion').value;
-          }
-        }
+        };
         
-        // 調用 Cloud Function 儲存設置
-        const updateSettings = httpsCallable(functions, 'updateEmailSettings');
-        await updateSettings({
-          enabled,
-          provider,
-          resendApiKey,
-          sesAccessKey,
-          sesSecretKey,
-          sesRegion,
-          fromName,
-          fromEmail
-        });
-        
+        await setDoc(doc(db, 'settings', 'notifications'), settings, { merge: true });
         showToast('通知設置已儲存', 'success');
-        
-        // 清空輸入框（安全起見）
-        if (provider === 'resend') {
-          document.getElementById('resendApiKey').value = '';
-        } else if (provider === 'ses') {
-          document.getElementById('sesAccessKey').value = '';
-          document.getElementById('sesSecretKey').value = '';
-        }
-        
-        // 重新載入設置以更新狀態
-        await loadNotificationSettings();
         
       } catch (error) {
         console.error('儲存通知設置失敗:', error);
         showToast('儲存失敗：' + error.message);
-      }
-    };
-    
-    window.testEmail = async () => {
-      const email = prompt('請輸入測試收件信箱：');
-      if (!email) return;
-      
-      try {
-        const testEmailFunc = httpsCallable(functions, 'testEmail');
-        await testEmailFunc({ to: email });
-        showToast('測試郵件已發送', 'success');
-      } catch (error) {
-        console.error('測試郵件發送失敗:', error);
-        showToast('發送失敗：' + error.message);
       }
     };
     
@@ -1782,7 +1712,6 @@
       const content = document.getElementById('notifContent').value.trim();
       const type = document.getElementById('notifType').value;
       const target = document.getElementById('notifTarget').value;
-      const sendEmail = document.getElementById('sendEmailCheckbox')?.checked || false;
       
       if (!title || !content) {
         showToast('請填寫標題和內容');
@@ -1818,7 +1747,6 @@
           senderId: auth.currentUser.uid,
           senderName: auth.currentUser.displayName || auth.currentUser.email,
           senderRole: currentUserIsAdmin ? 'admin' : 'teacher',
-          sendEmail: sendEmail && currentUserIsAdmin,
           createdAt: new Date().toISOString(),
           isReadBy: []
         });
@@ -1830,18 +1758,6 @@
         showToast('發送失敗：' + error.message);
       }
     };
-    
-    function toggleEmailProviderSettings(provider) {
-      const resendDiv = document.getElementById('resendSettings');
-      const sesDiv = document.getElementById('sesSettings');
-      if (provider === 'resend') {
-        if (resendDiv) resendDiv.style.display = 'block';
-        if (sesDiv) sesDiv.style.display = 'none';
-      } else if (provider === 'ses') {
-        if (resendDiv) resendDiv.style.display = 'none';
-        if (sesDiv) sesDiv.style.display = 'block';
-      }
-    }
     
     // ============================================
     // 載入管理介面
@@ -1866,12 +1782,12 @@
           ${currentUserIsAdmin ? `
           <div class="notifications-section" style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-              <h3 style="font-size: 18px;"><i class="fas fa-bell"></i> 通知設置</h3>
+              <h3 style="font-size: 18px;"><i class="fas fa-bell"></i> 站內通知設置</h3>
               <button class="btn-toggle" onclick="toggleNotificationSettings()">⚙️ 管理</button>
             </div>
             <div id="notificationSettingsPanel" style="display: none;">
               <div style="margin-bottom: 20px;">
-                <h4 style="font-size: 14px; margin-bottom: 10px;">📢 站內通知場景</h4>
+                <h4 style="font-size: 14px; margin-bottom: 10px;">📢 通知場景</h4>
                 <div style="display: flex; flex-wrap: wrap; gap: 15px;">
                   <label><input type="checkbox" id="notifyNewUnit" checked> 新單元上線</label>
                   <label><input type="checkbox" id="notifyAnnouncement" checked> 活動通知</label>
@@ -1882,37 +1798,7 @@
                   <label><input type="checkbox" id="notifySystemMaintenance" checked> 系統維護通知</label>
                 </div>
               </div>
-              <div style="margin-bottom: 20px;">
-                <h4 style="font-size: 14px; margin-bottom: 10px;">📧 郵件通知設置</h4>
-                <label><input type="checkbox" id="emailEnabled"> 啟用郵件通知</label>
-                <div id="emailSettings" style="margin-top: 10px; margin-left: 20px; display: none;">
-                  <div style="margin-bottom: 10px;">
-                    <label>郵件服務商：</label>
-                    <select id="emailProvider">
-                      <option value="resend">Resend</option>
-                      <option value="ses">Amazon SES</option>
-                    </select>
-                  </div>
-                  <div id="resendSettings">
-                    <label>Resend API Key：</label>
-                    <input type="password" id="resendApiKey" style="width: 300px; padding: 6px; margin-left: 10px;">
-                    <span id="resendHint" style="font-size: 12px; margin-left: 10px;"></span>
-                    <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">僅首次設定需要輸入，後續可留空</div>
-                  </div>
-                  <div id="sesSettings" style="display: none;">
-                    <div><label>AWS Access Key ID：</label><input type="password" id="sesAccessKey" style="width: 250px; margin: 5px 0;"><span id="sesHint" style="font-size: 12px; margin-left: 10px;"></span></div>
-                    <div><label>AWS Secret Access Key：</label><input type="password" id="sesSecretKey" style="width: 250px; margin: 5px 0;"></div>
-                    <div><label>AWS Region：</label><select id="sesRegion"><option value="us-east-1">us-east-1</option><option value="us-west-2">us-west-2</option><option value="ap-northeast-1">ap-northeast-1</option></select></div>
-                    <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">僅首次設定需要輸入，後續可留空</div>
-                  </div>
-                  <div style="margin-top: 10px;">
-                    <label>寄件人名稱：</label><input type="text" id="fromName" value="英語默書系統" style="width: 200px; margin-left: 10px;">
-                    <label style="margin-left: 20px;">寄件人信箱：</label><input type="email" id="fromEmail" placeholder="noreply@yourdomain.com" style="width: 250px; margin-left: 10px;">
-                  </div>
-                  <button class="btn-toggle" onclick="testEmail()" style="margin-top: 10px;">📧 測試發送</button>
-                </div>
-              </div>
-              <button class="btn-toggle" onclick="saveNotificationSettings()">💾 儲存設定</button>
+              <button class="btn-toggle" onclick="saveNotificationSettings()" style="margin-top: 15px;">💾 儲存設定</button>
             </div>
           </div>
           ` : ''}
@@ -1958,10 +1844,10 @@
                     <input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()">
                   </th>
                   <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>班級</th><th>年級</th><th>教材</th><th>註冊時間</th><th>最近上線</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th>
-                   </div>
+                  </tr>
               </thead>
-              <tbody id="usersList">  <td colspan="16" class="loading"><span class="loading-spinner"></span> 載入中...  </div></tbody>
-             </div>
+              <tbody id="usersList"> <tr><td colspan="16" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
+              </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
         </div>
@@ -2003,11 +1889,6 @@
             <div id="selectedCountDiv" style="display: none; margin-bottom: 15px; color: #4f46e5;">
               已選中 <span id="selectedCount">0</span> 位用戶
             </div>
-            ${currentUserIsAdmin ? `
-            <div style="margin-bottom: 15px;">
-              <label><input type="checkbox" id="sendEmailCheckbox"> 同時發送郵件通知（限重要通知）</label>
-            </div>
-            ` : ''}
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
               <button class="btn-toggle" onclick="closeSendNotification()">取消</button>
               <button class="btn-toggle" onclick="sendNotification()" style="background: #4f46e5; color: white;">發送</button>
@@ -2067,21 +1948,6 @@
       
       window.searchUsers = () => performSearch();
       window.loadMoreUsers = () => loadUsers(currentFilter, true);
-      
-      // 添加郵件服務商切換事件
-      const emailProvider = document.getElementById('emailProvider');
-      if (emailProvider) {
-        emailProvider.addEventListener('change', (e) => {
-          toggleEmailProviderSettings(e.target.value);
-        });
-      }
-      
-      const emailEnabled = document.getElementById('emailEnabled');
-      if (emailEnabled) {
-        emailEnabled.addEventListener('change', (e) => {
-          document.getElementById('emailSettings').style.display = e.target.checked ? 'block' : 'none';
-        });
-      }
       
       await updateStats();
       await loadUsers('all', false);
