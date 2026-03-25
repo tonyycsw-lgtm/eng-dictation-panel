@@ -587,6 +587,9 @@
       getFirestore, collection, getDocs, getCountFromServer, doc, getDoc, updateDoc,
       query, orderBy, limit, startAfter, where, setDoc, addDoc, arrayUnion
     } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+    import { 
+      getFunctions, httpsCallable 
+    } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-functions.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyABfaBvx5ovgYDGfCMyparh8JjqVtIRr8M",
@@ -611,9 +614,7 @@
 
     const auth = getAuth(app);
     const db = getFirestore(app);
-    
-    // 初始化 Firebase Functions
-    const functions = firebase.functions();
+    const functions = getFunctions(app);
 
     // 全域變數
     let currentFilter = 'all';
@@ -1605,7 +1606,7 @@
     window.loadNotificationSettings = async () => {
       try {
         // 調用 Cloud Function 獲取設置（不返回 API Key）
-        const getSettings = functions.httpsCallable('getEmailSettings');
+        const getSettings = httpsCallable(functions, 'getEmailSettings');
         const result = await getSettings();
         const data = result.data;
         
@@ -1671,7 +1672,7 @@
         }
         
         // 調用 Cloud Function 儲存設置
-        const updateSettings = functions.httpsCallable('updateEmailSettings');
+        const updateSettings = httpsCallable(functions, 'updateEmailSettings');
         await updateSettings({
           enabled,
           provider,
@@ -1707,7 +1708,7 @@
       if (!email) return;
       
       try {
-        const testEmailFunc = functions.httpsCallable('testEmail');
+        const testEmailFunc = httpsCallable(functions, 'testEmail');
         await testEmailFunc({ to: email });
         showToast('測試郵件已發送', 'success');
       } catch (error) {
@@ -1957,10 +1958,10 @@
                     <input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()">
                   </th>
                   <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>班級</th><th>年級</th><th>教材</th><th>註冊時間</th><th>最近上線</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>帳號狀態</th><th>操作</th>
-                  </tr>
+                   </div>
               </thead>
-              <tbody id="usersList"> <tr><td colspan="16" class="loading"><span class="loading-spinner"></span> 載入中... </td></tr></tbody>
-              </table>
+              <tbody id="usersList">  <td colspan="16" class="loading"><span class="loading-spinner"></span> 載入中...  </div></tbody>
+             </div>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
         </div>
