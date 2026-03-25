@@ -3,8 +3,19 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { Resend } = require('resend');
 const AWS = require('aws-sdk');
+const cors = require('cors')({ origin: true });
 
 admin.initializeApp();
+
+// ============================================
+// CORS 包裝函數
+// ============================================
+function withCors(handler) {
+  return functions.https.onCall(async (data, context) => {
+    // 可調用函數會自動處理 CORS，但需要確保回應包含正確頭部
+    return handler(data, context);
+  });
+}
 
 // ============================================
 // 更新郵件設置（僅管理員可調用）
