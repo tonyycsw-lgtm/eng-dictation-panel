@@ -1,124 +1,3 @@
-name: Sync from Google Drive
-
-on:
-  schedule:
-    - cron: '0 */3 * * *'      # 每 3 小時自動同步
-  workflow_dispatch:            # 手動觸發
-  push:
-    branches: [ main ]
-    paths:
-      - '.github/workflows/sync-from-drive.yml'
-
-permissions:
-  contents: write
-
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Create data directory
-        run: |
-          mkdir -p data
-          echo "✅ data 目錄已建立"
-
-      - name: Clean data directory
-        run: |
-          echo "🧹 清空 data/ 目錄..."
-          rm -rf data/*
-          mkdir -p data
-          echo "✅ 目錄已清空，準備重新下載"
-
-      - name: Install gdown
-        run: pip install gdown
-
-      - name: Download from Google Drive
-        env:
-          FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-        run: |
-          if [ -z "$FOLDER_ID" ]; then
-            echo "❌ 錯誤: GOOGLE_DRIVE_FOLDER_ID 未設定"
-            exit 1
-          fi
-          
-          echo "📂 開始從 Google Drive 下載..."
-          echo "📁 資料夾 ID: $FOLDER_ID"
-          
-          # 下載到暫存目錄
-          gdown --folder "https://drive.google.com/drive/folders/$FOLDER_ID" -O /tmp/gdrive/ --remaining-ok
-          
-          # 將所有 JSON 檔案複製到正確位置
-          echo "📁 移動 JSON 檔案到 data/ ..."
-          find /tmp/gdrive -type f -name "*.json" -exec cp {} data/ \;
-          
-          # 顯示已複製的檔案
-          JSON_COUNT=$(ls data/*.json 2>/dev/null | wc -l)
-          echo "📁 已複製 $JSON_COUNT 個 JSON 檔案"
-          
-          if [ $JSON_COUNT -eq 0 ]; then
-            echo "⚠️ 警告: 沒有找到任何 JSON 檔案"
-            exit 1
-          fi
-          
-          ls -la data/
-
-      - name: Validate JSON files
-        run: |
-          if ! command -v jq &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y jq
-          fi
-          
-          echo "🔍 開始驗證 JSON 格式..."
-          INVALID_COUNT=0
-          
-          for file in data/*.json; do
-            if [ "$(basename "$file")" = "units-index.json" ]; then
-              continue
-            fi
-            
-            if [ -f "$file" ]; then
-              if ! jq empty "$file" 2>/dev/null; then
-                echo "❌ 無效的 JSON: $(basename "$file")"
-                INVALID_COUNT=$((INVALID_COUNT + 1))
-              else
-                # 檢查必要欄位（英語系統格式）
-                HAS_UNIT_ID=$(jq 'has("unit_id")' "$file" 2>/dev/null)
-                HAS_UNIT_TITLE=$(jq 'has("unit_title")' "$file" 2>/dev/null)
-                HAS_WORDS=$(jq 'has("words")' "$file" 2>/dev/null)
-                HAS_SENTENCES=$(jq 'has("sentences")' "$file" 2>/dev/null)
-                
-                if [ "$HAS_UNIT_ID" != "true" ]; then
-                  echo "⚠️ 缺少 unit_id: $(basename "$file")"
-                fi
-                if [ "$HAS_UNIT_TITLE" != "true" ]; then
-                  echo "⚠️ 缺少 unit_title: $(basename "$file")"
-                fi
-                if [ "$HAS_WORDS" != "true" ]; then
-                  echo "⚠️ 缺少 words: $(basename "$file")"
-                fi
-                if [ "$HAS_SENTENCES" != "true" ]; then
-                  echo "⚠️ 缺少 sentences: $(basename "$file")"
-                fi
-                
-                if [ "$HAS_UNIT_ID" = "true" ] && [ "$HAS_UNIT_TITLE" = "true" ] && [ "$HAS_WORDS" = "true" ] && [ "$HAS_SENTENCES" = "true" ]; then
-                  echo "✅ 驗證通過: $(basename "$file")"
-                else
-                  INVALID_COUNT=$((INVALID_COUNT + 1))
-                fi
-              fi
-            fi
-          done
-          
-          if [ $INVALID_COUNT -gt 0 ]; then
-            echo "❌ 發現 $INVALID_COUNT 個無效或格式錯誤的 JSON 檔案"
-            exit 1
-          fi
-          
-          echo "🎉 所有 JSON 檔案驗證通過"
-
       - name: Create index file
         run: |
           cd data
@@ -147,10 +26,10 @@ jobs:
               UNIT_TITLE=$(jq -r '.unit_title' "$file" 2>/dev/null)
               UNIT_DESC=$(jq -r '.unit_description // ""' "$file" 2>/dev/null)
               
-              # ===== 讀取 grade 和 publisher =====
-              GRADE=$(jq -r '.grade // ""' "$file" 2>/dev/null)
-              PUBLISHER=$(jq -r '.publisher // ""' "$file" 2>/dev/null)
-              # ==================================
+              # ===== 讀取 grade 和 publisher（保持 JSON 格式）=====
+              GRADE=$(jq -c '.grade // []' "$file" 2>/dev/null)
+              PUBLISHER=$(jq -c '.publisher // []' "$file" 2>/dev/null)
+              # =====================================================
               
               DIFFICULTY=$(jq -r '.difficulty // "intermediate"' "$file" 2>/dev/null)
               WORDS_COUNT=$(jq '.words | length' "$file" 2>/dev/null)
@@ -173,14 +52,14 @@ jobs:
               echo '      "title": "'"$UNIT_TITLE"'",' >> units-index.json
               echo '      "description": "'"$UNIT_DESC"'",' >> units-index.json
               
-              # ===== 寫入 grade 和 publisher =====
-              if [ -n "$GRADE" ] && [ "$GRADE" != "null" ]; then
-                echo '      "grade": "'"$GRADE"'",' >> units-index.json
+              # ===== 寫入 grade 和 publisher（直接輸出 JSON）=====
+              if [ "$GRADE" != "[]" ] && [ "$GRADE" != "null" ] && [ -n "$GRADE" ]; then
+                echo '      "grade": '"$GRADE"',' >> units-index.json
               fi
-              if [ -n "$PUBLISHER" ] && [ "$PUBLISHER" != "null" ]; then
-                echo '      "publisher": "'"$PUBLISHER"'",' >> units-index.json
+              if [ "$PUBLISHER" != "[]" ] && [ "$PUBLISHER" != "null" ] && [ -n "$PUBLISHER" ]; then
+                echo '      "publisher": '"$PUBLISHER"',' >> units-index.json
               fi
-              # ==================================
+              # =====================================================
               
               echo '      "words_count": '"$WORDS_COUNT", >> units-index.json
               echo '      "sentences_count": '"$SENTENCES_COUNT", >> units-index.json
@@ -189,10 +68,10 @@ jobs:
               echo -n '    }' >> units-index.json
               
               # 檢查 grade 和 publisher 是否缺失（警告但不中斷）
-              if [ -z "$GRADE" ] || [ "$GRADE" = "null" ]; then
+              if [ "$GRADE" = "[]" ]; then
                 echo "⚠️ 警告: $(basename "$file") 缺少 grade 欄位"
               fi
-              if [ -z "$PUBLISHER" ] || [ "$PUBLISHER" = "null" ]; then
+              if [ "$PUBLISHER" = "[]" ]; then
                 echo "⚠️ 警告: $(basename "$file") 缺少 publisher 欄位"
               fi
               
@@ -216,19 +95,4 @@ jobs:
             echo "❌ 索引檔案格式錯誤"
             cat units-index.json
             exit 1
-          fi
-
-      - name: Commit and push changes
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add data/
-          
-          # 檢查是否有變更
-          if git diff --staged --quiet; then
-            echo "📭 沒有變更，跳過提交"
-          else
-            git commit -m "🤖 自動同步 Google Drive 教材 - $(date '+%Y-%m-%d %H:%M:%S')"
-            git push
-            echo "✅ 已提交並推送更新"
           fi
