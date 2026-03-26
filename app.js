@@ -1232,7 +1232,14 @@ async function getUserGradeAndPublisher(userId) {
         if (userSnap.exists()) {
             const data = userSnap.data();
             currentUserGrade = data.grade || null;
-            currentUserPublisher = data.publisher || null;
+            
+            // 只使用 publishers 陣列
+            if (data.publishers && Array.isArray(data.publishers) && data.publishers.length > 0) {
+                currentUserPublisher = data.publishers[0];  // 取第一個教材
+            } else {
+                currentUserPublisher = null;
+            }
+            
             console.log('📚 用戶年級:', currentUserGrade, '教材:', currentUserPublisher);
         }
     } catch (error) {

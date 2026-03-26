@@ -680,13 +680,14 @@
     }
 
     // 重置用戶結構（管理員專用）
-    async function resetUserStructure(userId) {
-      try {
+    // 重置用戶結構（管理員專用）
+async function resetUserStructure(userId) {
+    try {
         const userRef = doc(db, 'users', userId);
         const userSnap = await getDoc(userRef);
         if (!userSnap.exists()) {
-          showToast('用戶不存在');
-          return;
+            showToast('用戶不存在');
+            return;
         }
         
         const user = userSnap.data();
@@ -695,25 +696,26 @@
         // 處理 branch：轉為陣列
         let newBranch = [];
         if (user.branch) {
-          if (Array.isArray(user.branch)) {
-            newBranch = user.branch;
-          } else if (typeof user.branch === 'string') {
-            newBranch = user.branch.split(',').map(s => s.trim()).filter(s => s !== '');
-          }
+            if (Array.isArray(user.branch)) {
+                newBranch = user.branch;
+            } else if (typeof user.branch === 'string') {
+                newBranch = user.branch.split(',').map(s => s.trim()).filter(s => s !== '');
+            }
         }
         updates.branch = newBranch;
         
         // 處理 publishers：轉為陣列，預設為 ["示範"]
+        // 注意：只處理 publishers，不處理 publisher
         let newPublishers = [];
         if (user.publishers) {
-          if (Array.isArray(user.publishers)) {
-            newPublishers = user.publishers;
-          } else if (typeof user.publishers === 'string') {
-            newPublishers = user.publishers.split(',').map(s => s.trim()).filter(s => s !== '');
-          }
+            if (Array.isArray(user.publishers)) {
+                newPublishers = user.publishers;
+            } else if (typeof user.publishers === 'string') {
+                newPublishers = user.publishers.split(',').map(s => s.trim()).filter(s => s !== '');
+            }
         }
         if (newPublishers.length === 0) {
-          newPublishers = ["示範"];
+            newPublishers = ["示範"];
         }
         updates.publishers = newPublishers;
         
@@ -728,11 +730,11 @@
         showToast('用戶結構已重置', 'success');
         await reloadUsers();
         
-      } catch (error) {
+    } catch (error) {
         console.error('重置用戶結構失敗:', error);
         showToast('重置失敗：' + error.message);
-      }
     }
+}
 
     // Toast 提示
     function showToast(message, type = 'error') {
@@ -1331,21 +1333,21 @@
       input.focus();
     };
     
-    window.savePublisher = async (userId) => {
-      const cell = document.getElementById(`publisher-${userId}`);
-      const input = cell.querySelector('.publisher-input');
-      const newPublisherStr = input.value.trim();
-      let newPublishers = [];
-      
-      if (newPublisherStr) {
+   window.savePublisher = async (userId) => {
+    const cell = document.getElementById(`publisher-${userId}`);
+    const input = cell.querySelector('.publisher-input');
+    const newPublisherStr = input.value.trim();
+    let newPublishers = [];
+    
+    if (newPublisherStr) {
         newPublishers = newPublisherStr.split(',').map(s => s.trim()).filter(s => s !== '');
-      }
-      
-      try {
+    }
+    
+    try {
         const userRef = doc(db, 'users', userId);
         await updateDoc(userRef, {
-          publishers: newPublishers,
-          updatedAt: new Date().toISOString()
+            publishers: newPublishers,  // ← 只更新 publishers
+            updatedAt: new Date().toISOString()
         });
         
         const display = cell.querySelector('.publisher-display');
@@ -1356,17 +1358,17 @@
         cell.querySelector('.btn-cancel-publisher').style.display = 'none';
         
         if (newPublishers.length > 0) {
-          cell.classList.remove('publisher-unset');
+            cell.classList.remove('publisher-unset');
         } else {
-          cell.classList.add('publisher-unset');
+            cell.classList.add('publisher-unset');
         }
         
         console.log(`✅ 教材已更新: ${userId}`);
         await reloadUsers();
-      } catch (error) {
+    } catch (error) {
         showToast('更新失敗：' + error.message);
-      }
-    };
+    }
+};
     
     window.cancelEditPublisher = (userId) => {
       const cell = document.getElementById(`publisher-${userId}`);
