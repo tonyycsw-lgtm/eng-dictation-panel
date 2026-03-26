@@ -1111,15 +1111,27 @@ function updateUnitSelect() {
     if (isGuestMode) {
         availableUnits = filterUnitsForGuest(unitsIndex.units);
     } else if (currentUser) {
-        if (currentUserGrade && currentUserPublisher) {
-            availableUnits = unitsIndex.units.filter(unit => 
-                unit.grade === currentUserGrade && 
+        // 根據用戶的設定進行過濾
+        let filteredUnits = unitsIndex.units;
+        
+        // 如果有教材限制，先過濾 publisher
+        if (currentUserPublisher) {
+            filteredUnits = filteredUnits.filter(unit => 
                 unit.publisher === currentUserPublisher
             );
-            console.log('過濾後可用單元數量:', availableUnits.length);
-        } else {
-            availableUnits = unitsIndex.units;
+            console.log('教材過濾後數量:', filteredUnits.length);
         }
+        
+        // 如果有年級限制，再過濾 grade
+        if (currentUserGrade) {
+            filteredUnits = filteredUnits.filter(unit => 
+                unit.grade === currentUserGrade
+            );
+            console.log('年級過濾後數量:', filteredUnits.length);
+        }
+        
+        availableUnits = filteredUnits;
+        console.log('最終可用單元數量:', availableUnits.length);
     } else {
         availableUnits = unitsIndex.units;
     }
@@ -1159,7 +1171,6 @@ function updateUnitSelect() {
         unitSelect.appendChild(option);
     });
 }
-
 async function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -1372,38 +1383,62 @@ if (indexLoaded && unitsIndex.units.length) {
     updateUnitSelect();
     console.log('updateUnitSelect 調用完成');
     
-   let unitToLoad = getUrlParam('unit');
+  let unitToLoad = getUrlParam('unit');
 console.log('URL 參數 unit:', unitToLoad);
 
 // 檢查 URL 指定的單元是否對當前用戶可見
 if (unitToLoad && unitsIndex.units.find(u => u.id === unitToLoad)) {
     const targetUnit = unitsIndex.units.find(u => u.id === unitToLoad);
     
-    // 如果用戶有年級和教材限制，檢查該單元是否符合
-    if (currentUserGrade && currentUserPublisher) {
-        if (targetUnit.grade === currentUserGrade && targetUnit.publisher === currentUserPublisher) {
-            // 符合條件，可以使用
-            console.log('✅ URL 指定的單元符合用戶條件:', unitToLoad);
-        } else {
-            // 不符合條件，忽略 URL 參數
-            console.log('❌ URL 指定的單元不符合用戶條件 (grade:', targetUnit.grade, 'publisher:', targetUnit.publisher, ')，忽略');
-            unitToLoad = null;
+    // 檢查單元是否符合用戶的權限
+    let isUnitAllowed = true;
+    
+    // 如果有教材限制，檢查 publisher 是否符合
+    if (currentUserPublisher) {
+        if (targetUnit.publisher !== currentUserPublisher) {
+            isUnitAllowed = false;
+            console.log('❌ URL 指定的單元 publisher 不符合:', targetUnit.publisher, '≠', currentUserPublisher);
         }
+    }
+    
+    // 如果有年級限制，檢查 grade 是否符合
+    if (currentUserGrade) {
+        if (targetUnit.grade !== currentUserGrade) {
+            isUnitAllowed = false;
+            console.log('❌ URL 指定的單元 grade 不符合:', targetUnit.grade, '≠', currentUserGrade);
+        }
+    }
+    
+    if (isUnitAllowed) {
+        console.log('✅ URL 指定的單元符合用戶條件:', unitToLoad);
     } else {
-        // 用戶沒有年級/教材限制，可以使用
-        console.log('✅ 用戶無年級/教材限制，使用 URL 指定的單元:', unitToLoad);
+        console.log('❌ URL 指定的單元不符合用戶條件，忽略');
+        unitToLoad = null;
     }
 }
 
 // 如果沒有 URL 參數或 URL 參數無效/不符合條件，獲取可用單元
 if (!unitToLoad || !unitsIndex.units.find(u => u.id === unitToLoad)) {
-    const availableUnits = filterUnitsForUser(unitsIndex.units);
+    // 根據用戶設定獲取可用單元
+    let availableUnits = unitsIndex.units;
+    
+    // 如果有教材限制，過濾 publisher
+    if (currentUserPublisher) {
+        availableUnits = availableUnits.filter(unit => unit.publisher === currentUserPublisher);
+        console.log('教材過濾後數量:', availableUnits.length);
+    }
+    
+    // 如果有年級限制，過濾 grade
+    if (currentUserGrade) {
+        availableUnits = availableUnits.filter(unit => unit.grade === currentUserGrade);
+        console.log('年級過濾後數量:', availableUnits.length);
+    }
+    
     console.log('filterUnitsForUser 結果數量:', availableUnits.length);
     if (availableUnits.length > 0) {
         unitToLoad = availableUnits[0].id;
         console.log('將載入第一個可用單元:', unitToLoad);
     } else {
-        // 沒有可用單元時，不要載入任何單元
         unitToLoad = null;
         console.log('沒有可用單元，設置 unitToLoad = null');
     }
