@@ -555,59 +555,13 @@
       }
     }
     
-    /* ===== 備註欄包裝器樣式 ===== */
-    .notes-cell {
+    /* ===== 可編輯欄位包裝器樣式（統一）===== */
+    .notes-cell, .branch-cell, .publisher-cell {
       max-width: 220px;
-      min-width: 120px;
-    }
-    
-    .notes-wrapper {
-      display: inline-flex;
-      align-items: center;
-      max-width: 100%;
-      gap: 4px;
-      width: 100%;
-    }
-    
-    .notes-wrapper .notes-display {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      cursor: pointer;
-      padding: 2px 4px;
-      border-radius: 4px;
-      transition: background 0.2s;
-    }
-    
-    .notes-wrapper .notes-display:hover {
-      background: #f1f5f9;
-    }
-    
-    .view-note-icon {
-      flex-shrink: 0;
-      font-size: 12px;
-      color: #4f46e5;
-      cursor: pointer;
-      padding: 2px;
-      border-radius: 4px;
-      transition: all 0.2s;
-    }
-    
-    .view-note-icon:hover {
-      background: #e2e8f0;
-      color: #4338ca;
-      transform: scale(1.05);
-    }
-    
-    /* ===== 群組欄/教材欄包裝器樣式 ===== */
-    .branch-cell, .publisher-cell {
-      max-width: 200px;
       min-width: 100px;
     }
     
-    .branch-wrapper, .publisher-wrapper {
+    .editable-wrapper {
       display: inline-flex;
       align-items: center;
       max-width: 100%;
@@ -615,8 +569,7 @@
       width: 100%;
     }
     
-    .branch-wrapper .branch-display,
-    .publisher-wrapper .publisher-display {
+    .editable-wrapper .editable-display {
       flex: 1;
       min-width: 0;
       overflow: hidden;
@@ -628,12 +581,11 @@
       transition: background 0.2s;
     }
     
-    .branch-wrapper .branch-display:hover,
-    .publisher-wrapper .publisher-display:hover {
+    .editable-wrapper .editable-display:hover {
       background: #f1f5f9;
     }
     
-    .view-branch-icon, .view-publisher-icon {
+    .edit-icon {
       flex-shrink: 0;
       font-size: 12px;
       color: #4f46e5;
@@ -643,7 +595,7 @@
       transition: all 0.2s;
     }
     
-    .view-branch-icon:hover, .view-publisher-icon:hover {
+    .edit-icon:hover {
       background: #e2e8f0;
       color: #4338ca;
       transform: scale(1.05);
@@ -873,7 +825,6 @@
     let currentUserIsTeacher = false;
     let currentUserBranch = [];
     
-    // 用於批量通知的已選用戶
     let selectedUserIdsForNotification = [];
 
     // XSS 防護
@@ -897,118 +848,36 @@
       return element.scrollWidth > element.clientWidth;
     }
     
-    // ===== 綁定備註欄的截斷檢測和圖標顯示 =====
-    function bindNoteTooltips() {
-      document.querySelectorAll('.notes-wrapper').forEach(wrapper => {
-        const displaySpan = wrapper.querySelector('.notes-display');
-        const icon = wrapper.querySelector('.view-note-icon');
+    // ===== 綁定可編輯欄位的截斷檢測和圖標顯示 =====
+    function bindEditableTooltips(selector, wrapperClass, displayClass, iconClass) {
+      document.querySelectorAll(selector).forEach(wrapper => {
+        const displaySpan = wrapper.querySelector(displayClass);
+        const icon = wrapper.querySelector(iconClass);
         
         if (!displaySpan || !icon) return;
-        
-        wrapper.removeEventListener('mouseenter', handleNoteWrapperMouseEnter);
-        wrapper.removeEventListener('mouseleave', handleNoteWrapperMouseLeave);
-        
-        wrapper.addEventListener('mouseenter', handleNoteWrapperMouseEnter);
-        wrapper.addEventListener('mouseleave', handleNoteWrapperMouseLeave);
         
         const isTruncated = isTextTruncated(displaySpan);
         icon.style.display = 'none';
         wrapper.dataset.isTruncated = isTruncated;
+        
+        const handleMouseEnter = (e) => {
+          const w = e.currentTarget;
+          const i = w.querySelector(iconClass);
+          const truncated = w.dataset.isTruncated === 'true';
+          if (truncated && i) i.style.display = 'inline-block';
+        };
+        
+        const handleMouseLeave = (e) => {
+          const w = e.currentTarget;
+          const i = w.querySelector(iconClass);
+          if (i) i.style.display = 'none';
+        };
+        
+        wrapper.removeEventListener('mouseenter', handleMouseEnter);
+        wrapper.removeEventListener('mouseleave', handleMouseLeave);
+        wrapper.addEventListener('mouseenter', handleMouseEnter);
+        wrapper.addEventListener('mouseleave', handleMouseLeave);
       });
-    }
-    
-    function handleNoteWrapperMouseEnter(event) {
-      const wrapper = event.currentTarget;
-      const icon = wrapper.querySelector('.view-note-icon');
-      const isTruncated = wrapper.dataset.isTruncated === 'true';
-      
-      if (isTruncated && icon) {
-        icon.style.display = 'inline-block';
-      }
-    }
-    
-    function handleNoteWrapperMouseLeave(event) {
-      const wrapper = event.currentTarget;
-      const icon = wrapper.querySelector('.view-note-icon');
-      if (icon) {
-        icon.style.display = 'none';
-      }
-    }
-    
-    // ===== 綁定群組欄的截斷檢測和圖標顯示 =====
-    function bindBranchTooltips() {
-      document.querySelectorAll('.branch-wrapper').forEach(wrapper => {
-        const displaySpan = wrapper.querySelector('.branch-display');
-        const icon = wrapper.querySelector('.view-branch-icon');
-        
-        if (!displaySpan || !icon) return;
-        
-        wrapper.removeEventListener('mouseenter', handleBranchMouseEnter);
-        wrapper.removeEventListener('mouseleave', handleBranchMouseLeave);
-        
-        wrapper.addEventListener('mouseenter', handleBranchMouseEnter);
-        wrapper.addEventListener('mouseleave', handleBranchMouseLeave);
-        
-        const isTruncated = isTextTruncated(displaySpan);
-        icon.style.display = 'none';
-        wrapper.dataset.isTruncated = isTruncated;
-      });
-    }
-    
-    function handleBranchMouseEnter(event) {
-      const wrapper = event.currentTarget;
-      const icon = wrapper.querySelector('.view-branch-icon');
-      const isTruncated = wrapper.dataset.isTruncated === 'true';
-      
-      if (isTruncated && icon) {
-        icon.style.display = 'inline-block';
-      }
-    }
-    
-    function handleBranchMouseLeave(event) {
-      const wrapper = event.currentTarget;
-      const icon = wrapper.querySelector('.view-branch-icon');
-      if (icon) {
-        icon.style.display = 'none';
-      }
-    }
-    
-    // ===== 綁定教材欄的截斷檢測和圖標顯示 =====
-    function bindPublisherTooltips() {
-      document.querySelectorAll('.publisher-wrapper').forEach(wrapper => {
-        const displaySpan = wrapper.querySelector('.publisher-display');
-        const icon = wrapper.querySelector('.view-publisher-icon');
-        
-        if (!displaySpan || !icon) return;
-        
-        wrapper.removeEventListener('mouseenter', handlePublisherMouseEnter);
-        wrapper.removeEventListener('mouseleave', handlePublisherMouseLeave);
-        
-        wrapper.addEventListener('mouseenter', handlePublisherMouseEnter);
-        wrapper.addEventListener('mouseleave', handlePublisherMouseLeave);
-        
-        const isTruncated = isTextTruncated(displaySpan);
-        icon.style.display = 'none';
-        wrapper.dataset.isTruncated = isTruncated;
-      });
-    }
-    
-    function handlePublisherMouseEnter(event) {
-      const wrapper = event.currentTarget;
-      const icon = wrapper.querySelector('.view-publisher-icon');
-      const isTruncated = wrapper.dataset.isTruncated === 'true';
-      
-      if (isTruncated && icon) {
-        icon.style.display = 'inline-block';
-      }
-    }
-    
-    function handlePublisherMouseLeave(event) {
-      const wrapper = event.currentTarget;
-      const icon = wrapper.querySelector('.view-publisher-icon');
-      if (icon) {
-        icon.style.display = 'none';
-      }
     }
     
     // ===== 顯示備註彈窗（可編輯）=====
@@ -1017,7 +886,7 @@
       let currentNote = content;
       
       if (cell) {
-        const displaySpan = cell.querySelector('.notes-display');
+        const displaySpan = cell.querySelector('.editable-display');
         if (displaySpan) {
           currentNote = displaySpan.textContent;
         }
@@ -1053,9 +922,7 @@
       const cancelBtn = modal.querySelector('.note-modal-cancel-btn');
       const closeBtn = modal.querySelector('.note-modal-close');
       
-      const closeModal = () => {
-        modal.remove();
-      };
+      const closeModal = () => { modal.remove(); };
       
       const saveNote = async () => {
         const newNotes = textarea.value.trim();
@@ -1068,31 +935,23 @@
           });
           
           if (cell) {
-            const displaySpan = cell.querySelector('.notes-display');
+            const displaySpan = cell.querySelector('.editable-display');
             if (displaySpan) {
               displaySpan.textContent = newNotes || '未填寫';
             }
             
-            const wrapper = cell.querySelector('.notes-wrapper');
+            const wrapper = cell.querySelector('.editable-wrapper');
             if (wrapper) {
-              wrapper.dataset.fullnote = newNotes || '未填寫';
-            }
-            
-            if (displaySpan) {
-              const isTruncated = displaySpan.scrollWidth > displaySpan.clientWidth;
-              if (wrapper) {
-                wrapper.dataset.isTruncated = isTruncated;
-                const icon = wrapper.querySelector('.view-note-icon');
-                if (icon && !isTruncated) {
-                  icon.style.display = 'none';
-                }
-              }
+              wrapper.dataset.fullvalue = newNotes || '未填寫';
+              const isTruncated = displaySpan ? displaySpan.scrollWidth > displaySpan.clientWidth : false;
+              wrapper.dataset.isTruncated = isTruncated;
+              const icon = wrapper.querySelector('.edit-icon');
+              if (icon && !isTruncated) icon.style.display = 'none';
             }
           }
           
           showToast('備註已更新', 'success');
           closeModal();
-          
         } catch (error) {
           console.error('更新備註失敗:', error);
           showToast('更新失敗：' + error.message);
@@ -1148,8 +1007,7 @@
                    id="array-field-input" 
                    class="array-field-input"
                    value="${escapeHtml(originalValue)}"
-                   placeholder="請輸入${fieldName}名稱，以逗號分隔"
-                   style="width: 100%; padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 14px; box-sizing: border-box;">
+                   placeholder="請輸入${fieldName}名稱，以逗號分隔">
           </div>
           <div class="note-modal-footer">
             <button class="note-modal-cancel-btn">取消</button>
@@ -1165,9 +1023,7 @@
       const cancelBtn = modal.querySelector('.note-modal-cancel-btn');
       const closeBtn = modal.querySelector('.note-modal-close');
       
-      const closeModal = () => {
-        modal.remove();
-      };
+      const closeModal = () => { modal.remove(); };
       
       const saveValue = async () => {
         const newValueStr = input.value.trim();
@@ -1186,26 +1042,19 @@
           
           const cell = document.getElementById(`${fieldKey}-${userId}`);
           if (cell) {
-            const displaySpan = cell.querySelector(`.${fieldKey}-display`);
+            const displaySpan = cell.querySelector('.editable-display');
             const displayText = newArray.length > 0 ? newArray.join(', ') : '-';
             if (displaySpan) {
               displaySpan.textContent = displayText;
             }
             
-            const wrapper = cell.querySelector(`.${fieldKey}-wrapper`);
+            const wrapper = cell.querySelector('.editable-wrapper');
             if (wrapper) {
               wrapper.dataset.fullvalue = displayText;
-            }
-            
-            if (displaySpan) {
-              const isTruncated = displaySpan.scrollWidth > displaySpan.clientWidth;
-              if (wrapper) {
-                wrapper.dataset.isTruncated = isTruncated;
-                const icon = wrapper.querySelector(`.view-${fieldKey}-icon`);
-                if (icon && !isTruncated) {
-                  icon.style.display = 'none';
-                }
-              }
+              const isTruncated = displaySpan ? displaySpan.scrollWidth > displaySpan.clientWidth : false;
+              wrapper.dataset.isTruncated = isTruncated;
+              const icon = wrapper.querySelector('.edit-icon');
+              if (icon && !isTruncated) icon.style.display = 'none';
             }
             
             if (newArray.length === 0) {
@@ -1217,7 +1066,6 @@
           
           showToast(`${fieldName}已更新`, 'success');
           closeModal();
-          
         } catch (error) {
           console.error(`更新${fieldName}失敗:`, error);
           showToast(`更新失敗：${error.message}`);
@@ -1258,7 +1106,7 @@
       const cell = document.getElementById(`branch-${userId}`);
       if (!cell) return;
       
-      const displaySpan = cell.querySelector('.branch-display');
+      const displaySpan = cell.querySelector('.editable-display');
       const currentDisplay = displaySpan ? displaySpan.textContent : '-';
       const input = cell.querySelector('.branch-input');
       let currentArray = [];
@@ -1275,7 +1123,7 @@
       const cell = document.getElementById(`publisher-${userId}`);
       if (!cell) return;
       
-      const displaySpan = cell.querySelector('.publisher-display');
+      const displaySpan = cell.querySelector('.editable-display');
       const currentDisplay = displaySpan ? displaySpan.textContent : '-';
       const input = cell.querySelector('.publisher-input');
       let currentArray = [];
@@ -1291,26 +1139,22 @@
     window.showBranchModal = showBranchModal;
     window.showPublisherModal = showPublisherModal;
 
-    // 將陣列轉為逗號分隔字串（用於顯示）
     function arrayToDisplay(arr) {
       if (!arr || arr.length === 0) return '-';
       return arr.join(', ');
     }
 
-    // 將逗號分隔字串轉為陣列（用於編輯）
     function stringToArray(str) {
       if (!str || str.trim() === '') return [];
       return str.split(',').map(s => s.trim()).filter(s => s !== '');
     }
 
-    // 檢查兩個陣列是否有交集（用於老師過濾）
     function hasIntersection(arr1, arr2) {
       if (!arr1 || !arr2) return false;
       if (arr1.length === 0 || arr2.length === 0) return false;
       return arr1.some(item => arr2.includes(item));
     }
 
-    // 重置用戶結構（管理員專用）
     async function resetUserStructure(userId) {
       try {
         const userRef = doc(db, 'users', userId);
@@ -1355,14 +1199,12 @@
         console.log(`✅ 用戶結構已重置: ${userId}`);
         showToast('用戶結構已重置', 'success');
         await reloadUsers();
-        
       } catch (error) {
         console.error('重置用戶結構失敗:', error);
         showToast('重置失敗：' + error.message);
       }
     }
 
-    // Toast 提示
     function showToast(message, type = 'error') {
       const existing = document.querySelector('.toast-message');
       if (existing) existing.remove();
@@ -1389,7 +1231,6 @@
       setTimeout(() => toast.remove(), 3000);
     }
 
-    // 輔助函數
     function formatDate(dateValue) {
       if (!dateValue) return '-';
       try {
@@ -1481,7 +1322,6 @@
       }
     }
 
-    // 定位菜單函數
     function positionMenu(menu, button) {
       const rect = button.getBoundingClientRect();
       const menuWidth = 180;
@@ -1503,7 +1343,6 @@
       menu.style.top = `${top}px`;
     }
 
-    // 獲取當前用戶的 Branch（陣列）
     async function getCurrentUserBranch() {
       if (!auth.currentUser) return [];
       try {
@@ -1522,7 +1361,6 @@
       }
     }
 
-    // 生成用戶行
     function generateUserRow(docId, user) {
       const isDisabled = user.isDisabled === true;
       const isTeacher = user.role === 'teacher';
@@ -1626,18 +1464,18 @@
             <button class="btn-icon btn-cancel-phone" onclick="cancelEditPhone('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
            </div>
           <td class="notes-cell" id="notes-${docId}">
-            <div class="notes-wrapper" data-fullnote="${escapeHtml(notesDisplay)}">
-              <span class="notes-display editable-click ${!user.notes ? 'notes-unset' : ''}" onclick="showNoteModal('${escapeHtml(notesDisplay)}', '${docId}')">${escapeHtml(notesDisplay)}</span>
-              <i class="fas fa-file-alt view-note-icon" style="display: none;" onclick="showNoteModal('${escapeHtml(notesDisplay)}', '${docId}')"></i>
+            <div class="editable-wrapper notes-wrapper" data-fullvalue="${escapeHtml(notesDisplay)}">
+              <span class="editable-display notes-display ${!user.notes ? 'notes-unset' : ''}" onclick="showNoteModal('${escapeHtml(notesDisplay)}', '${docId}')">${escapeHtml(notesDisplay)}</span>
+              <i class="fas fa-file-alt edit-icon view-note-icon" style="display: none;" onclick="showNoteModal('${escapeHtml(notesDisplay)}', '${docId}')"></i>
             </div>
             <input type="text" class="notes-input" value="${escapeHtml(user.notes || '')}" style="display:none;">
             <button class="btn-icon btn-save-notes" onclick="saveNotes('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-notes" onclick="cancelEditNotes('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
            </div>
           <td id="branch-${docId}" class="branch-cell">
-            <div class="branch-wrapper" data-fullvalue="${escapeHtml(branchDisplay)}">
-              <span class="branch-display editable-click ${!user.branch || (Array.isArray(user.branch) && user.branch.length === 0) ? 'branch-unset' : ''}" onclick="showBranchModal('${docId}')">${escapeHtml(branchDisplay)}</span>
-              <i class="fas fa-tag view-branch-icon" style="display: none;" onclick="showBranchModal('${docId}')"></i>
+            <div class="editable-wrapper branch-wrapper" data-fullvalue="${escapeHtml(branchDisplay)}">
+              <span class="editable-display branch-display ${!user.branch || (Array.isArray(user.branch) && user.branch.length === 0) ? 'branch-unset' : ''}" onclick="showBranchModal('${docId}')">${escapeHtml(branchDisplay)}</span>
+              <i class="fas fa-tag edit-icon view-branch-icon" style="display: none;" onclick="showBranchModal('${docId}')"></i>
             </div>
             <input type="text" class="branch-input" value="${escapeHtml(Array.isArray(user.branch) ? user.branch.join(', ') : (user.branch || ''))}" style="display:none;" placeholder="請輸入群組（逗號分隔）" maxlength="200">
             <button class="btn-icon btn-save-branch" onclick="saveBranch('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
@@ -1650,9 +1488,9 @@
             <button class="btn-icon btn-cancel-grade" onclick="cancelEditGrade('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
            </div>
           <td id="publisher-${docId}" class="publisher-cell ${!user.publishers || (Array.isArray(user.publishers) && user.publishers.length === 0) ? 'publisher-unset' : ''}">
-            <div class="publisher-wrapper" data-fullvalue="${escapeHtml(publishersDisplay)}">
-              <span class="publisher-display editable-click" onclick="showPublisherModal('${docId}')">${escapeHtml(publishersDisplay)}</span>
-              <i class="fas fa-book view-publisher-icon" style="display: none;" onclick="showPublisherModal('${docId}')"></i>
+            <div class="editable-wrapper publisher-wrapper" data-fullvalue="${escapeHtml(publishersDisplay)}">
+              <span class="editable-display publisher-display" onclick="showPublisherModal('${docId}')">${escapeHtml(publishersDisplay)}</span>
+              <i class="fas fa-book edit-icon view-publisher-icon" style="display: none;" onclick="showPublisherModal('${docId}')"></i>
             </div>
             <input type="text" class="publisher-input" style="display:none;" value="${escapeHtml(Array.isArray(user.publishers) ? user.publishers.join(', ') : (user.publishers || ''))}" placeholder="請輸入教材（逗號分隔）">
             <button class="btn-icon btn-save-publisher" onclick="savePublisher('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
@@ -1682,7 +1520,6 @@
       `;
     }
 
-    // 載入用戶列表
     async function loadUsers(filter, loadMore = false) {
       const usersList = document.getElementById('usersList');
       const loadMoreContainer = document.getElementById('loadMoreContainer');
@@ -1786,9 +1623,7 @@
         } else {
           usersList.innerHTML = html;
           bindCheckboxEvents();
-          bindNoteTooltips();
-          bindBranchTooltips();
-          bindPublisherTooltips();
+          bindEditableTooltips('.editable-wrapper', '.editable-display', '.edit-icon');
         }
         
         if (loadMoreContainer) {
@@ -1802,7 +1637,6 @@
       }
     }
 
-    // 更新統計
     async function updateStats() {
       try {
         const usersRef = collection(db, 'users');
@@ -1820,7 +1654,6 @@
       }
     }
 
-    // ===== 複選框相關函數 =====
     window.toggleSelectAll = () => {
       const selectAll = document.getElementById('selectAllCheckbox');
       const checkboxes = document.querySelectorAll('.user-checkbox');
@@ -1853,7 +1686,6 @@
       });
     }
 
-    // ===== 批量重置結構 =====
     window.batchResetStructure = async () => {
       if (!currentUserIsAdmin) return;
       
@@ -1884,41 +1716,14 @@
       await reloadUsers();
     };
 
-    // ===== Branch 編輯（保留以兼容）=====
-    window.editBranch = (userId) => {
-      const cell = document.getElementById(`branch-${userId}`);
-      const display = cell.querySelector('.branch-display');
-      if (display) {
-        showBranchModal(userId);
-      }
-    };
-    
-    window.saveBranch = async (userId) => {
-      console.log('saveBranch 已棄用，請使用彈窗編輯');
-    };
-    
-    window.cancelEditBranch = (userId) => {
-      console.log('cancelEditBranch 已棄用');
-    };
+    window.editBranch = (userId) => { showBranchModal(userId); };
+    window.saveBranch = async (userId) => { console.log('saveBranch 已棄用'); };
+    window.cancelEditBranch = (userId) => { console.log('cancelEditBranch 已棄用'); };
 
-    // ===== 教材編輯（保留以兼容）=====
-    window.editPublisher = (userId) => {
-      const cell = document.getElementById(`publisher-${userId}`);
-      const display = cell.querySelector('.publisher-display');
-      if (display) {
-        showPublisherModal(userId);
-      }
-    };
-    
-    window.savePublisher = async (userId) => {
-      console.log('savePublisher 已棄用，請使用彈窗編輯');
-    };
-    
-    window.cancelEditPublisher = (userId) => {
-      console.log('cancelEditPublisher 已棄用');
-    };
+    window.editPublisher = (userId) => { showPublisherModal(userId); };
+    window.savePublisher = async (userId) => { console.log('savePublisher 已棄用'); };
+    window.cancelEditPublisher = (userId) => { console.log('cancelEditPublisher 已棄用'); };
 
-    // ===== 年級編輯 =====
     window.editGrade = (userId) => {
       if (!currentUserIsAdmin && !currentUserIsTeacher) return;
       const cell = document.getElementById(`grade-${userId}`);
@@ -1981,7 +1786,6 @@
       cell.querySelector('.btn-cancel-grade').style.display = 'none';
     };
 
-    // ===== 備註編輯（保留以兼容）=====
     window.editNotes = (userId) => {
       const cell = document.getElementById(`notes-${userId}`);
       const display = cell.querySelector('.notes-display');
@@ -1990,15 +1794,9 @@
       }
     };
     
-    window.saveNotes = async (userId) => {
-      console.log('saveNotes 已棄用，請使用彈窗編輯');
-    };
-    
-    window.cancelEditNotes = (userId) => {
-      console.log('cancelEditNotes 已棄用');
-    };
+    window.saveNotes = async (userId) => { console.log('saveNotes 已棄用'); };
+    window.cancelEditNotes = (userId) => { console.log('cancelEditNotes 已棄用'); };
 
-    // ===== 電話編輯 =====
     window.editPhone = (userId) => {
       if (!currentUserIsAdmin && !currentUserIsTeacher) return;
       const cell = document.getElementById(`phone-${userId}`);
@@ -2043,7 +1841,6 @@
       cell.querySelector('.btn-cancel-phone').style.display = 'none';
     };
 
-    // ===== 用戶名稱編輯 =====
     window.editDisplayName = (userId) => {
       if (!currentUserIsAdmin && !currentUserIsTeacher) return;
       const cell = document.getElementById(`displayname-${userId}`);
@@ -2086,7 +1883,6 @@
       cell.querySelector('.btn-cancel-displayname').style.display = 'none';
     };
 
-    // ===== 權限管理 =====
     window.setAsTeacher = async (userId) => {
       if (!currentUserIsAdmin) return;
       try {
@@ -2197,7 +1993,6 @@
     
     window.resetUserStructure = resetUserStructure;
     
-    // 操作菜單
     window.toggleActionMenu = (userId, event) => {
       if (event) event.stopPropagation();
       document.querySelectorAll('[id^="menu-"]').forEach(menu => {
@@ -2247,9 +2042,7 @@
       hasMore = true;
       await loadUsers(currentFilter, false);
       await updateStats();
-      bindNoteTooltips();
-      bindBranchTooltips();
-      bindPublisherTooltips();
+      bindEditableTooltips('.editable-wrapper', '.editable-display', '.edit-icon');
     }
     
     async function performSearch() {
@@ -2290,10 +2083,6 @@
     };
     
     window.logout = async () => { await signOut(auth); window.location.reload(); };
-    
-    // ============================================
-    // 通知相關函數
-    // ============================================
     
     window.toggleNotificationSettings = () => {
       const panel = document.getElementById('notificationSettingsPanel');
@@ -2345,7 +2134,6 @@
         
         await setDoc(doc(db, 'settings', 'notifications'), settings, { merge: true });
         showToast('通知設置已儲存', 'success');
-        
       } catch (error) {
         console.error('儲存通知設置失敗:', error);
         showToast('儲存失敗：' + error.message);
@@ -2451,9 +2239,6 @@
       }
     };
     
-    // ============================================
-    // 載入管理介面
-    // ============================================
     async function loadAdminInterface(container, user) {
       currentUserBranch = await getCurrentUserBranch();
       
@@ -2534,36 +2319,27 @@
           ` : ''}
           
           <div class="users-table">
-             <table>
+            <table>
               <thead>
-                 <tr>
+                <tr>
                   <th style="width: 40px;">
                     <input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()">
                   </th>
                   <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>群組</th><th>年級</th><th>教材</th><th>註冊/最近</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>操作</th>
-                 </tr>
+                </tr>
               </thead>
-              <tbody id="usersList"> <tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
-             </table>
+              <tbody id="usersList"><tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
+            </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
         </div>
         
-        <!-- 發送通知彈窗 -->
         <div id="sendNotificationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10001; align-items: center; justify-content: center;">
           <div style="background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 500px;">
             <h3 style="margin-bottom: 20px;"><i class="fas fa-bell"></i> 發送通知</h3>
-            <div style="margin-bottom: 15px;">
-              <label>標題：</label>
-              <input type="text" id="notifTitle" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
-            </div>
-            <div style="margin-bottom: 15px;">
-              <label>內容：</label>
-              <textarea id="notifContent" rows="4" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;"></textarea>
-            </div>
-            <div style="margin-bottom: 15px;">
-              <label>通知類型：</label>
-              <select id="notifType" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+            <div style="margin-bottom: 15px;"><label>標題：</label><input type="text" id="notifTitle" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;"></div>
+            <div style="margin-bottom: 15px;"><label>內容：</label><textarea id="notifContent" rows="4" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;"></textarea></div>
+            <div style="margin-bottom: 15px;"><label>通知類型：</label><select id="notifType" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
                 <option value="new_unit">📚 新單元上線</option>
                 <option value="announcement">📢 活動通知</option>
                 ${currentUserIsAdmin ? '<option value="account_disabled">🔒 帳號停用通知</option>' : ''}
@@ -2571,25 +2347,15 @@
                 <option value="system_maintenance">⚙️ 系統維護通知</option>
               </select>
             </div>
-            <div style="margin-bottom: 15px;">
-              <label>發送對象：</label>
-              <select id="notifTarget" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+            <div style="margin-bottom: 15px;"><label>發送對象：</label><select id="notifTarget" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
                 <option value="all">全部用戶</option>
                 ${currentUserIsAdmin ? '<option value="branch">特定群組</option>' : (currentUserIsTeacher && currentUserBranch.length > 0 ? '<option value="branch">我的群組</option>' : '')}
                 <option value="selected">已選用戶</option>
               </select>
             </div>
-            <div id="branchSelectDiv" style="display: none; margin-bottom: 15px;">
-              <label>群組：</label>
-              <input type="text" id="notifBranch" placeholder="請輸入群組名稱" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
-            </div>
-            <div id="selectedCountDiv" style="display: none; margin-bottom: 15px; color: #4f46e5;">
-              已選中 <span id="selectedCount">0</span> 位用戶
-            </div>
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-              <button class="btn-toggle" onclick="closeSendNotification()">取消</button>
-              <button class="btn-toggle" onclick="sendNotification()" style="background: #4f46e5; color: white;">發送</button>
-            </div>
+            <div id="branchSelectDiv" style="display: none; margin-bottom: 15px;"><label>群組：</label><input type="text" id="notifBranch" placeholder="請輸入群組名稱" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;"></div>
+            <div id="selectedCountDiv" style="display: none; margin-bottom: 15px; color: #4f46e5;">已選中 <span id="selectedCount">0</span> 位用戶</div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;"><button class="btn-toggle" onclick="closeSendNotification()">取消</button><button class="btn-toggle" onclick="sendNotification()" style="background: #4f46e5; color: white;">發送</button></div>
           </div>
         </div>
       `;
@@ -2597,15 +2363,9 @@
       window.filterUsers = (filter, ev) => {
         const mainFilters = document.querySelector('.filters');
         if (mainFilters) {
-          mainFilters.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-          });
+          mainFilters.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         }
-        
-        if (filter !== 'all' && ev && ev.target) {
-          ev.target.classList.add('active');
-        }
-        
+        if (filter !== 'all' && ev && ev.target) ev.target.classList.add('active');
         currentFilter = filter;
         lastVisible = null;
         hasMore = true;
@@ -2615,16 +2375,8 @@
       window.filterByBranch = (branch, ev) => {
         const allFilters = document.querySelectorAll('.filters');
         const branchFilters = allFilters[1];
-        if (branchFilters) {
-          branchFilters.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-          });
-        }
-        
-        if (branch !== 'all' && ev && ev.target) {
-          ev.target.classList.add('active');
-        }
-        
+        if (branchFilters) branchFilters.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        if (branch !== 'all' && ev && ev.target) ev.target.classList.add('active');
         currentBranchFilter = branch;
         lastVisible = null;
         hasMore = true;
@@ -2635,11 +2387,8 @@
         const branch = prompt('請輸入群組名稱（可自由輸入，限 20 字以內）');
         if (branch && branch.trim()) {
           const trimmedBranch = branch.trim();
-          if (trimmedBranch.length > 20) {
-            alert('群組名稱過長，請限制在 20 字以內');
-            return;
-          }
-          filterByBranch(trimmedBranch);
+          if (trimmedBranch.length > 20) alert('群組名稱過長，請限制在 20 字以內');
+          else filterByBranch(trimmedBranch);
         }
       };
       
