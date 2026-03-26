@@ -721,9 +721,6 @@
       color: white;
       cursor: pointer;
       transition: all 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
     }
     
     .note-modal-save-btn:hover {
@@ -872,9 +869,20 @@
       }
     }
     
-    // ===== 顯示備註彈窗（可編輯）=====
+       // ===== 顯示備註彈窗（可編輯）=====
     async function showNoteModal(content, userId) {
-      const originalContent = content === '未填寫' ? '' : content;
+      // 從 DOM 獲取最新的備註內容（確保顯示最新儲存的內容）
+      const cell = document.getElementById(`notes-${userId}`);
+      let currentNote = content;
+      
+      if (cell) {
+        const displaySpan = cell.querySelector('.notes-display');
+        if (displaySpan) {
+          currentNote = displaySpan.textContent;
+        }
+      }
+      
+      const originalContent = currentNote === '未填寫' ? '' : currentNote;
       
       const modal = document.createElement('div');
       modal.className = 'note-modal-overlay';
@@ -892,7 +900,7 @@
           </div>
           <div class="note-modal-footer">
             <button class="note-modal-cancel-btn">取消</button>
-            <button class="note-modal-save-btn">💾 儲存</button>
+            <button class="note-modal-save-btn">儲存</button>
           </div>
         </div>
       `;
@@ -918,7 +926,7 @@
             updatedAt: new Date().toISOString() 
           });
           
-          const cell = document.getElementById(`notes-${userId}`);
+          // 更新表格中的顯示
           if (cell) {
             const displaySpan = cell.querySelector('.notes-display');
             if (displaySpan) {
@@ -934,6 +942,12 @@
               const isTruncated = displaySpan.scrollWidth > displaySpan.clientWidth;
               if (wrapper) {
                 wrapper.dataset.isTruncated = isTruncated;
+                
+                // 如果內容變短不再被截斷，隱藏圖標
+                const icon = wrapper.querySelector('.view-note-icon');
+                if (icon && !isTruncated) {
+                  icon.style.display = 'none';
+                }
               }
             }
           }
