@@ -879,6 +879,64 @@
         wrapper.addEventListener('mouseleave', handleMouseLeave);
       });
     }
+
+    // ===== 用事件監聽器替代 onclick（解決特殊字符轉義問題）=====
+    function bindClickEvents() {
+      // 綁定備註欄
+      document.querySelectorAll('.notes-display').forEach(el => {
+        // 移除舊的事件監聽器
+        if (el._clickHandler) {
+          el.removeEventListener('click', el._clickHandler);
+        }
+        const row = el.closest('tr');
+        const userId = row?.querySelector('.user-checkbox')?.dataset.userid;
+        if (userId) {
+          const content = el.textContent;
+          const handler = (e) => {
+            e.stopPropagation();
+            showNoteModal(content, userId);
+          };
+          el._clickHandler = handler;
+          el.addEventListener('click', handler);
+        }
+      });
+      
+      // 綁定群組欄
+      document.querySelectorAll('.branch-display').forEach(el => {
+        if (el._branchHandler) {
+          el.removeEventListener('click', el._branchHandler);
+        }
+        const row = el.closest('tr');
+        const userId = row?.querySelector('.user-checkbox')?.dataset.userid;
+        if (userId) {
+          const handler = (e) => {
+            e.stopPropagation();
+            showBranchModal(userId);
+          };
+          el._branchHandler = handler;
+          el.addEventListener('click', handler);
+        }
+      });
+      
+      // 綁定教材欄
+      document.querySelectorAll('.publisher-display').forEach(el => {
+        if (el._publisherHandler) {
+          el.removeEventListener('click', el._publisherHandler);
+        }
+        const row = el.closest('tr');
+        const userId = row?.querySelector('.user-checkbox')?.dataset.userid;
+        if (userId) {
+          const handler = (e) => {
+            e.stopPropagation();
+            showPublisherModal(userId);
+          };
+          el._publisherHandler = handler;
+          el.addEventListener('click', handler);
+        }
+      });
+      
+      console.log('✅ 事件監聽器已綁定');
+    }
     
     async function showNoteModal(content, userId) {
       const cell = document.getElementById(`notes-${userId}`);
@@ -1620,6 +1678,7 @@
           usersList.innerHTML = html;
           bindCheckboxEvents();
           bindEditableTooltips();
+          bindClickEvents();  // ← 添加這行
         }
         
         if (loadMoreContainer) {
@@ -2039,6 +2098,7 @@
       await loadUsers(currentFilter, false);
       await updateStats();
       bindEditableTooltips();
+      bindClickEvents(); 
     }
     
     async function performSearch() {
