@@ -1115,11 +1115,20 @@ function updateUnitSelect() {
     }
     
     if (availableUnits.length === 0) {
-        unitSelect.innerHTML = '<option value="">沒有可用的單元</option>';
-        document.getElementById('words-grid').innerHTML = '<div class="loading">📭 沒有找到符合的單元</div>';
-        document.getElementById('sentences-grid').innerHTML = '';
-        return;
-    }
+    unitSelect.innerHTML = '<option value="">沒有可用的單元</option>';
+    
+    // 強制清除卡片內容
+    const wordsGrid = document.getElementById('words-grid');
+    const sentencesGrid = document.getElementById('sentences-grid');
+    if (wordsGrid) wordsGrid.innerHTML = '<div class="loading">📭 沒有找到符合的單元</div>';
+    if (sentencesGrid) sentencesGrid.innerHTML = '';
+    
+    // 清除 appData 和 currentUnitId
+    appData = null;
+    currentUnitId = '';
+    
+    return;
+}
     
     availableUnits.forEach(unit => {
         const option = document.createElement('option');
@@ -1333,25 +1342,41 @@ async function initPage() {
             await loadNotifications();
             
             const indexLoaded = await loadUnitsIndex();
-            if (indexLoaded && unitsIndex.units.length) {
-                updateUnitSelect();
-                let unitToLoad = getUrlParam('unit');
-                if (!unitToLoad || !unitsIndex.units.find(u => u.id === unitToLoad)) {
-                    const availableUnits = filterUnitsForUser(unitsIndex.units);
-                    if (availableUnits.length > 0) {
-                        unitToLoad = availableUnits[0].id;
-                    } else {
-                        unitToLoad = CONFIG.DEFAULT_UNIT;
-                    }
-                }
-                await loadUnit(unitToLoad);
-                document.getElementById('unit-select').addEventListener('change', function() {
-                    loadUnit(this.value);
-                });
-                document.getElementById('unit-upload').addEventListener('change', handleFileUpload);
-            } else {
-                document.getElementById('words-grid').innerHTML = '<div class="loading">無法載入單元列表</div>';
-            }
+if (indexLoaded && unitsIndex.units.length) {
+    updateUnitSelect();
+    let unitToLoad = getUrlParam('unit');
+    
+    // 如果沒有 URL 參數，獲取可用單元
+    if (!unitToLoad || !unitsIndex.units.find(u => u.id === unitToLoad)) {
+        const availableUnits = filterUnitsForUser(unitsIndex.units);
+        if (availableUnits.length > 0) {
+            unitToLoad = availableUnits[0].id;
+        } else {
+            // 沒有可用單元時，不要載入任何單元
+            unitToLoad = null;
+        }
+    }
+    
+    // 只有當有可用單元時才載入
+    if (unitToLoad) {
+        await loadUnit(unitToLoad);
+    } else {
+        // 確保卡片內容被清除
+        const wordsGrid = document.getElementById('words-grid');
+        const sentencesGrid = document.getElementById('sentences-grid');
+        if (wordsGrid) wordsGrid.innerHTML = '<div class="loading">📭 沒有找到符合的單元</div>';
+        if (sentencesGrid) sentencesGrid.innerHTML = '';
+        appData = null;
+        currentUnitId = '';
+    }
+    
+    document.getElementById('unit-select').addEventListener('change', function() {
+        loadUnit(this.value);
+    });
+    document.getElementById('unit-upload').addEventListener('change', handleFileUpload);
+} else {
+    document.getElementById('words-grid').innerHTML = '<div class="loading">無法載入單元列表</div>';
+}
             
         } else {
             window.location.href = './login.html';
