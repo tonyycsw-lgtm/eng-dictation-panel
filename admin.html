@@ -555,81 +555,6 @@
       }
     }
     
-    /* ===== Tooltip 動畫樣式 ===== */
-    .custom-tooltip {
-      position: fixed;
-      background: #1e293b;
-      color: white;
-      font-size: 13px;
-      padding: 8px 12px;
-      border-radius: 8px;
-      max-width: 320px;
-      min-width: 200px;
-      word-break: break-word;
-      white-space: normal;
-      z-index: 10000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-      line-height: 1.4;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.15s ease;
-      font-family: 'Segoe UI', sans-serif;
-    }
-    
-    .custom-tooltip::before {
-      content: '';
-      position: absolute;
-      width: 0;
-      height: 0;
-      border-style: solid;
-      pointer-events: none;
-    }
-    
-    .custom-tooltip[data-placement="right"]::before {
-      left: -6px;
-      top: 50%;
-      transform: translateY(-50%);
-      border-width: 6px 6px 6px 0;
-      border-color: transparent #1e293b transparent transparent;
-    }
-    
-    .custom-tooltip[data-placement="left"]::before {
-      right: -6px;
-      top: 50%;
-      transform: translateY(-50%);
-      border-width: 6px 0 6px 6px;
-      border-color: transparent transparent transparent #1e293b;
-    }
-    
-    .custom-tooltip[data-placement="top"]::before {
-      bottom: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 6px 6px 0 6px;
-      border-color: #1e293b transparent transparent transparent;
-    }
-    
-    .custom-tooltip[data-placement="bottom"]::before {
-      top: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 0 6px 6px 6px;
-      border-color: transparent transparent #1e293b transparent;
-    }
-    
-    .notes-display {
-      max-width: 200px;
-      cursor: pointer;
-      padding: 2px 4px;
-      border-radius: 4px;
-      transition: background 0.2s;
-      display: inline-block;
-    }
-    
-    .notes-display:hover {
-      background: #f1f5f9;
-    }
-    
     /* ===== 備註欄包裝器樣式 ===== */
     .notes-wrapper {
       display: inline-flex;
@@ -644,6 +569,14 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    
+    .notes-wrapper .notes-display:hover {
+      background: #f1f5f9;
     }
     
     .view-note-icon {
@@ -662,14 +595,15 @@
       transform: scale(1.05);
     }
     
-    /* ===== 備註彈窗樣式 ===== */
+    /* ===== 備註彈窗樣式（簡約設計）===== */
     .note-modal-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(2px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -678,102 +612,127 @@
     }
     
     .note-modal-content {
-      background: white;
+      background: #ffffff;
       border-radius: 12px;
       width: 90%;
-      max-width: 500px;
-      max-height: 80vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 560px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
       animation: slideUp 0.2s ease;
+      overflow: hidden;
     }
     
     .note-modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 20px;
-      border-bottom: 1px solid #e2e8f0;
+      padding: 20px 24px 12px 24px;
+      border-bottom: none;
     }
     
     .note-modal-header h3 {
       margin: 0;
       font-size: 18px;
-      color: #1e293b;
+      font-weight: 600;
+      color: #111827;
+      letter-spacing: -0.01em;
     }
     
     .note-modal-close {
       background: none;
       border: none;
-      font-size: 24px;
       cursor: pointer;
-      color: #94a3b8;
-      padding: 0;
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 6px;
-      transition: all 0.2s;
+      border-radius: 8px;
+      color: #6b7280;
+      font-size: 20px;
+      transition: all 0.15s ease;
     }
     
     .note-modal-close:hover {
-      background: #f1f5f9;
-      color: #1e293b;
+      background: #f3f4f6;
+      color: #111827;
     }
     
     .note-modal-body {
-      padding: 20px;
-      overflow-y: auto;
-      flex: 1;
+      padding: 8px 24px 20px 24px;
     }
     
-    .note-modal-body pre {
-      margin: 0;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: inherit;
+    .note-edit-textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
       font-size: 14px;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
       line-height: 1.5;
-      color: #334155;
+      resize: vertical;
+      box-sizing: border-box;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      background: #ffffff;
+      color: #1f2937;
+    }
+    
+    .note-edit-textarea:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    
+    .note-edit-textarea::placeholder {
+      color: #9ca3af;
     }
     
     .note-modal-footer {
       display: flex;
       justify-content: flex-end;
-      gap: 10px;
-      padding: 16px 20px;
-      border-top: 1px solid #e2e8f0;
+      gap: 12px;
+      padding: 16px 24px 24px 24px;
+      border-top: 1px solid #f0f0f0;
     }
     
-    .note-modal-btn {
+    .note-modal-cancel-btn {
       padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s;
+      background: transparent;
       border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
     
-    .note-modal-edit-btn {
+    .note-modal-cancel-btn:hover {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .note-modal-save-btn {
+      padding: 8px 20px;
       background: #4f46e5;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
       color: white;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     
-    .note-modal-edit-btn:hover {
+    .note-modal-save-btn:hover {
       background: #4338ca;
+      transform: translateY(-1px);
     }
     
-    .note-modal-close-btn {
-      background: #f1f5f9;
-      color: #334155;
-      border: 1px solid #e2e8f0;
-    }
-    
-    .note-modal-close-btn:hover {
-      background: #e2e8f0;
+    .note-modal-save-btn:active {
+      transform: translateY(0);
     }
     
     @keyframes fadeIn {
@@ -860,132 +819,6 @@
       });
     }
 
-    // ===== Tooltip 管理器 =====
-    class TooltipManager {
-      constructor() {
-        this.tooltip = null;
-        this.currentElement = null;
-        this.hideTimeout = null;
-        this.init();
-      }
-      
-      init() {
-        this.tooltip = document.createElement('div');
-        this.tooltip.className = 'custom-tooltip';
-        document.body.appendChild(this.tooltip);
-      }
-      
-      show(element, text, event) {
-        if (!text || text === '未填寫' || text === '未設定' || text === '-') {
-          return;
-        }
-        
-        if (this.hideTimeout) {
-          clearTimeout(this.hideTimeout);
-          this.hideTimeout = null;
-        }
-        
-        if (this.currentElement === element && this.tooltip.style.opacity === '1') {
-          return;
-        }
-        
-        this.currentElement = element;
-        this.tooltip.textContent = text;
-        
-        const rect = element.getBoundingClientRect();
-        const placement = this.calculatePlacement(rect);
-        this.tooltip.setAttribute('data-placement', placement);
-        
-        let left, top;
-        const tooltipRect = this.tooltip.getBoundingClientRect();
-        
-        switch (placement) {
-          case 'right':
-            left = rect.right + 10;
-            top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
-            break;
-          case 'left':
-            left = rect.left - tooltipRect.width - 10;
-            top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
-            break;
-          case 'top':
-            left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
-            top = rect.top - tooltipRect.height - 10;
-            break;
-          case 'bottom':
-          default:
-            left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
-            top = rect.bottom + 10;
-            break;
-        }
-        
-        left = Math.max(5, Math.min(left, window.innerWidth - tooltipRect.width - 5));
-        top = Math.max(5, Math.min(top, window.innerHeight - tooltipRect.height - 5));
-        
-        if (placement === 'right' && left + tooltipRect.width > window.innerWidth - 5) {
-          left = rect.left - tooltipRect.width - 10;
-          this.tooltip.setAttribute('data-placement', 'left');
-        }
-        if (placement === 'left' && left < 5) {
-          left = rect.right + 10;
-          this.tooltip.setAttribute('data-placement', 'right');
-        }
-        if (placement === 'top' && top < 5) {
-          top = rect.bottom + 10;
-          this.tooltip.setAttribute('data-placement', 'bottom');
-        }
-        if (placement === 'bottom' && top + tooltipRect.height > window.innerHeight - 5) {
-          top = rect.top - tooltipRect.height - 10;
-          this.tooltip.setAttribute('data-placement', 'top');
-        }
-        
-        this.tooltip.style.left = `${left}px`;
-        this.tooltip.style.top = `${top}px`;
-        this.tooltip.style.opacity = '1';
-      }
-      
-      calculatePlacement(rect) {
-        const spaceRight = window.innerWidth - rect.right;
-        const spaceLeft = rect.left;
-        const spaceBottom = window.innerHeight - rect.bottom;
-        const spaceTop = rect.top;
-        
-        const spaces = { right: spaceRight, left: spaceLeft, bottom: spaceBottom, top: spaceTop };
-        let bestPlacement = 'right';
-        let maxSpace = spaces.right;
-        
-        for (const [placement, space] of Object.entries(spaces)) {
-          if (space > maxSpace) {
-            maxSpace = space;
-            bestPlacement = placement;
-          }
-        }
-        return bestPlacement;
-      }
-      
-      hide(delay = 100) {
-        if (this.hideTimeout) {
-          clearTimeout(this.hideTimeout);
-        }
-        this.hideTimeout = setTimeout(() => {
-          this.tooltip.style.opacity = '0';
-          this.currentElement = null;
-          this.hideTimeout = null;
-        }, delay);
-      }
-      
-      hideImmediately() {
-        if (this.hideTimeout) {
-          clearTimeout(this.hideTimeout);
-          this.hideTimeout = null;
-        }
-        this.tooltip.style.opacity = '0';
-        this.currentElement = null;
-      }
-    }
-    
-      let tooltipManager = null;
-    
     // ===== 檢測文字是否被截斷 =====
     function isTextTruncated(element) {
       if (!element) return false;
@@ -1013,7 +846,6 @@
         if (!isTruncated) {
           icon.style.display = 'none';
         } else {
-          // 如果被截斷，但不在懸停狀態，圖標保持隱藏
           icon.style.display = 'none';
         }
         
@@ -1027,7 +859,6 @@
       const icon = wrapper.querySelector('.view-note-icon');
       const isTruncated = wrapper.dataset.isTruncated === 'true';
       
-      // 只在文字被截斷時顯示圖標
       if (isTruncated && icon) {
         icon.style.display = 'inline-block';
       }
@@ -1041,55 +872,96 @@
       }
     }
     
-    // ===== 顯示備註彈窗 =====
-    function showNoteModal(content, userId) {
-      // 避免 XSS
-      const safeContent = escapeHtml(content);
+    // ===== 顯示備註彈窗（可編輯）=====
+    async function showNoteModal(content, userId) {
+      const originalContent = content === '未填寫' ? '' : content;
       
-      // 創建彈窗
       const modal = document.createElement('div');
       modal.className = 'note-modal-overlay';
       modal.innerHTML = `
         <div class="note-modal-content">
           <div class="note-modal-header">
-            <h3>備註詳情</h3>
+            <h3>編輯備註</h3>
             <button class="note-modal-close">&times;</button>
           </div>
           <div class="note-modal-body">
-            <pre>${safeContent === '未填寫' ? '暫無備註內容' : safeContent}</pre>
+            <textarea id="note-edit-textarea" 
+                      class="note-edit-textarea"
+                      rows="6"
+                      placeholder="請輸入備註內容...">${escapeHtml(originalContent)}</textarea>
           </div>
           <div class="note-modal-footer">
-            <button class="note-modal-edit-btn">✏️ 編輯備註</button>
-            <button class="note-modal-close-btn">關閉</button>
+            <button class="note-modal-cancel-btn">取消</button>
+            <button class="note-modal-save-btn">💾 儲存</button>
           </div>
         </div>
       `;
       
       document.body.appendChild(modal);
       
-      // 關閉彈窗函數
+      const textarea = modal.querySelector('#note-edit-textarea');
+      const saveBtn = modal.querySelector('.note-modal-save-btn');
+      const cancelBtn = modal.querySelector('.note-modal-cancel-btn');
+      const closeBtn = modal.querySelector('.note-modal-close');
+      
       const closeModal = () => {
         modal.remove();
       };
       
-      // 綁定關閉事件
-      modal.querySelector('.note-modal-close').addEventListener('click', closeModal);
-      modal.querySelector('.note-modal-close-btn').addEventListener('click', closeModal);
-      modal.querySelector('.note-modal-overlay')?.addEventListener('click', (e) => {
+      const saveNote = async () => {
+        const newNotes = textarea.value.trim();
+        
+        try {
+          const userRef = doc(db, 'users', userId);
+          await updateDoc(userRef, { 
+            notes: newNotes || '', 
+            updatedAt: new Date().toISOString() 
+          });
+          
+          const cell = document.getElementById(`notes-${userId}`);
+          if (cell) {
+            const displaySpan = cell.querySelector('.notes-display');
+            if (displaySpan) {
+              displaySpan.textContent = newNotes || '未填寫';
+            }
+            
+            const wrapper = cell.querySelector('.notes-wrapper');
+            if (wrapper) {
+              wrapper.dataset.fullnote = newNotes || '未填寫';
+            }
+            
+            if (displaySpan) {
+              const isTruncated = displaySpan.scrollWidth > displaySpan.clientWidth;
+              if (wrapper) {
+                wrapper.dataset.isTruncated = isTruncated;
+              }
+            }
+          }
+          
+          showToast('備註已更新', 'success');
+          closeModal();
+          
+        } catch (error) {
+          console.error('更新備註失敗:', error);
+          showToast('更新失敗：' + error.message);
+        }
+      };
+      
+      closeBtn.addEventListener('click', closeModal);
+      cancelBtn.addEventListener('click', closeModal);
+      saveBtn.addEventListener('click', saveNote);
+      
+      modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
       });
       
-      // 綁定編輯按鈕
-      const editBtn = modal.querySelector('.note-modal-edit-btn');
-      if (editBtn && userId) {
-        editBtn.addEventListener('click', () => {
-          closeModal();
-          // 觸發編輯
-          editNotes(userId);
-        });
-      }
+      textarea.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          saveNote();
+        }
+      });
       
-      // ESC 鍵關閉
       const handleEsc = (e) => {
         if (e.key === 'Escape') {
           closeModal();
@@ -1097,14 +969,13 @@
         }
       };
       document.addEventListener('keydown', handleEsc);
+      
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      }, 50);
     }
     
-    // 綁定滾動隱藏（保留，但圖標方案不需要頻繁隱藏）
-    function bindScrollHideTooltip() {
-      // 此函數保留但不再使用，圖標方案不需要
-    }
-    
-    // 全局掛載彈窗函數
     window.showNoteModal = showNoteModal;
 
     // 將陣列轉為逗號分隔字串（用於顯示）
@@ -1127,46 +998,41 @@
     }
 
     // 重置用戶結構（管理員專用）
-    // 重置用戶結構（管理員專用）
-async function resetUserStructure(userId) {
-    try {
+    async function resetUserStructure(userId) {
+      try {
         const userRef = doc(db, 'users', userId);
         const userSnap = await getDoc(userRef);
         if (!userSnap.exists()) {
-            showToast('用戶不存在');
-            return;
+          showToast('用戶不存在');
+          return;
         }
         
         const user = userSnap.data();
         const updates = {};
         
-        // 處理 branch：轉為陣列
         let newBranch = [];
         if (user.branch) {
-            if (Array.isArray(user.branch)) {
-                newBranch = user.branch;
-            } else if (typeof user.branch === 'string') {
-                newBranch = user.branch.split(',').map(s => s.trim()).filter(s => s !== '');
-            }
+          if (Array.isArray(user.branch)) {
+            newBranch = user.branch;
+          } else if (typeof user.branch === 'string') {
+            newBranch = user.branch.split(',').map(s => s.trim()).filter(s => s !== '');
+          }
         }
         updates.branch = newBranch;
         
-        // 處理 publishers：轉為陣列，預設為 ["示範"]
-        // 注意：只處理 publishers，不處理 publisher
         let newPublishers = [];
         if (user.publishers) {
-            if (Array.isArray(user.publishers)) {
-                newPublishers = user.publishers;
-            } else if (typeof user.publishers === 'string') {
-                newPublishers = user.publishers.split(',').map(s => s.trim()).filter(s => s !== '');
-            }
+          if (Array.isArray(user.publishers)) {
+            newPublishers = user.publishers;
+          } else if (typeof user.publishers === 'string') {
+            newPublishers = user.publishers.split(',').map(s => s.trim()).filter(s => s !== '');
+          }
         }
         if (newPublishers.length === 0) {
-            newPublishers = ["示範"];
+          newPublishers = ["示範"];
         }
         updates.publishers = newPublishers;
         
-        // 添加重置記錄
         updates.structureResetAt = new Date().toISOString();
         updates.structureResetBy = auth.currentUser.uid;
         updates.updatedAt = new Date().toISOString();
@@ -1177,11 +1043,11 @@ async function resetUserStructure(userId) {
         showToast('用戶結構已重置', 'success');
         await reloadUsers();
         
-    } catch (error) {
+      } catch (error) {
         console.error('重置用戶結構失敗:', error);
         showToast('重置失敗：' + error.message);
+      }
     }
-}
 
     // Toast 提示
     function showToast(message, type = 'error') {
@@ -1232,7 +1098,6 @@ async function resetUserStructure(userId) {
 
     function getExpiryDisplay(expiresAt) {
       if (!expiresAt) return '-';
-      
       const expiryDate = new Date(expiresAt);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -1351,7 +1216,6 @@ async function resetUserStructure(userId) {
       const isAdmin = user.role === 'admin';
       const trialStatus = getTrialStatus(user.trialEndAt);
       
-      // 處理 branch（陣列）
       let branchDisplay = '-';
       if (user.branch) {
         if (Array.isArray(user.branch)) {
@@ -1361,7 +1225,6 @@ async function resetUserStructure(userId) {
         }
       }
       
-      // 處理 publishers（陣列）
       let publishersDisplay = '-';
       if (user.publishers) {
         if (Array.isArray(user.publishers)) {
@@ -1371,13 +1234,11 @@ async function resetUserStructure(userId) {
         }
       }
       
-      // 處理 grade
       let gradeDisplay = user.grade || '未設定';
       if (Array.isArray(user.grade)) {
         gradeDisplay = user.grade.join(', ');
       }
       
-      // 用戶名稱（含管理員/老師標籤、停用圖標）
       let nameHtml = `
         <div class="displayname-cell" id="displayname-${docId}">
           <span class="displayname-display editable-click" onclick="editDisplayName('${docId}')">${escapeHtml(user.displayName || '未設定')}</span>
@@ -1390,7 +1251,6 @@ async function resetUserStructure(userId) {
       else if (isTeacher) nameHtml += `<span class="teacher-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>`;
       if (isDisabled) nameHtml += `<span class="disabled-icon"><i class="fas fa-ban"></i></span>`;
       
-      // 方案徽章
       const planMap = { 'free': '免費', 'monthly': '月費', 'annual': '年費', 'custom': '自訂' };
       const planText = planMap[user.plan] || user.plan || '-';
       const isPremium = user.premium === true;
@@ -1400,11 +1260,9 @@ async function resetUserStructure(userId) {
       const notesDisplay = user.notes || '未填寫';
       const expiryDisplay = getExpiryDisplay(user.expiresAt);
       
-      // 合併日期顯示
       const registeredDate = formatDate(user.createdAt);
       const lastActiveDate = formatDate(user.lastActiveAt || user.lastLoginAt);
       
-      // 操作菜單
       let menuHtml = `<div class="action-dropdown" id="menu-${docId}" style="display: none;">`;
       menuHtml += `
         <div class="menu-item" data-action="setPlan" data-plan="free"><i class="fas fa-times-circle"></i> 設為免費</div>
@@ -1429,7 +1287,6 @@ async function resetUserStructure(userId) {
           }
         }
         
-        // 重置結構（僅管理員）
         menuHtml += `<div class="menu-divider"></div>`;
         menuHtml += `<div class="menu-item" data-action="resetStructure"><i class="fas fa-sync-alt"></i> 重置結構</div>`;
         
@@ -1455,9 +1312,9 @@ async function resetUserStructure(userId) {
             <button class="btn-icon btn-save-phone" onclick="savePhone('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-phone" onclick="cancelEditPhone('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
            </div>
-                   <td class="notes-cell" id="notes-${docId}">
+          <td class="notes-cell" id="notes-${docId}">
             <div class="notes-wrapper" data-fullnote="${escapeHtml(notesDisplay)}">
-              <span class="notes-display editable-click ${!user.notes ? 'notes-unset' : ''}" onclick="editNotes('${docId}')">${escapeHtml(notesDisplay)}</span>
+              <span class="notes-display editable-click ${!user.notes ? 'notes-unset' : ''}" onclick="showNoteModal('${escapeHtml(notesDisplay)}', '${docId}')">${escapeHtml(notesDisplay)}</span>
               <i class="fas fa-file-alt view-note-icon" style="display: none;" onclick="showNoteModal('${escapeHtml(notesDisplay)}', '${docId}')"></i>
             </div>
             <input type="text" class="notes-input" value="${escapeHtml(user.notes || '')}" style="display:none;">
@@ -1530,7 +1387,6 @@ async function resetUserStructure(userId) {
           return;
         }
         
-        // 老師：只看到自己群組的用戶（有交集）
         if (!currentUserIsAdmin && currentUserIsTeacher) {
           if (!currentUserBranch || currentUserBranch.length === 0) {
             usersList.innerHTML = ' <td colspan="13" class="loading">您的帳號尚未分配群組，請聯絡管理員 </div>';
@@ -1539,12 +1395,10 @@ async function resetUserStructure(userId) {
           }
         }
         
-        // 管理員：可選擇 Branch 過濾（單一值）
         if (currentUserIsAdmin && currentBranchFilter !== 'empty' && currentBranchFilter !== 'all') {
           constraints.push(where('branch', 'array-contains', currentBranchFilter));
         }
         
-        // 添加其他過濾條件
         if (filter === 'premium') {
           constraints.push(where('premium', '==', true));
         } else if (filter === 'free') {
@@ -1587,7 +1441,6 @@ async function resetUserStructure(userId) {
         
         let filteredDocs = snapshot.docs;
         
-        // 管理員的「未填寫」過濾
         if (currentUserIsAdmin && currentBranchFilter === 'empty') {
           filteredDocs = snapshot.docs.filter(doc => {
             const branch = doc.data().branch;
@@ -1595,7 +1448,6 @@ async function resetUserStructure(userId) {
           });
         }
         
-        // 老師過濾：群組有交集
         if (!currentUserIsAdmin && currentUserIsTeacher && currentUserBranch.length > 0) {
           filteredDocs = snapshot.docs.filter(doc => {
             const userBranch = doc.data().branch;
@@ -1615,8 +1467,6 @@ async function resetUserStructure(userId) {
         } else {
           usersList.innerHTML = html;
           bindCheckboxEvents();
-          
-          // 綁定備註欄圖標顯示
           bindNoteTooltips();
         }
         
@@ -1786,21 +1636,21 @@ async function resetUserStructure(userId) {
       input.focus();
     };
     
-   window.savePublisher = async (userId) => {
-    const cell = document.getElementById(`publisher-${userId}`);
-    const input = cell.querySelector('.publisher-input');
-    const newPublisherStr = input.value.trim();
-    let newPublishers = [];
-    
-    if (newPublisherStr) {
+    window.savePublisher = async (userId) => {
+      const cell = document.getElementById(`publisher-${userId}`);
+      const input = cell.querySelector('.publisher-input');
+      const newPublisherStr = input.value.trim();
+      let newPublishers = [];
+      
+      if (newPublisherStr) {
         newPublishers = newPublisherStr.split(',').map(s => s.trim()).filter(s => s !== '');
-    }
-    
-    try {
+      }
+      
+      try {
         const userRef = doc(db, 'users', userId);
         await updateDoc(userRef, {
-            publishers: newPublishers,  // ← 只更新 publishers
-            updatedAt: new Date().toISOString()
+          publishers: newPublishers,
+          updatedAt: new Date().toISOString()
         });
         
         const display = cell.querySelector('.publisher-display');
@@ -1811,17 +1661,17 @@ async function resetUserStructure(userId) {
         cell.querySelector('.btn-cancel-publisher').style.display = 'none';
         
         if (newPublishers.length > 0) {
-            cell.classList.remove('publisher-unset');
+          cell.classList.remove('publisher-unset');
         } else {
-            cell.classList.add('publisher-unset');
+          cell.classList.add('publisher-unset');
         }
         
         console.log(`✅ 教材已更新: ${userId}`);
         await reloadUsers();
-    } catch (error) {
+      } catch (error) {
         showToast('更新失敗：' + error.message);
-    }
-};
+      }
+    };
     
     window.cancelEditPublisher = (userId) => {
       const cell = document.getElementById(`publisher-${userId}`);
@@ -1896,49 +1746,23 @@ async function resetUserStructure(userId) {
       cell.querySelector('.btn-cancel-grade').style.display = 'none';
     };
 
-    // ===== 備註編輯（點擊直接編輯）=====
+    // ===== 備註編輯（保留以兼容舊代碼）=====
     window.editNotes = (userId) => {
-      if (!currentUserIsAdmin && !currentUserIsTeacher) return;
       const cell = document.getElementById(`notes-${userId}`);
       const display = cell.querySelector('.notes-display');
-      const input = cell.querySelector('.notes-input');
-      const saveBtn = cell.querySelector('.btn-save-notes');
-      const cancelBtn = cell.querySelector('.btn-cancel-notes');
-      input.value = display.textContent === '未填寫' ? '' : display.textContent;
-      display.style.display = 'none';
-      input.style.display = 'inline-block';
-      saveBtn.style.display = 'inline-block';
-      cancelBtn.style.display = 'inline-block';
-      input.focus();
+      if (display) {
+        showNoteModal(display.textContent, userId);
+      }
     };
     
     window.saveNotes = async (userId) => {
-      const cell = document.getElementById(`notes-${userId}`);
-      const input = cell.querySelector('.notes-input');
-      const newNotes = input.value.trim();
-      try {
-        await updateDoc(doc(db, 'users', userId), { notes: newNotes || '', updatedAt: new Date().toISOString() });
-        const display = cell.querySelector('.notes-display');
-        display.textContent = newNotes || '未填寫';
-        display.style.display = 'inline';
-        input.style.display = 'none';
-        cell.querySelector('.btn-save-notes').style.display = 'none';
-        cell.querySelector('.btn-cancel-notes').style.display = 'none';
-        if (newNotes) cell.classList.remove('notes-unset');
-        else cell.classList.add('notes-unset');
-        console.log(`✅ 備註已更新: ${userId}`);
-      } catch (error) { showToast('更新失敗：' + error.message); }
+      // 已改用彈窗編輯，此函數保留以兼容
+      console.log('saveNotes 已棄用，請使用彈窗編輯');
     };
     
     window.cancelEditNotes = (userId) => {
-      const cell = document.getElementById(`notes-${userId}`);
-      const display = cell.querySelector('.notes-display');
-      const input = cell.querySelector('.notes-input');
-      input.value = display.textContent === '未填寫' ? '' : display.textContent;
-      display.style.display = 'inline';
-      input.style.display = 'none';
-      cell.querySelector('.btn-save-notes').style.display = 'none';
-      cell.querySelector('.btn-cancel-notes').style.display = 'none';
+      // 已改用彈窗編輯，此函數保留以兼容
+      console.log('cancelEditNotes 已棄用');
     };
 
     // ===== 電話編輯 =====
@@ -2138,7 +1962,6 @@ async function resetUserStructure(userId) {
       } catch (error) { showToast('更新失敗：' + error.message); }
     };
     
-    // 重置結構（管理員專用）
     window.resetUserStructure = resetUserStructure;
     
     // 操作菜單
@@ -2191,8 +2014,6 @@ async function resetUserStructure(userId) {
       hasMore = true;
       await loadUsers(currentFilter, false);
       await updateStats();
-      
-      // 重新綁定備註欄 Tooltip
       bindNoteTooltips();
     }
     
@@ -2296,7 +2117,6 @@ async function resetUserStructure(userId) {
       }
     };
     
-    // 發送通知函數
     window.openSendNotification = () => {
       const checkboxes = document.querySelectorAll('.user-checkbox:checked');
       const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.userid);
@@ -2479,17 +2299,17 @@ async function resetUserStructure(userId) {
           ` : ''}
           
           <div class="users-table">
-              <table>
+            <table>
               <thead>
-                  <tr>
+                <tr>
                   <th style="width: 40px;">
                     <input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()">
                   </th>
                   <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>群組</th><th>年級</th><th>教材</th><th>註冊/最近</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>操作</th>
-                  </tr>
+                </tr>
               </thead>
               <tbody id="usersList"> <tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
-              </table>
+            </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
         </div>
@@ -2617,14 +2437,13 @@ async function resetUserStructure(userId) {
         currentUserIsTeacher = userData.role === 'teacher';
         
         if (!currentUserIsAdmin && !currentUserIsTeacher) {
-          appDiv.innerHTML = `<div class="unauthorized">...</div>`;
+          appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-shield-alt"></i><h2>無權限訪問</h2><p>此頁面僅限管理員或老師使用</p><p>您的帳號：${escapeHtml(user.email)}</p><button onclick="logout()" class="btn-toggle">登出</button></div>`;
           return;
         }
         await loadAdminInterface(appDiv, user);
-
       } catch (error) {
         console.error('權限檢查失敗:', error);
-        appDiv.innerHTML = `<div class="unauthorized">...</div>`;
+        appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-exclamation-triangle"></i><h2>發生錯誤</h2><p>${error.message}</p><button onclick="logout()" class="btn-toggle">登出</button></div>`;
       }
     });
   </script>
