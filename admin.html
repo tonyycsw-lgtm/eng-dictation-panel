@@ -248,7 +248,6 @@
       margin-bottom: 20px;
     }
     
-    /* 標籤樣式 */
     .admin-badge {
       display: inline-flex;
       align-items: center;
@@ -301,10 +300,8 @@
     }
     
     .disabled-row {
-      /* 與正常行一致 */
     }
     
-    /* 徽章樣式 */
     .premium-badge {
       display: inline-block;
       padding: 4px 12px;
@@ -323,7 +320,6 @@
       color: #991b1b;
     }
     
-    /* 到期提醒 */
     .expiring-soon {
       color: #f97316;
       font-weight: 500;
@@ -334,7 +330,6 @@
       font-weight: 500;
     }
     
-    /* 線上狀態 */
     .online-status {
       font-weight: 600;
       white-space: nowrap;
@@ -366,7 +361,6 @@
       50% { opacity: 0.5; }
     }
     
-    /* 可編輯欄位 */
     .editable-click {
       cursor: pointer;
       padding: 2px 4px;
@@ -429,7 +423,6 @@
       background: #e2e8f0;
     }
     
-    /* 操作菜單 */
     .action-menu {
       position: relative;
       display: inline-block;
@@ -497,7 +490,6 @@
       margin: 5px 0;
     }
     
-    /* 試用期 */
     .trial-display {
       cursor: pointer;
       padding: 4px 8px;
@@ -527,7 +519,6 @@
     .trial-badge.active { background: #dcfce7; color: #166534; }
     .trial-badge.expiring { background: #fef3c7; color: #92400e; }
     
-    /* 合併日期欄樣式 */
     .date-combined {
       font-family: monospace;
       font-size: 11px;
@@ -555,7 +546,6 @@
       }
     }
     
-    /* ===== 可編輯欄位包裝器樣式 ===== */
     .notes-cell, .branch-cell, .publisher-cell {
       max-width: 220px;
       min-width: 100px;
@@ -601,7 +591,6 @@
       transform: scale(1.05);
     }
     
-    /* ===== 備註彈窗樣式 ===== */
     .note-modal-overlay {
       position: fixed;
       top: 0;
@@ -806,14 +795,13 @@
         app = getApps()[0];
       }
     } catch (error) {
-      console.error('Firebase initialization failed:', error);
+      console.error('Firebase init failed:', error);
       app = getApps()[0];
     }
 
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Global variables
     let currentFilter = 'all';
     let currentBranchFilter = 'all';
     let lastVisible = null;
@@ -827,7 +815,6 @@
     
     let selectedUserIdsForNotification = [];
 
-    // XSS protection
     function escapeHtml(str) {
       if (!str) return '';
       return str.replace(/[&<>"']/g, function(m) {
@@ -842,18 +829,15 @@
       });
     }
 
-    // Check if text is truncated
     function isTextTruncated(element) {
       if (!element) return false;
       return element.scrollWidth > element.clientWidth;
     }
     
-    // Bind editable tooltips for truncated text
     function bindEditableTooltips() {
       document.querySelectorAll('.editable-wrapper').forEach(wrapper => {
         const displaySpan = wrapper.querySelector('.editable-display');
         const icon = wrapper.querySelector('.edit-icon');
-        
         if (!displaySpan || !icon) return;
         
         const isTruncated = isTextTruncated(displaySpan);
@@ -880,7 +864,6 @@
       });
     }
     
-    // Show note modal for editing
     async function showNoteModal(content, userId) {
       const cell = document.getElementById(`notes-${userId}`);
       let currentNote = content;
@@ -899,18 +882,18 @@
       modal.innerHTML = `
         <div class="note-modal-content">
           <div class="note-modal-header">
-            <h3>Edit Note</h3>
+            <h3>編輯備註</h3>
             <button class="note-modal-close">&times;</button>
           </div>
           <div class="note-modal-body">
             <textarea id="note-edit-textarea" 
                       class="note-edit-textarea"
                       rows="6"
-                      placeholder="Enter note content...">${escapeHtml(originalContent)}</textarea>
+                      placeholder="請輸入備註內容...">${escapeHtml(originalContent)}</textarea>
           </div>
           <div class="note-modal-footer">
-            <button class="note-modal-cancel-btn">Cancel</button>
-            <button class="note-modal-save-btn">Save</button>
+            <button class="note-modal-cancel-btn">取消</button>
+            <button class="note-modal-save-btn">儲存</button>
           </div>
         </div>
       `;
@@ -950,11 +933,11 @@
             }
           }
           
-          showToast('Note updated', 'success');
+          showToast('備註已更新', 'success');
           closeModal();
         } catch (error) {
-          console.error('Failed to update note:', error);
-          showToast('Update failed: ' + error.message);
+          console.error('更新備註失敗:', error);
+          showToast('更新失敗: ' + error.message);
         }
       };
       
@@ -987,7 +970,6 @@
       }, 50);
     }
     
-    // Generic array field modal for branch and publisher
     async function showArrayFieldModal(fieldName, userId, fieldKey, displayValue, arrayValue) {
       const originalValue = displayValue === '-' ? '' : displayValue;
       
@@ -996,22 +978,22 @@
       modal.innerHTML = `
         <div class="note-modal-content">
           <div class="note-modal-header">
-            <h3>Edit ${fieldName}</h3>
+            <h3>編輯${fieldName}</h3>
             <button class="note-modal-close">&times;</button>
           </div>
           <div class="note-modal-body">
             <div style="margin-bottom: 8px; font-size: 12px; color: #6b7280;">
-              Tip: Use commas to separate multiple ${fieldName} names
+              💡 提示：請使用逗號分隔多個${fieldName}名稱
             </div>
             <input type="text" 
                    id="array-field-input" 
                    class="array-field-input"
                    value="${escapeHtml(originalValue)}"
-                   placeholder="Enter ${fieldName} names, separated by commas">
+                   placeholder="請輸入${fieldName}名稱，以逗號分隔">
           </div>
           <div class="note-modal-footer">
-            <button class="note-modal-cancel-btn">Cancel</button>
-            <button class="note-modal-save-btn">Save</button>
+            <button class="note-modal-cancel-btn">取消</button>
+            <button class="note-modal-save-btn">儲存</button>
           </div>
         </div>
       `;
@@ -1064,11 +1046,11 @@
             }
           }
           
-          showToast(`${fieldName} updated`, 'success');
+          showToast(`${fieldName}已更新`, 'success');
           closeModal();
         } catch (error) {
-          console.error(`Failed to update ${fieldName}:`, error);
-          showToast(`Update failed: ${error.message}`);
+          console.error(`更新${fieldName}失敗:`, error);
+          showToast(`更新失敗: ${error.message}`);
         }
       };
       
@@ -1101,7 +1083,6 @@
       }, 50);
     }
     
-    // Branch modal
     async function showBranchModal(userId) {
       const cell = document.getElementById(`branch-${userId}`);
       if (!cell) return;
@@ -1115,10 +1096,9 @@
         currentArray = input.value.split(',').map(s => s.trim()).filter(s => s !== '');
       }
       
-      await showArrayFieldModal('Group', userId, 'branch', currentDisplay, currentArray);
+      await showArrayFieldModal('群組', userId, 'branch', currentDisplay, currentArray);
     }
     
-    // Publisher modal
     async function showPublisherModal(userId) {
       const cell = document.getElementById(`publisher-${userId}`);
       if (!cell) return;
@@ -1132,7 +1112,7 @@
         currentArray = input.value.split(',').map(s => s.trim()).filter(s => s !== '');
       }
       
-      await showArrayFieldModal('Textbook', userId, 'publishers', currentDisplay, currentArray);
+      await showArrayFieldModal('教材', userId, 'publishers', currentDisplay, currentArray);
     }
     
     window.showNoteModal = showNoteModal;
@@ -1160,7 +1140,7 @@
         const userRef = doc(db, 'users', userId);
         const userSnap = await getDoc(userRef);
         if (!userSnap.exists()) {
-          showToast('User does not exist');
+          showToast('用戶不存在');
           return;
         }
         
@@ -1186,7 +1166,7 @@
           }
         }
         if (newPublishers.length === 0) {
-          newPublishers = ["Sample"];
+          newPublishers = ["示範"];
         }
         updates.publishers = newPublishers;
         
@@ -1196,12 +1176,12 @@
         
         await updateDoc(userRef, updates);
         
-        console.log(`User structure reset: ${userId}`);
-        showToast('User structure reset', 'success');
+        console.log(`用戶結構已重置: ${userId}`);
+        showToast('用戶結構已重置', 'success');
         await reloadUsers();
       } catch (error) {
-        console.error('Failed to reset user structure:', error);
-        showToast('Reset failed: ' + error.message);
+        console.error('重置用戶結構失敗:', error);
+        showToast('重置失敗: ' + error.message);
       }
     }
 
@@ -1258,9 +1238,9 @@
       const daysLeft = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
       
       if (daysLeft < 0) {
-        return '<span class="expired-badge">Expired</span>';
+        return '<span class="expired-badge">⚠️ 已過期</span>';
       } else if (daysLeft <= 7) {
-        return `<span class="expiring-soon">${daysLeft} days left</span>`;
+        return `<span class="expiring-soon">⚠️ ${daysLeft}天</span>`;
       } else {
         return formatDate(expiresAt);
       }
@@ -1268,28 +1248,28 @@
 
     function getOnlineStatus(lastLoginAt, isDisabled = false) {
       if (isDisabled) {
-        return '<span class="online-status status-offline"><span class="activity-indicator"></span>Disabled</span>';
+        return '<span class="online-status status-offline"><span class="activity-indicator"></span>已停用</span>';
       }
       if (!lastLoginAt) {
-        return '<span class="online-status status-never"><span class="activity-indicator"></span>Never</span>';
+        return '<span class="online-status status-never"><span class="activity-indicator"></span>從未上線</span>';
       }
       const last = new Date(lastLoginAt);
       const now = new Date();
       const diffMinutes = Math.floor((now - last) / (1000 * 60));
       
       if (diffMinutes < 5) {
-        return '<span class="online-status status-online"><i class="fas fa-circle" style="font-size: 8px; margin-right: 4px;"></i>Online</span>';
+        return '<span class="online-status status-online"><i class="fas fa-circle" style="font-size: 8px; margin-right: 4px;"></i>在線中</span>';
       } else if (diffMinutes < 60) {
-        return '<span class="online-status status-recent"><span class="activity-indicator"></span>Recent</span>';
+        return '<span class="online-status status-recent"><span class="activity-indicator"></span>最近上線</span>';
       } else if (diffMinutes < 1440) {
         const hours = Math.floor(diffMinutes / 60);
-        return `<span class="online-status status-today"><span class="activity-indicator"></span>${hours}h ago</span>`;
+        return `<span class="online-status status-today"><span class="activity-indicator"></span>${hours}小時前</span>`;
       } else if (diffMinutes < 10080) {
         const days = Math.floor(diffMinutes / 1440);
-        return `<span class="online-status status-week"><span class="activity-indicator"></span>${days}d ago</span>`;
+        return `<span class="online-status status-week"><span class="activity-indicator"></span>${days}天前</span>`;
       } else {
         const days = Math.floor(diffMinutes / 1440);
-        return `<span class="online-status status-offline"><span class="activity-indicator"></span>${days}d ago</span>`;
+        return `<span class="online-status status-offline"><span class="activity-indicator"></span>${days}天前</span>`;
       }
     }
 
@@ -1308,9 +1288,9 @@
       const now = new Date();
       const trialDate = new Date(trialEndAt);
       const daysLeft = Math.ceil((trialDate - now) / (1000 * 60 * 60 * 24));
-      if (daysLeft < 0) return '<span class="trial-badge">Expired</span>';
-      if (daysLeft <= 7) return `<span class="trial-badge expiring">${daysLeft} days left</span>`;
-      return '<span class="trial-badge active">Active</span>';
+      if (daysLeft < 0) return '<span class="trial-badge">已過期</span>';
+      if (daysLeft <= 7) return `<span class="trial-badge expiring">${daysLeft}天後到期</span>`;
+      return '<span class="trial-badge active">試用中</span>';
     }
 
     function formatTrialDate(trialEndAt) {
@@ -1356,7 +1336,7 @@
         }
         return [];
       } catch (error) {
-        console.error('Failed to get branch:', error);
+        console.error('獲取 Branch 失敗:', error);
         return [];
       }
     }
@@ -1385,30 +1365,30 @@
         }
       }
       
-      let gradeDisplay = user.grade || 'Not set';
+      let gradeDisplay = user.grade || '未設定';
       if (Array.isArray(user.grade)) {
         gradeDisplay = user.grade.join(', ');
       }
       
       let nameHtml = `
         <div class="displayname-cell" id="displayname-${docId}">
-          <span class="displayname-display editable-click" onclick="editDisplayName('${docId}')">${escapeHtml(user.displayName || 'Not set')}</span>
+          <span class="displayname-display editable-click" onclick="editDisplayName('${docId}')">${escapeHtml(user.displayName || '未設定')}</span>
           <input type="text" class="displayname-input" value="${escapeHtml(user.displayName || '')}" style="display:none;">
           <button class="btn-icon btn-save-displayname" onclick="saveDisplayName('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
           <button class="btn-icon btn-cancel-displayname" onclick="cancelEditDisplayName('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
         </div>
       `;
-      if (isAdmin) nameHtml += `<span class="admin-badge"><i class="fas fa-crown"></i> Admin</span>`;
-      else if (isTeacher) nameHtml += `<span class="teacher-badge"><i class="fas fa-chalkboard-teacher"></i> Teacher</span>`;
+      if (isAdmin) nameHtml += `<span class="admin-badge"><i class="fas fa-crown"></i> 管理員</span>`;
+      else if (isTeacher) nameHtml += `<span class="teacher-badge"><i class="fas fa-chalkboard-teacher"></i> 老師</span>`;
       if (isDisabled) nameHtml += `<span class="disabled-icon"><i class="fas fa-ban"></i></span>`;
       
-      const planMap = { 'free': 'Free', 'monthly': 'Monthly', 'annual': 'Annual', 'custom': 'Custom' };
+      const planMap = { 'free': '免費', 'monthly': '月費', 'annual': '年費', 'custom': '自訂' };
       const planText = planMap[user.plan] || user.plan || '-';
       const isPremium = user.premium === true;
       const planBadgeClass = isPremium ? 'premium-true' : 'premium-false';
       
-      const phoneDisplay = user.phoneNumber || 'Not set';
-      const notesDisplay = user.notes || 'Not filled';
+      const phoneDisplay = user.phoneNumber || '未設定';
+      const notesDisplay = user.notes || '未填寫';
       const expiryDisplay = getExpiryDisplay(user.expiresAt);
       
       const registeredDate = formatDate(user.createdAt);
@@ -1416,36 +1396,36 @@
       
       let menuHtml = `<div class="action-dropdown" id="menu-${docId}" style="display: none;">`;
       menuHtml += `
-        <div class="menu-item" data-action="setPlan" data-plan="free"><i class="fas fa-times-circle"></i> Set Free</div>
-        <div class="menu-item" data-action="setPlan" data-plan="monthly"><i class="fas fa-calendar-alt"></i> Set Monthly</div>
-        <div class="menu-item" data-action="setPlan" data-plan="annual"><i class="fas fa-calendar-check"></i> Set Annual</div>
+        <div class="menu-item" data-action="setPlan" data-plan="free"><i class="fas fa-times-circle"></i> 設為免費</div>
+        <div class="menu-item" data-action="setPlan" data-plan="monthly"><i class="fas fa-calendar-alt"></i> 設為月費</div>
+        <div class="menu-item" data-action="setPlan" data-plan="annual"><i class="fas fa-calendar-check"></i> 設為年費</div>
       `;
       
       if (currentUserIsAdmin) {
         menuHtml += `<div class="menu-divider"></div>`;
         if (isTeacher) {
-          menuHtml += `<div class="menu-item" data-action="removeTeacher"><i class="fas fa-user-slash"></i> Remove Teacher</div>`;
+          menuHtml += `<div class="menu-item" data-action="removeTeacher"><i class="fas fa-user-slash"></i> 移除老師權限</div>`;
         } else if (!isAdmin) {
-          menuHtml += `<div class="menu-item" data-action="setTeacher"><i class="fas fa-chalkboard-teacher"></i> Set as Teacher</div>`;
+          menuHtml += `<div class="menu-item" data-action="setTeacher"><i class="fas fa-chalkboard-teacher"></i> 設為老師</div>`;
         }
         
         if (!isAdmin) {
           menuHtml += `<div class="menu-divider"></div>`;
           if (isDisabled) {
-            menuHtml += `<div class="menu-item" data-action="enableUser"><i class="fas fa-check-circle"></i> Enable Account</div>`;
+            menuHtml += `<div class="menu-item" data-action="enableUser"><i class="fas fa-check-circle"></i> 啟用帳號</div>`;
           } else {
-            menuHtml += `<div class="menu-item" data-action="disableUser"><i class="fas fa-ban"></i> Disable Account</div>`;
+            menuHtml += `<div class="menu-item" data-action="disableUser"><i class="fas fa-ban"></i> 停用帳號</div>`;
           }
         }
         
         menuHtml += `<div class="menu-divider"></div>`;
-        menuHtml += `<div class="menu-item" data-action="resetStructure"><i class="fas fa-sync-alt"></i> Reset Structure</div>`;
+        menuHtml += `<div class="menu-item" data-action="resetStructure"><i class="fas fa-sync-alt"></i> 重置結構</div>`;
         
         menuHtml += `
           <div class="menu-divider"></div>
-          <div class="menu-item" data-action="setTrial"><i class="fas fa-hourglass-half"></i> Set Trial</div>
-          <div class="menu-item" data-action="extendTrial"><i class="fas fa-plus-circle"></i> Extend Trial</div>
-          <div class="menu-item" data-action="removeTrial"><i class="fas fa-times"></i> Remove Trial</div>
+          <div class="menu-item" data-action="setTrial"><i class="fas fa-hourglass-half"></i> 設定試用期</div>
+          <div class="menu-item" data-action="extendTrial"><i class="fas fa-plus-circle"></i> 延長試用期</div>
+          <div class="menu-item" data-action="removeTrial"><i class="fas fa-times"></i> 移除試用期</div>
         `;
       }
       menuHtml += `</div>`;
@@ -1477,13 +1457,13 @@
               <span class="editable-display branch-display ${!user.branch || (Array.isArray(user.branch) && user.branch.length === 0) ? 'branch-unset' : ''}" onclick="showBranchModal('${docId}')">${escapeHtml(branchDisplay)}</span>
               <i class="fas fa-tag edit-icon view-branch-icon" style="display: none;" onclick="showBranchModal('${docId}')"></i>
             </div>
-            <input type="text" class="branch-input" value="${escapeHtml(Array.isArray(user.branch) ? user.branch.join(', ') : (user.branch || ''))}" style="display:none;" placeholder="Enter groups (comma separated)" maxlength="200">
+            <input type="text" class="branch-input" value="${escapeHtml(Array.isArray(user.branch) ? user.branch.join(', ') : (user.branch || ''))}" style="display:none;" placeholder="請輸入群組（逗號分隔）" maxlength="200">
             <button class="btn-icon btn-save-branch" onclick="saveBranch('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-branch" onclick="cancelEditBranch('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
            </div>
           <td id="grade-${docId}">
             <span class="grade-display editable-click" onclick="editGrade('${docId}')">${escapeHtml(gradeDisplay)}</span>
-            <input type="text" class="grade-input" style="display:none;" value="${escapeHtml(gradeDisplay === 'Not set' ? '' : gradeDisplay)}" placeholder="Enter grades (comma separated)">
+            <input type="text" class="grade-input" style="display:none;" value="${escapeHtml(gradeDisplay === '未設定' ? '' : gradeDisplay)}" placeholder="請輸入年級（逗號分隔）">
             <button class="btn-icon btn-save-grade" onclick="saveGrade('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-grade" onclick="cancelEditGrade('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
            </div>
@@ -1492,13 +1472,13 @@
               <span class="editable-display publisher-display" onclick="showPublisherModal('${docId}')">${escapeHtml(publishersDisplay)}</span>
               <i class="fas fa-book edit-icon view-publisher-icon" style="display: none;" onclick="showPublisherModal('${docId}')"></i>
             </div>
-            <input type="text" class="publisher-input" style="display:none;" value="${escapeHtml(Array.isArray(user.publishers) ? user.publishers.join(', ') : (user.publishers || ''))}" placeholder="Enter textbooks (comma separated)">
+            <input type="text" class="publisher-input" style="display:none;" value="${escapeHtml(Array.isArray(user.publishers) ? user.publishers.join(', ') : (user.publishers || ''))}" placeholder="請輸入教材（逗號分隔）">
             <button class="btn-icon btn-save-publisher" onclick="savePublisher('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-publisher" onclick="cancelEditPublisher('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
            </div>
           <td class="date-combined">
-            <div>Registered: ${registeredDate}</div>
-            <div>Recent: ${lastActiveDate}</div>
+            <div>註冊: ${registeredDate}</div>
+            <div>最近: ${lastActiveDate}</div>
           </div>
           <td class="status-cell">${getOnlineStatus(user.lastActiveAt || user.lastLoginAt, isDisabled)}</div>
           <td class="plan-cell"><span class="premium-badge ${planBadgeClass}">${planText}</span></div>
@@ -1511,7 +1491,7 @@
           <td class="action-cell">
             <div class="action-menu">
               <button class="action-btn" data-userid="${docId}" onclick="toggleActionMenu('${docId}', event)">
-                <i class="fas fa-chevron-down"></i> Actions
+                <i class="fas fa-chevron-down"></i>
               </button>
               ${menuHtml}
             </div>
@@ -1526,7 +1506,7 @@
       if (!usersList) return;
       
       if (!loadMore) {
-        usersList.innerHTML = ' <td colspan="13" class="loading"><span class="loading-spinner"></span> Loading... </div>';
+        usersList.innerHTML = ' <td colspan="13" class="loading"><span class="loading-spinner"></span> 載入中... </div>';
         if (loadMoreContainer) loadMoreContainer.style.display = 'none';
       }
       
@@ -1538,14 +1518,14 @@
         let constraints = [];
         
         if (!currentUserIsAdmin && !currentUserIsTeacher) {
-          usersList.innerHTML = ' <td colspan="13" class="loading">No permission </div>';
+          usersList.innerHTML = ' <td colspan="13" class="loading">無權限訪問 </div>';
           isLoading = false;
           return;
         }
         
         if (!currentUserIsAdmin && currentUserIsTeacher) {
           if (!currentUserBranch || currentUserBranch.length === 0) {
-            usersList.innerHTML = ' <td colspan="13" class="loading">Your account has no group assigned. Contact admin. </div>';
+            usersList.innerHTML = ' <td colspan="13" class="loading">您的帳號尚未分配群組，請聯絡管理員 </div>';
             isLoading = false;
             return;
           }
@@ -1619,7 +1599,7 @@
         });
         
         if (filteredDocs.length === 0 && !loadMore) {
-          usersList.innerHTML = ' <td colspan="13" class="loading">No users found </div>';
+          usersList.innerHTML = ' <td colspan="13" class="loading">📭 沒有找到符合條件的用戶 </div>';
         } else {
           usersList.innerHTML = html;
           bindCheckboxEvents();
@@ -1630,8 +1610,8 @@
           loadMoreContainer.style.display = hasMore ? 'block' : 'none';
         }
       } catch (error) {
-        console.error('Failed to load users:', error);
-        if (!loadMore) usersList.innerHTML = ` <td colspan="13" class="loading">Failed: ${error.message} </div>`;
+        console.error('載入用戶失敗:', error);
+        if (!loadMore) usersList.innerHTML = ` <td colspan="13" class="loading">載入失敗: ${error.message} </div>`;
       } finally {
         isLoading = false;
       }
@@ -1650,11 +1630,10 @@
         document.getElementById('premiumUsers').textContent = premium.data().count;
         document.getElementById('freeUsers').textContent = free.data().count;
       } catch (error) {
-        console.error('Failed to update stats:', error);
+        console.error('更新統計失敗:', error);
       }
     }
 
-    // Checkbox functions
     window.toggleSelectAll = () => {
       const selectAll = document.getElementById('selectAllCheckbox');
       const checkboxes = document.querySelectorAll('.user-checkbox');
@@ -1687,17 +1666,16 @@
       });
     }
 
-    // Batch reset structure
     window.batchResetStructure = async () => {
       if (!currentUserIsAdmin) return;
       
       const selectedIds = window.selectedUserIds;
       if (!selectedIds || selectedIds.length === 0) {
-        showToast('Please select users first');
+        showToast('請先選取用戶');
         return;
       }
       
-      if (!confirm(`Reset structure for ${selectedIds.length} user(s)? This action cannot be undone.`)) {
+      if (!confirm(`確定要重置 ${selectedIds.length} 位用戶的資料結構嗎？\n\n此操作將：\n- 將群組 (branch) 轉換為陣列格式\n- 將教材 (publishers) 轉換為陣列格式（如無則設為 ["示範"]）\n- 保留所有其他數據\n\n此操作不可復原！`)) {
         return;
       }
       
@@ -1709,26 +1687,23 @@
           await resetUserStructure(userId);
           successCount++;
         } catch (error) {
-          console.error(`Failed to reset user ${userId}:`, error);
+          console.error(`重置用戶 ${userId} 失敗:`, error);
           failCount++;
         }
       }
       
-      showToast(`Reset completed: ${successCount} success, ${failCount} failed`, successCount > 0 ? 'success' : 'error');
+      showToast(`重置完成：成功 ${successCount} 位，失敗 ${failCount} 位`, successCount > 0 ? 'success' : 'error');
       await reloadUsers();
     };
 
-    // Branch edit (legacy)
     window.editBranch = (userId) => { showBranchModal(userId); };
     window.saveBranch = async (userId) => { console.log('saveBranch deprecated'); };
     window.cancelEditBranch = (userId) => { console.log('cancelEditBranch deprecated'); };
 
-    // Publisher edit (legacy)
     window.editPublisher = (userId) => { showPublisherModal(userId); };
     window.savePublisher = async (userId) => { console.log('savePublisher deprecated'); };
     window.cancelEditPublisher = (userId) => { console.log('cancelEditPublisher deprecated'); };
 
-    // Grade edit
     window.editGrade = (userId) => {
       if (!currentUserIsAdmin && !currentUserIsTeacher) return;
       const cell = document.getElementById(`grade-${userId}`);
@@ -1736,7 +1711,7 @@
       const input = cell.querySelector('.grade-input');
       const saveBtn = cell.querySelector('.btn-save-grade');
       const cancelBtn = cell.querySelector('.btn-cancel-grade');
-      input.value = display.textContent === 'Not set' ? '' : display.textContent;
+      input.value = display.textContent === '未設定' ? '' : display.textContent;
       display.style.display = 'none';
       input.style.display = 'inline-block';
       saveBtn.style.display = 'inline-block';
@@ -1767,17 +1742,17 @@
         });
         
         const display = cell.querySelector('.grade-display');
-        const displayText = newGrade ? (Array.isArray(newGrade) ? newGrade.join(', ') : newGrade) : 'Not set';
+        const displayText = newGrade ? (Array.isArray(newGrade) ? newGrade.join(', ') : newGrade) : '未設定';
         display.textContent = displayText;
         display.style.display = 'inline';
         input.style.display = 'none';
         cell.querySelector('.btn-save-grade').style.display = 'none';
         cell.querySelector('.btn-cancel-grade').style.display = 'none';
         
-        console.log(`Grade updated: ${userId}`);
+        console.log(`年級已更新: ${userId}`);
         await reloadUsers();
       } catch (error) {
-        showToast('Update failed: ' + error.message);
+        showToast('更新失敗：' + error.message);
       }
     };
     
@@ -1791,7 +1766,6 @@
       cell.querySelector('.btn-cancel-grade').style.display = 'none';
     };
 
-    // Note edit (legacy)
     window.editNotes = (userId) => {
       const cell = document.getElementById(`notes-${userId}`);
       const display = cell.querySelector('.notes-display');
@@ -1803,7 +1777,6 @@
     window.saveNotes = async (userId) => { console.log('saveNotes deprecated'); };
     window.cancelEditNotes = (userId) => { console.log('cancelEditNotes deprecated'); };
 
-    // Phone edit
     window.editPhone = (userId) => {
       if (!currentUserIsAdmin && !currentUserIsTeacher) return;
       const cell = document.getElementById(`phone-${userId}`);
@@ -1811,7 +1784,7 @@
       const input = cell.querySelector('.phone-input');
       const saveBtn = cell.querySelector('.btn-save-phone');
       const cancelBtn = cell.querySelector('.btn-cancel-phone');
-      input.value = display.textContent === 'Not set' ? '' : display.textContent;
+      input.value = display.textContent === '未設定' ? '' : display.textContent;
       display.style.display = 'none';
       input.style.display = 'inline-block';
       saveBtn.style.display = 'inline-block';
@@ -1826,29 +1799,28 @@
       try {
         await updateDoc(doc(db, 'users', userId), { phoneNumber: newPhone || '', updatedAt: new Date().toISOString() });
         const display = cell.querySelector('.phone-display');
-        display.textContent = newPhone || 'Not set';
+        display.textContent = newPhone || '未設定';
         display.style.display = 'inline';
         input.style.display = 'none';
         cell.querySelector('.btn-save-phone').style.display = 'none';
         cell.querySelector('.btn-cancel-phone').style.display = 'none';
         if (newPhone) cell.classList.remove('phone-unset');
         else cell.classList.add('phone-unset');
-        console.log(`Phone updated: ${userId}`);
-      } catch (error) { showToast('Update failed: ' + error.message); }
+        console.log(`電話已更新: ${userId}`);
+      } catch (error) { showToast('更新失敗：' + error.message); }
     };
     
     window.cancelEditPhone = (userId) => {
       const cell = document.getElementById(`phone-${userId}`);
       const display = cell.querySelector('.phone-display');
       const input = cell.querySelector('.phone-input');
-      input.value = display.textContent === 'Not set' ? '' : display.textContent;
+      input.value = display.textContent === '未設定' ? '' : display.textContent;
       display.style.display = 'inline';
       input.style.display = 'none';
       cell.querySelector('.btn-save-phone').style.display = 'none';
       cell.querySelector('.btn-cancel-phone').style.display = 'none';
     };
 
-    // Display name edit
     window.editDisplayName = (userId) => {
       if (!currentUserIsAdmin && !currentUserIsTeacher) return;
       const cell = document.getElementById(`displayname-${userId}`);
@@ -1856,7 +1828,7 @@
       const input = cell.querySelector('.displayname-input');
       const saveBtn = cell.querySelector('.btn-save-displayname');
       const cancelBtn = cell.querySelector('.btn-cancel-displayname');
-      input.value = display.textContent === 'Not set' ? '' : display.textContent;
+      input.value = display.textContent === '未設定' ? '' : display.textContent;
       display.style.display = 'none';
       input.style.display = 'inline-block';
       saveBtn.style.display = 'inline-block';
@@ -1871,34 +1843,33 @@
       try {
         await updateDoc(doc(db, 'users', userId), { displayName: newName || '', updatedAt: new Date().toISOString() });
         const display = cell.querySelector('.displayname-display');
-        display.textContent = newName || 'Not set';
+        display.textContent = newName || '未設定';
         display.style.display = 'inline';
         input.style.display = 'none';
         cell.querySelector('.btn-save-displayname').style.display = 'none';
         cell.querySelector('.btn-cancel-displayname').style.display = 'none';
-        console.log(`Display name updated: ${userId}`);
-      } catch (error) { showToast('Update failed: ' + error.message); }
+        console.log(`用戶名稱已更新: ${userId}`);
+      } catch (error) { showToast('更新失敗：' + error.message); }
     };
     
     window.cancelEditDisplayName = (userId) => {
       const cell = document.getElementById(`displayname-${userId}`);
       const display = cell.querySelector('.displayname-display');
       const input = cell.querySelector('.displayname-input');
-      input.value = display.textContent === 'Not set' ? '' : display.textContent;
+      input.value = display.textContent === '未設定' ? '' : display.textContent;
       display.style.display = 'inline';
       input.style.display = 'none';
       cell.querySelector('.btn-save-displayname').style.display = 'none';
       cell.querySelector('.btn-cancel-displayname').style.display = 'none';
     };
 
-    // Permission management
     window.setAsTeacher = async (userId) => {
       if (!currentUserIsAdmin) return;
       try {
         await updateDoc(doc(db, 'users', userId), { role: 'teacher', updatedAt: new Date().toISOString() });
         await reloadUsers();
-        showToast('Set as teacher', 'success');
-      } catch (error) { showToast('Failed: ' + error.message); }
+        showToast('已設為老師', 'success');
+      } catch (error) { showToast('設定失敗：' + error.message); }
     };
     
     window.removeTeacher = async (userId) => {
@@ -1906,8 +1877,8 @@
       try {
         await updateDoc(doc(db, 'users', userId), { role: 'user', updatedAt: new Date().toISOString() });
         await reloadUsers();
-        showToast('Teacher role removed', 'success');
-      } catch (error) { showToast('Failed: ' + error.message); }
+        showToast('已移除老師權限', 'success');
+      } catch (error) { showToast('移除失敗：' + error.message); }
     };
     
     window.disableUser = async (userId) => {
@@ -1915,8 +1886,8 @@
       try {
         await updateDoc(doc(db, 'users', userId), { isDisabled: true, disabledAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
         await reloadUsers();
-        showToast('Account disabled', 'success');
-      } catch (error) { showToast('Failed: ' + error.message); }
+        showToast('帳號已停用', 'success');
+      } catch (error) { showToast('停用失敗：' + error.message); }
     };
     
     window.enableUser = async (userId) => {
@@ -1924,8 +1895,8 @@
       try {
         await updateDoc(doc(db, 'users', userId), { isDisabled: false, disabledAt: null, updatedAt: new Date().toISOString() });
         await reloadUsers();
-        showToast('Account enabled', 'success');
-      } catch (error) { showToast('Failed: ' + error.message); }
+        showToast('帳號已啟用', 'success');
+      } catch (error) { showToast('啟用失敗：' + error.message); }
     };
     
     window.setPlan = async (userId, plan) => {
@@ -1938,32 +1909,32 @@
         await updateDoc(doc(db, 'users', userId), { premium, plan, expiresAt, updatedAt: new Date().toISOString() });
         await reloadUsers();
         await updateStats();
-        showToast(`Plan set to ${plan}`, 'success');
-      } catch (error) { showToast('Failed: ' + error.message); }
+        showToast(`方案已設為 ${plan}`, 'success');
+      } catch (error) { showToast('設定失敗：' + error.message); }
     };
     
     window.setTrial = async (userId) => {
       if (!currentUserIsAdmin) return;
-      const days = prompt('Enter trial days (e.g., 7, 14, 30):', '7');
+      const days = prompt('請輸入試用天數（例如：7、14、30）：', '7');
       if (!days) return;
       const daysNum = parseInt(days);
-      if (isNaN(daysNum) || daysNum <= 0) { alert('Please enter a valid number'); return; }
+      if (isNaN(daysNum) || daysNum <= 0) { alert('請輸入有效的天數'); return; }
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + daysNum);
       try {
         await updateDoc(doc(db, 'users', userId), { trialEndAt: trialEndDate.toISOString(), updatedAt: new Date().toISOString() });
         await reloadUsers();
         await updateStats();
-        showToast(`Trial set to ${daysNum} days`, 'success');
-      } catch (error) { showToast('Failed: ' + error.message); }
+        showToast(`試用期已設為 ${daysNum} 天`, 'success');
+      } catch (error) { showToast('設定失敗：' + error.message); }
     };
     
     window.extendTrial = async (userId) => {
       if (!currentUserIsAdmin) return;
-      const days = prompt('Enter days to extend:', '7');
+      const days = prompt('請輸入要延長的天數：', '7');
       if (!days) return;
       const daysNum = parseInt(days);
-      if (isNaN(daysNum) || daysNum <= 0) { alert('Please enter a valid number'); return; }
+      if (isNaN(daysNum) || daysNum <= 0) { alert('請輸入有效的天數'); return; }
       try {
         const userSnap = await getDoc(doc(db, 'users', userId));
         let currentEnd = userSnap.data()?.trialEndAt ? new Date(userSnap.data().trialEndAt) : new Date();
@@ -1971,38 +1942,37 @@
         currentEnd.setDate(currentEnd.getDate() + daysNum);
         await updateDoc(doc(db, 'users', userId), { trialEndAt: currentEnd.toISOString(), updatedAt: new Date().toISOString() });
         await reloadUsers();
-        showToast(`Trial extended by ${daysNum} days`, 'success');
-      } catch (error) { showToast('Failed: ' + error.message); }
+        showToast(`試用期已延長 ${daysNum} 天`, 'success');
+      } catch (error) { showToast('延長失敗：' + error.message); }
     };
     
     window.removeTrial = async (userId) => {
       if (!currentUserIsAdmin) return;
-      if (!confirm('Remove trial period for this user?')) return;
+      if (!confirm('確定要移除該用戶的試用期嗎？')) return;
       try {
         await updateDoc(doc(db, 'users', userId), { trialEndAt: null, updatedAt: new Date().toISOString() });
         await reloadUsers();
-        showToast('Trial period removed', 'success');
-      } catch (error) { showToast('Failed: ' + error.message); }
+        showToast('試用期已移除', 'success');
+      } catch (error) { showToast('移除失敗：' + error.message); }
     };
     
     window.editTrial = async (userId) => {
       if (!currentUserIsAdmin) return;
-      const dateInput = prompt('Enter trial expiry date (YYYY-MM-DD):\n(leave blank to remove)', '');
+      const dateInput = prompt('請輸入試用到期日 (YYYY-MM-DD)：\n(留空則移除)', '');
       if (dateInput === null) return;
       if (dateInput.trim() === '') { window.removeTrial(userId); return; }
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) { alert('Invalid date format'); return; }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) { alert('日期格式錯誤'); return; }
       const trialDate = new Date(dateInput + 'T23:59:59');
-      if (isNaN(trialDate.getTime())) { alert('Invalid date'); return; }
+      if (isNaN(trialDate.getTime())) { alert('無效的日期'); return; }
       try {
         await updateDoc(doc(db, 'users', userId), { trialEndAt: trialDate.toISOString(), updatedAt: new Date().toISOString() });
         await reloadUsers();
-        showToast('Trial updated', 'success');
-      } catch (error) { showToast('Failed: ' + error.message); }
+        showToast('試用期已更新', 'success');
+      } catch (error) { showToast('更新失敗：' + error.message); }
     };
     
     window.resetUserStructure = resetUserStructure;
     
-    // Action menu
     window.toggleActionMenu = (userId, event) => {
       if (event) event.stopPropagation();
       document.querySelectorAll('[id^="menu-"]').forEach(menu => {
@@ -2059,7 +2029,7 @@
       const term = document.getElementById('searchInput').value.trim().toLowerCase();
       const usersList = document.getElementById('usersList');
       if (!term) { await reloadUsers(); return; }
-      usersList.innerHTML = ' <td colspan="13" class="loading"><span class="loading-spinner"></span> Searching... </div>';
+      usersList.innerHTML = ' <td colspan="13" class="loading"><span class="loading-spinner"></span> 搜尋中... </div>';
       try {
         const snapshot = await getDocs(query(collection(db, 'users'), limit(200)));
         let html = '', count = 0;
@@ -2077,9 +2047,9 @@
             html += generateUserRow(doc.id, user);
           }
         });
-        usersList.innerHTML = count ? html : ` <td colspan="13" class="loading">No users found for "${escapeHtml(term)}" </div>`;
+        usersList.innerHTML = count ? html : ` <td colspan="13" class="loading">沒有找到符合「${escapeHtml(term)}」的用戶 </div>`;
       } catch (error) {
-        usersList.innerHTML = ` <td colspan="13" class="loading">Search failed: ${error.message} </div>`;
+        usersList.innerHTML = ` <td colspan="13" class="loading">搜尋失敗: ${error.message} </div>`;
       }
     }
     
@@ -2089,12 +2059,11 @@
         provider.setCustomParameters({ prompt: 'select_account' });
         await signInWithPopup(auth, provider);
         window.location.reload();
-      } catch (error) { alert('Login failed: ' + error.message); }
+      } catch (error) { alert('登入失敗：' + error.message); }
     };
     
     window.logout = async () => { await signOut(auth); window.location.reload(); };
     
-    // Notification functions (simplified)
     window.toggleNotificationSettings = () => {
       const panel = document.getElementById('notificationSettingsPanel');
       if (panel) {
@@ -2102,12 +2071,10 @@
       }
     };
     
-    window.loadNotificationSettings = async () => {
-      // Simplified - keep existing logic
-    };
+    window.loadNotificationSettings = async () => {};
     
     window.saveNotificationSettings = async () => {
-      showToast('Settings saved', 'success');
+      showToast('通知設置已儲存', 'success');
     };
     
     window.openSendNotification = () => {
@@ -2162,11 +2129,11 @@
       const content = document.getElementById('notifContent').value.trim();
       
       if (!title || !content) {
-        showToast('Please fill in title and content');
+        showToast('請填寫標題和內容');
         return;
       }
       
-      showToast('Notification sent', 'success');
+      showToast('通知已發送', 'success');
       closeSendNotification();
     };
     
@@ -2176,76 +2143,76 @@
       container.innerHTML = `
         <div class="container">
           <div class="header">
-            <h1><i class="fas fa-chalkboard-teacher"></i> Admin Panel · English Dictation System</h1>
-            <div><span style="margin-right:15px;">${escapeHtml(user.email)} ${currentUserIsAdmin ? 'Admin' : (currentUserIsTeacher ? 'Teacher' : '')} ${currentUserBranch.length > 0 ? `(${currentUserBranch.join(', ')})` : ''}</span><button onclick="logout()" class="btn-toggle">Logout</button></div>
+            <h1><i class="fas fa-chalkboard-teacher"></i> 會員管理後台 · 英語默書系統</h1>
+            <div><span style="margin-right:15px;">${escapeHtml(user.email)} ${currentUserIsAdmin ? '👑 管理員' : (currentUserIsTeacher ? '🏫 老師' : '')} ${currentUserBranch.length > 0 ? `(${currentUserBranch.join(', ')})` : ''}</span><button onclick="logout()" class="btn-toggle">登出</button></div>
           </div>
           
           <div class="stats">
-            <div class="stat-card"><div class="label">Total Users</div><div class="value" id="totalUsers">-</div></div>
-            <div class="stat-card"><div class="label">Disabled</div><div class="value" id="disabledUsers">-</div></div>
-            <div class="stat-card"><div class="label">Premium</div><div class="value" id="premiumUsers">-</div></div>
-            <div class="stat-card"><div class="label">Free</div><div class="value" id="freeUsers">-</div></div>
+            <div class="stat-card"><div class="label">總會員數</div><div class="value" id="totalUsers">-</div></div>
+            <div class="stat-card"><div class="label">🚫 已停用</div><div class="value" id="disabledUsers">-</div></div>
+            <div class="stat-card"><div class="label">付費會員</div><div class="value" id="premiumUsers">-</div></div>
+            <div class="stat-card"><div class="label">免費會員</div><div class="value" id="freeUsers">-</div></div>
           </div>
           
           ${currentUserIsAdmin ? `
           <div class="notifications-section" style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-              <h3 style="font-size: 18px;"><i class="fas fa-bell"></i> Notification Settings</h3>
-              <button class="btn-toggle" onclick="toggleNotificationSettings()">Manage</button>
+              <h3 style="font-size: 18px;"><i class="fas fa-bell"></i> 站內通知設置</h3>
+              <button class="btn-toggle" onclick="toggleNotificationSettings()">⚙️ 管理</button>
             </div>
             <div id="notificationSettingsPanel" style="display: none;">
               <div style="margin-bottom: 20px;">
-                <h4 style="font-size: 14px; margin-bottom: 10px;">Notification Scenarios</h4>
+                <h4 style="font-size: 14px; margin-bottom: 10px;">📢 通知場景</h4>
                 <div style="display: flex; flex-wrap: wrap; gap: 15px;">
-                  <label><input type="checkbox" id="notifyNewUnit" checked> New Unit</label>
-                  <label><input type="checkbox" id="notifyAnnouncement" checked> Announcement</label>
-                  <label><input type="checkbox" id="notifyAccountDisabled" checked> Account Disabled</label>
-                  <label><input type="checkbox" id="notifyAccountEnabled" checked> Account Enabled</label>
-                  <label><input type="checkbox" id="notifyTrialExpiring" checked> Trial Expiring</label>
-                  <label><input type="checkbox" id="notifySubscriptionExpiring" checked> Subscription Expiring</label>
-                  <label><input type="checkbox" id="notifySystemMaintenance" checked> System Maintenance</label>
+                  <label><input type="checkbox" id="notifyNewUnit" checked> 新單元上線</label>
+                  <label><input type="checkbox" id="notifyAnnouncement" checked> 活動通知</label>
+                  <label><input type="checkbox" id="notifyAccountDisabled" checked> 帳號停用</label>
+                  <label><input type="checkbox" id="notifyAccountEnabled" checked> 帳號啟用</label>
+                  <label><input type="checkbox" id="notifyTrialExpiring" checked> 試用期到期提醒</label>
+                  <label><input type="checkbox" id="notifySubscriptionExpiring" checked> 付費到期提醒</label>
+                  <label><input type="checkbox" id="notifySystemMaintenance" checked> 系統維護通知</label>
                 </div>
               </div>
-              <button class="btn-toggle" onclick="saveNotificationSettings()">Save Settings</button>
+              <button class="btn-toggle" onclick="saveNotificationSettings()" style="margin-top: 15px;">💾 儲存設定</button>
             </div>
           </div>
           ` : ''}
           
           <div class="search-bar">
-            <input type="text" id="searchInput" placeholder="Search by email, name, phone or note...">
-            <button onclick="searchUsers()"><i class="fas fa-search"></i> Search</button>
+            <input type="text" id="searchInput" placeholder="搜尋 Email、名稱、電話或備註...">
+            <button onclick="searchUsers()"><i class="fas fa-search"></i> 搜尋</button>
           </div>
           
           ${currentUserIsAdmin || currentUserIsTeacher ? `
           <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
             <button class="btn-toggle" onclick="openSendNotification()" style="background: #4f46e5; color: white;">
-              <i class="fas fa-paper-plane"></i> Send Notification
+              <i class="fas fa-paper-plane"></i> 發送通知
             </button>
             ${currentUserIsAdmin ? `
             <button class="btn-toggle" onclick="batchResetStructure()" style="background: #f97316; color: white;">
-              <i class="fas fa-sync-alt"></i> Batch Reset Structure
+              <i class="fas fa-sync-alt"></i> 批量重置結構
             </button>
             ` : ''}
           </div>
           ` : ''}
           
           <div class="filters">
-            <button class="filter-btn" onclick="filterUsers('all', event)">All</button>
-            <button class="filter-btn" onclick="filterUsers('premium', event)">Premium</button>
-            <button class="filter-btn" onclick="filterUsers('free', event)">Free</button>
-            <button class="filter-btn" onclick="filterUsers('trial-active', event)">Trial Active</button>
-            <button class="filter-btn" onclick="filterUsers('expiring-soon', event)">Expiring Soon</button>
-            <button class="filter-btn" onclick="filterUsers('expired', event)">Expired</button>
-            <button class="filter-btn" onclick="filterUsers('teacher', event)">Teachers</button>
-            <button class="filter-btn" onclick="filterUsers('disabled', event)">Disabled</button>
+            <button class="filter-btn" onclick="filterUsers('all', event)">全部</button>
+            <button class="filter-btn" onclick="filterUsers('premium', event)">付費會員</button>
+            <button class="filter-btn" onclick="filterUsers('free', event)">免費會員</button>
+            <button class="filter-btn" onclick="filterUsers('trial-active', event)">⏳ 試用中</button>
+            <button class="filter-btn" onclick="filterUsers('expiring-soon', event)">⚠️ 即將到期</button>
+            <button class="filter-btn" onclick="filterUsers('expired', event)">❌ 已過期</button>
+            <button class="filter-btn" onclick="filterUsers('teacher', event)">👨‍🏫 老師</button>
+            <button class="filter-btn" onclick="filterUsers('disabled', event)">🚫 已停用</button>
           </div>
           
           ${currentUserIsAdmin ? `
           <div class="filters" style="margin-top: 10px;">
-            <span class="branch-filter-label">Group Filter:</span>
-            <button class="filter-btn" onclick="filterByBranch('all', event)">All</button>
-            <button class="filter-btn" onclick="filterByBranch('empty', event)">Not Set</button>
-            <button class="filter-btn" onclick="showBranchPrompt()">+ Custom</button>
+            <span class="branch-filter-label">🏷️ 群組過濾：</span>
+            <button class="filter-btn" onclick="filterByBranch('all', event)">全部</button>
+            <button class="filter-btn" onclick="filterByBranch('empty', event)">未填寫</button>
+            <button class="filter-btn" onclick="showBranchPrompt()">+ 自訂</button>
           </div>
           ` : ''}
           
@@ -2254,31 +2221,39 @@
               <thead>
                 <tr>
                   <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()"></th>
-                  <th>User</th><th>Email</th><th>Phone</th><th>Note</th><th>Group</th><th>Grade</th><th>Textbook</th><th>Registered / Recent</th><th>Status</th><th>Plan</th><th>Expiry</th><th>Trial</th><th>Actions</th>
+                  <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>群組</th><th>年級</th><th>教材</th><th>註冊/最近</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>操作</th>
                 </tr>
               </thead>
-              <tbody id="usersList"><tr><td colspan="14" class="loading"><span class="loading-spinner"></span> Loading...</td></tr></tbody>
+              <tbody id="usersList"><tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
             </table>
-            <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> Load More</button></div>
+            <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
         </div>
         
         <div id="sendNotificationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10001; align-items: center; justify-content: center;">
           <div style="background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 500px;">
-            <h3 style="margin-bottom: 20px;"><i class="fas fa-bell"></i> Send Notification</h3>
-            <div style="margin-bottom: 15px;"><label>Title:</label><input type="text" id="notifTitle" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;"></div>
-            <div style="margin-bottom: 15px;"><label>Content:</label><textarea id="notifContent" rows="4" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;"></textarea></div>
-            <div style="margin-bottom: 15px;">
-              <label>Recipients:</label>
-              <select id="notifTarget" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
-                <option value="all">All Users</option>
-                ${currentUserIsAdmin ? '<option value="branch">Specific Group</option>' : (currentUserIsTeacher && currentUserBranch.length > 0 ? '<option value="branch">My Group</option>' : '')}
-                <option value="selected">Selected Users</option>
+            <h3 style="margin-bottom: 20px;"><i class="fas fa-bell"></i> 發送通知</h3>
+            <div style="margin-bottom: 15px;"><label>標題：</label><input type="text" id="notifTitle" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;"></div>
+            <div style="margin-bottom: 15px;"><label>內容：</label><textarea id="notifContent" rows="4" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;"></textarea></div>
+            <div style="margin-bottom: 15px;"><label>通知類型：</label>
+              <select id="notifType" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <option value="new_unit">📚 新單元上線</option>
+                <option value="announcement">📢 活動通知</option>
+                ${currentUserIsAdmin ? '<option value="account_disabled">🔒 帳號停用通知</option>' : ''}
+                ${currentUserIsAdmin ? '<option value="account_enabled">🔓 帳號啟用通知</option>' : ''}
+                <option value="system_maintenance">⚙️ 系統維護通知</option>
               </select>
             </div>
-            <div id="branchSelectDiv" style="display: none; margin-bottom: 15px;"><label>Group:</label><input type="text" id="notifBranch" placeholder="Enter group name" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;"></div>
-            <div id="selectedCountDiv" style="display: none; margin-bottom: 15px; color: #4f46e5;">Selected <span id="selectedCount">0</span> users</div>
-            <div style="display: flex; gap: 10px; justify-content: flex-end;"><button class="btn-toggle" onclick="closeSendNotification()">Cancel</button><button class="btn-toggle" onclick="sendNotification()" style="background: #4f46e5; color: white;">Send</button></div>
+            <div style="margin-bottom: 15px;"><label>發送對象：</label>
+              <select id="notifTarget" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <option value="all">全部用戶</option>
+                ${currentUserIsAdmin ? '<option value="branch">特定群組</option>' : (currentUserIsTeacher && currentUserBranch.length > 0 ? '<option value="branch">我的群組</option>' : '')}
+                <option value="selected">已選用戶</option>
+              </select>
+            </div>
+            <div id="branchSelectDiv" style="display: none; margin-bottom: 15px;"><label>群組：</label><input type="text" id="notifBranch" placeholder="請輸入群組名稱" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;"></div>
+            <div id="selectedCountDiv" style="display: none; margin-bottom: 15px; color: #4f46e5;">已選中 <span id="selectedCount">0</span> 位用戶</div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;"><button class="btn-toggle" onclick="closeSendNotification()">取消</button><button class="btn-toggle" onclick="sendNotification()" style="background: #4f46e5; color: white;">發送</button></div>
           </div>
         </div>
       `;
@@ -2307,10 +2282,10 @@
       };
       
       window.showBranchPrompt = () => {
-        const branch = prompt('Enter group name (max 20 chars):');
+        const branch = prompt('請輸入群組名稱（可自由輸入，限 20 字以內）');
         if (branch && branch.trim()) {
           const trimmedBranch = branch.trim();
-          if (trimmedBranch.length > 20) alert('Group name too long');
+          if (trimmedBranch.length > 20) alert('群組名稱過長，請限制在 20 字以內');
           else filterByBranch(trimmedBranch);
         }
       };
@@ -2325,7 +2300,7 @@
     onAuthStateChanged(auth, async (user) => {
       const appDiv = document.getElementById('app');
       if (!user) {
-        appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-lock"></i><h2>Admin Login</h2><p>Please sign in with your Google account</p><button onclick="loginWithGoogle()" class="btn-toggle"><i class="fab fa-google"></i> Sign in with Google</button></div>`;
+        appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-lock"></i><h2>管理員登入</h2><p>請使用您的 Google 帳號登入</p><button onclick="loginWithGoogle()" class="btn-toggle"><i class="fab fa-google"></i> 使用 Google 登入</button></div>`;
         return;
       }
       try {
@@ -2333,9 +2308,9 @@
         const userData = userDoc.data() || {};
         
         if (userData.isDisabled === true) {
-          console.log('Account disabled');
+          console.log('帳號已被停用');
           await signOut(auth);
-          alert('Your account has been disabled. Please contact admin.');
+          alert('您的帳號已被停用，請聯絡管理員');
           window.location.href = './login.html';
           return;
         }
@@ -2344,13 +2319,13 @@
         currentUserIsTeacher = userData.role === 'teacher';
         
         if (!currentUserIsAdmin && !currentUserIsTeacher) {
-          appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-shield-alt"></i><h2>Access Denied</h2><p>This page is for admins and teachers only.</p><p>Your account: ${escapeHtml(user.email)}</p><button onclick="logout()" class="btn-toggle">Logout</button></div>`;
+          appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-shield-alt"></i><h2>無權限訪問</h2><p>此頁面僅限管理員或老師使用</p><p>您的帳號：${escapeHtml(user.email)}</p><button onclick="logout()" class="btn-toggle">登出</button></div>`;
           return;
         }
         await loadAdminInterface(appDiv, user);
       } catch (error) {
-        console.error('Permission check failed:', error);
-        appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-exclamation-triangle"></i><h2>Error</h2><p>${error.message}</p><button onclick="logout()" class="btn-toggle">Logout</button></div>`;
+        console.error('權限檢查失敗:', error);
+        appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-exclamation-triangle"></i><h2>發生錯誤</h2><p>${error.message}</p><button onclick="logout()" class="btn-toggle">登出</button></div>`;
       }
     });
   </script>
