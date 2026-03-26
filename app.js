@@ -680,12 +680,32 @@ function filterUnitsForGuest(units) {
 
 // === 已登入用戶單元過濾 ===
 function filterUnitsForUser(units) {
-    if (!currentUserGrade) return units;
-    if (!currentUserPublisher) return units;
-    return units.filter(unit => 
-        unit.grade === currentUserGrade && 
-        unit.publisher === currentUserPublisher
-    );
+    if (!currentUserGrade && !currentUserPublisher) return units;
+    
+    return units.filter(unit => {
+        let gradeMatch = true;
+        let publisherMatch = true;
+        
+        // 檢查年級
+        if (currentUserGrade) {
+            if (Array.isArray(unit.grade)) {
+                gradeMatch = unit.grade.includes(currentUserGrade);
+            } else {
+                gradeMatch = unit.grade === currentUserGrade;
+            }
+        }
+        
+        // 檢查教材
+        if (currentUserPublisher) {
+            if (Array.isArray(unit.publisher)) {
+                publisherMatch = unit.publisher.includes(currentUserPublisher);
+            } else {
+                publisherMatch = unit.publisher === currentUserPublisher;
+            }
+        }
+        
+        return gradeMatch && publisherMatch;
+    });
 }
 
 // === 數據管理 ===
@@ -1114,21 +1134,31 @@ function updateUnitSelect() {
         // 根據用戶的設定進行過濾
         let filteredUnits = unitsIndex.units;
         
-        // 如果有教材限制，先過濾 publisher
-        if (currentUserPublisher) {
-            filteredUnits = filteredUnits.filter(unit => 
-                unit.publisher === currentUserPublisher
-            );
-            console.log('教材過濾後數量:', filteredUnits.length);
+       // 如果有教材限制，先過濾 publisher
+if (currentUserPublisher) {
+    filteredUnits = filteredUnits.filter(unit => {
+        // 支持陣列格式
+        if (Array.isArray(unit.publisher)) {
+            return unit.publisher.includes(currentUserPublisher);
         }
-        
-        // 如果有年級限制，再過濾 grade
-        if (currentUserGrade) {
-            filteredUnits = filteredUnits.filter(unit => 
-                unit.grade === currentUserGrade
-            );
-            console.log('年級過濾後數量:', filteredUnits.length);
+        // 兼容舊格式（字串）
+        return unit.publisher === currentUserPublisher;
+    });
+    console.log('教材過濾後數量:', filteredUnits.length);
+}
+
+// 如果有年級限制，再過濾 grade
+if (currentUserGrade) {
+    filteredUnits = filteredUnits.filter(unit => {
+        // 支持陣列格式
+        if (Array.isArray(unit.grade)) {
+            return unit.grade.includes(currentUserGrade);
         }
+        // 兼容舊格式（字串）
+        return unit.grade === currentUserGrade;
+    });
+    console.log('年級過濾後數量:', filteredUnits.length);
+}
         
         availableUnits = filteredUnits;
         console.log('最終可用單元數量:', availableUnits.length);
@@ -1394,20 +1424,32 @@ if (unitToLoad && unitsIndex.units.find(u => u.id === unitToLoad)) {
     let isUnitAllowed = true;
     
     // 如果有教材限制，檢查 publisher 是否符合
-    if (currentUserPublisher) {
-        if (targetUnit.publisher !== currentUserPublisher) {
-            isUnitAllowed = false;
-            console.log('❌ URL 指定的單元 publisher 不符合:', targetUnit.publisher, '≠', currentUserPublisher);
-        }
+if (currentUserPublisher) {
+    let publisherMatch = false;
+    if (Array.isArray(targetUnit.publisher)) {
+        publisherMatch = targetUnit.publisher.includes(currentUserPublisher);
+    } else {
+        publisherMatch = targetUnit.publisher === currentUserPublisher;
     }
-    
-    // 如果有年級限制，檢查 grade 是否符合
-    if (currentUserGrade) {
-        if (targetUnit.grade !== currentUserGrade) {
-            isUnitAllowed = false;
-            console.log('❌ URL 指定的單元 grade 不符合:', targetUnit.grade, '≠', currentUserGrade);
-        }
+    if (!publisherMatch) {
+        isUnitAllowed = false;
+        console.log('❌ URL 指定的單元 publisher 不符合:', targetUnit.publisher, '≠', currentUserPublisher);
     }
+}
+
+// 如果有年級限制，檢查 grade 是否符合
+if (currentUserGrade) {
+    let gradeMatch = false;
+    if (Array.isArray(targetUnit.grade)) {
+        gradeMatch = targetUnit.grade.includes(currentUserGrade);
+    } else {
+        gradeMatch = targetUnit.grade === currentUserGrade;
+    }
+    if (!gradeMatch) {
+        isUnitAllowed = false;
+        console.log('❌ URL 指定的單元 grade 不符合:', targetUnit.grade, '≠', currentUserGrade);
+    }
+}
     
     if (isUnitAllowed) {
         console.log('✅ URL 指定的單元符合用戶條件:', unitToLoad);
@@ -1422,17 +1464,27 @@ if (!unitToLoad || !unitsIndex.units.find(u => u.id === unitToLoad)) {
     // 根據用戶設定獲取可用單元
     let availableUnits = unitsIndex.units;
     
-    // 如果有教材限制，過濾 publisher
-    if (currentUserPublisher) {
-        availableUnits = availableUnits.filter(unit => unit.publisher === currentUserPublisher);
-        console.log('教材過濾後數量:', availableUnits.length);
-    }
-    
-    // 如果有年級限制，過濾 grade
-    if (currentUserGrade) {
-        availableUnits = availableUnits.filter(unit => unit.grade === currentUserGrade);
-        console.log('年級過濾後數量:', availableUnits.length);
-    }
+// 如果有教材限制，過濾 publisher
+if (currentUserPublisher) {
+    availableUnits = availableUnits.filter(unit => {
+        if (Array.isArray(unit.publisher)) {
+            return unit.publisher.includes(currentUserPublisher);
+        }
+        return unit.publisher === currentUserPublisher;
+    });
+    console.log('教材過濾後數量:', availableUnits.length);
+}
+
+// 如果有年級限制，過濾 grade
+if (currentUserGrade) {
+    availableUnits = availableUnits.filter(unit => {
+        if (Array.isArray(unit.grade)) {
+            return unit.grade.includes(currentUserGrade);
+        }
+        return unit.grade === currentUserGrade;
+    });
+    console.log('年級過濾後數量:', availableUnits.length);
+}
     
     console.log('filterUnitsForUser 結果數量:', availableUnits.length);
     if (availableUnits.length > 0) {
