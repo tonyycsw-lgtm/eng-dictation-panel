@@ -1095,6 +1095,15 @@ async function loadUnit(unitId) {
 
 function updateUnitSelect() {
     const unitSelect = document.getElementById('unit-select');
+    if (!unitSelect) return;
+    
+    // 確保 unitsIndex 有數據
+    if (!unitsIndex || !unitsIndex.units || unitsIndex.units.length === 0) {
+        console.log('unitsIndex 尚未載入，等待...');
+        unitSelect.innerHTML = '<option value="">載入中...</option>';
+        return;
+    }
+    
     unitSelect.innerHTML = '';
     
     let availableUnits = [];
@@ -1107,6 +1116,7 @@ function updateUnitSelect() {
                 unit.grade === currentUserGrade && 
                 unit.publisher === currentUserPublisher
             );
+            console.log('過濾後可用單元數量:', availableUnits.length);
         } else {
             availableUnits = unitsIndex.units;
         }
@@ -1115,20 +1125,32 @@ function updateUnitSelect() {
     }
     
     if (availableUnits.length === 0) {
-    unitSelect.innerHTML = '<option value="">沒有可用的單元</option>';
-    
-    // 強制清除卡片內容
-    const wordsGrid = document.getElementById('words-grid');
-    const sentencesGrid = document.getElementById('sentences-grid');
-    if (wordsGrid) wordsGrid.innerHTML = '<div class="loading">📭 沒有找到符合的單元</div>';
-    if (sentencesGrid) sentencesGrid.innerHTML = '';
-    
-    // 清除 appData 和 currentUnitId
-    appData = null;
-    currentUnitId = '';
-    
-    return;
-}
+        console.log('無可用單元，清除卡片內容');
+        unitSelect.innerHTML = '<option value="">沒有可用的單元</option>';
+        
+        // 強制清除卡片內容
+        const wordsGrid = document.getElementById('words-grid');
+        const sentencesGrid = document.getElementById('sentences-grid');
+        if (wordsGrid) {
+            // 清空所有子元素
+            while (wordsGrid.firstChild) {
+                wordsGrid.removeChild(wordsGrid.firstChild);
+            }
+            wordsGrid.innerHTML = '<div class="loading">📭 沒有找到符合的單元</div>';
+        }
+        if (sentencesGrid) {
+            while (sentencesGrid.firstChild) {
+                sentencesGrid.removeChild(sentencesGrid.firstChild);
+            }
+            sentencesGrid.innerHTML = '';
+        }
+        
+        // 清除 appData 和 currentUnitId
+        appData = null;
+        currentUnitId = '';
+        
+        return;
+    }
     
     availableUnits.forEach(unit => {
         const option = document.createElement('option');
@@ -1341,31 +1363,55 @@ async function initPage() {
             updateUserInterface();
             await loadNotifications();
             
-            const indexLoaded = await loadUnitsIndex();
+const indexLoaded = await loadUnitsIndex();
+console.log('loadUnitsIndex 完成, indexLoaded:', indexLoaded);
+console.log('unitsIndex.units 數量:', unitsIndex.units.length);
+
 if (indexLoaded && unitsIndex.units.length) {
+    // 確保 unitsIndex 有數據後再調用 updateUnitSelect
     updateUnitSelect();
+    console.log('updateUnitSelect 調用完成');
+    
     let unitToLoad = getUrlParam('unit');
+    console.log('URL 參數 unit:', unitToLoad);
     
     // 如果沒有 URL 參數，獲取可用單元
     if (!unitToLoad || !unitsIndex.units.find(u => u.id === unitToLoad)) {
         const availableUnits = filterUnitsForUser(unitsIndex.units);
+        console.log('filterUnitsForUser 結果數量:', availableUnits.length);
         if (availableUnits.length > 0) {
             unitToLoad = availableUnits[0].id;
+            console.log('將載入第一個可用單元:', unitToLoad);
         } else {
             // 沒有可用單元時，不要載入任何單元
             unitToLoad = null;
+            console.log('沒有可用單元，設置 unitToLoad = null');
         }
     }
     
     // 只有當有可用單元時才載入
     if (unitToLoad) {
+        console.log('開始載入單元:', unitToLoad);
         await loadUnit(unitToLoad);
     } else {
+        console.log('沒有可用單元，清除卡片內容');
         // 確保卡片內容被清除
         const wordsGrid = document.getElementById('words-grid');
         const sentencesGrid = document.getElementById('sentences-grid');
-        if (wordsGrid) wordsGrid.innerHTML = '<div class="loading">📭 沒有找到符合的單元</div>';
-        if (sentencesGrid) sentencesGrid.innerHTML = '';
+        
+        // 使用多種方式確保清除
+        if (wordsGrid) {
+            while (wordsGrid.firstChild) {
+                wordsGrid.removeChild(wordsGrid.firstChild);
+            }
+            wordsGrid.innerHTML = '<div class="loading">📭 沒有找到符合的單元</div>';
+        }
+        if (sentencesGrid) {
+            while (sentencesGrid.firstChild) {
+                sentencesGrid.removeChild(sentencesGrid.firstChild);
+            }
+            sentencesGrid.innerHTML = '';
+        }
         appData = null;
         currentUnitId = '';
     }
@@ -1375,6 +1421,7 @@ if (indexLoaded && unitsIndex.units.length) {
     });
     document.getElementById('unit-upload').addEventListener('change', handleFileUpload);
 } else {
+    console.log('無法載入單元列表');
     document.getElementById('words-grid').innerHTML = '<div class="loading">無法載入單元列表</div>';
 }
             
