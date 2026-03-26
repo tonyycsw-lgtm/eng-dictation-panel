@@ -1372,22 +1372,42 @@ if (indexLoaded && unitsIndex.units.length) {
     updateUnitSelect();
     console.log('updateUnitSelect 調用完成');
     
-    let unitToLoad = getUrlParam('unit');
-    console.log('URL 參數 unit:', unitToLoad);
+   let unitToLoad = getUrlParam('unit');
+console.log('URL 參數 unit:', unitToLoad);
+
+// 檢查 URL 指定的單元是否對當前用戶可見
+if (unitToLoad && unitsIndex.units.find(u => u.id === unitToLoad)) {
+    const targetUnit = unitsIndex.units.find(u => u.id === unitToLoad);
     
-    // 如果沒有 URL 參數，獲取可用單元
-    if (!unitToLoad || !unitsIndex.units.find(u => u.id === unitToLoad)) {
-        const availableUnits = filterUnitsForUser(unitsIndex.units);
-        console.log('filterUnitsForUser 結果數量:', availableUnits.length);
-        if (availableUnits.length > 0) {
-            unitToLoad = availableUnits[0].id;
-            console.log('將載入第一個可用單元:', unitToLoad);
+    // 如果用戶有年級和教材限制，檢查該單元是否符合
+    if (currentUserGrade && currentUserPublisher) {
+        if (targetUnit.grade === currentUserGrade && targetUnit.publisher === currentUserPublisher) {
+            // 符合條件，可以使用
+            console.log('✅ URL 指定的單元符合用戶條件:', unitToLoad);
         } else {
-            // 沒有可用單元時，不要載入任何單元
+            // 不符合條件，忽略 URL 參數
+            console.log('❌ URL 指定的單元不符合用戶條件 (grade:', targetUnit.grade, 'publisher:', targetUnit.publisher, ')，忽略');
             unitToLoad = null;
-            console.log('沒有可用單元，設置 unitToLoad = null');
         }
+    } else {
+        // 用戶沒有年級/教材限制，可以使用
+        console.log('✅ 用戶無年級/教材限制，使用 URL 指定的單元:', unitToLoad);
     }
+}
+
+// 如果沒有 URL 參數或 URL 參數無效/不符合條件，獲取可用單元
+if (!unitToLoad || !unitsIndex.units.find(u => u.id === unitToLoad)) {
+    const availableUnits = filterUnitsForUser(unitsIndex.units);
+    console.log('filterUnitsForUser 結果數量:', availableUnits.length);
+    if (availableUnits.length > 0) {
+        unitToLoad = availableUnits[0].id;
+        console.log('將載入第一個可用單元:', unitToLoad);
+    } else {
+        // 沒有可用單元時，不要載入任何單元
+        unitToLoad = null;
+        console.log('沒有可用單元，設置 unitToLoad = null');
+    }
+}
     
     // 只有當有可用單元時才載入
     if (unitToLoad) {
