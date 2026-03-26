@@ -2,8 +2,8 @@
   "unit_id": "demo_p2_unit1",
   "unit_title": "示範單元 1 - 我的家庭 (P2)",
   "unit_description": "學習家庭成員的英文單詞",
-  "grade": "P2",
-  "publisher": "示範",
+  "grade": ["P2"],
+  "publisher": ["示範"],
   "difficulty": "easy",
   "words": [
     {
