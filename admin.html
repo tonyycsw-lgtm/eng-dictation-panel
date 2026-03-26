@@ -591,6 +591,86 @@
         min-width: 150px;
       }
     }
+    
+    /* ===== Tooltip 動畫樣式 ===== */
+    .custom-tooltip {
+      position: fixed;
+      background: #1e293b;
+      color: white;
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      max-width: 320px;
+      min-width: 200px;
+      word-break: break-word;
+      white-space: normal;
+      z-index: 10000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      line-height: 1.4;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    
+    .custom-tooltip::before {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      pointer-events: none;
+    }
+    
+    .custom-tooltip[data-placement="right"]::before {
+      left: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 6px 6px 6px 0;
+      border-color: transparent #1e293b transparent transparent;
+    }
+    
+    .custom-tooltip[data-placement="left"]::before {
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 6px 0 6px 6px;
+      border-color: transparent transparent transparent #1e293b;
+    }
+    
+    .custom-tooltip[data-placement="top"]::before {
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px 6px 0 6px;
+      border-color: #1e293b transparent transparent transparent;
+    }
+    
+    .custom-tooltip[data-placement="bottom"]::before {
+      top: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 0 6px 6px 6px;
+      border-color: transparent transparent #1e293b transparent;
+    }
+    
+    .notes-display {
+      max-width: 200px;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: background 0.2s;
+      display: inline-block;
+    }
+    
+    .notes-display:hover {
+      background: #f1f5f9;
+    }
+    
+    .notes-unset {
+      color: #94a3b8;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -656,6 +736,169 @@
           case '"': return '&quot;';
           case "'": return '&#039;';
           default: return m;
+        }
+      });
+    }
+
+    // ===== Tooltip 管理器 =====
+    class TooltipManager {
+      constructor() {
+        this.tooltip = null;
+        this.currentElement = null;
+        this.hideTimeout = null;
+        this.init();
+      }
+      
+      init() {
+        this.tooltip = document.createElement('div');
+        this.tooltip.className = 'custom-tooltip';
+        document.body.appendChild(this.tooltip);
+      }
+      
+      show(element, text, event) {
+        if (!text || text === '未填寫' || text === '未設定' || text === '-') {
+          return;
+        }
+        
+        if (this.hideTimeout) {
+          clearTimeout(this.hideTimeout);
+          this.hideTimeout = null;
+        }
+        
+        if (this.currentElement === element && this.tooltip.style.opacity === '1') {
+          return;
+        }
+        
+        this.currentElement = element;
+        this.tooltip.textContent = text;
+        
+        const rect = element.getBoundingClientRect();
+        const placement = this.calculatePlacement(rect);
+        this.tooltip.setAttribute('data-placement', placement);
+        
+        let left, top;
+        const tooltipRect = this.tooltip.getBoundingClientRect();
+        
+        switch (placement) {
+          case 'right':
+            left = rect.right + 10;
+            top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+            break;
+          case 'left':
+            left = rect.left - tooltipRect.width - 10;
+            top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+            break;
+          case 'top':
+            left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            top = rect.top - tooltipRect.height - 10;
+            break;
+          case 'bottom':
+          default:
+            left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            top = rect.bottom + 10;
+            break;
+        }
+        
+        left = Math.max(5, Math.min(left, window.innerWidth - tooltipRect.width - 5));
+        top = Math.max(5, Math.min(top, window.innerHeight - tooltipRect.height - 5));
+        
+        if (placement === 'right' && left + tooltipRect.width > window.innerWidth - 5) {
+          left = rect.left - tooltipRect.width - 10;
+          this.tooltip.setAttribute('data-placement', 'left');
+        }
+        if (placement === 'left' && left < 5) {
+          left = rect.right + 10;
+          this.tooltip.setAttribute('data-placement', 'right');
+        }
+        if (placement === 'top' && top < 5) {
+          top = rect.bottom + 10;
+          this.tooltip.setAttribute('data-placement', 'bottom');
+        }
+        if (placement === 'bottom' && top + tooltipRect.height > window.innerHeight - 5) {
+          top = rect.top - tooltipRect.height - 10;
+          this.tooltip.setAttribute('data-placement', 'top');
+        }
+        
+        this.tooltip.style.left = `${left}px`;
+        this.tooltip.style.top = `${top}px`;
+        this.tooltip.style.opacity = '1';
+      }
+      
+      calculatePlacement(rect) {
+        const spaceRight = window.innerWidth - rect.right;
+        const spaceLeft = rect.left;
+        const spaceBottom = window.innerHeight - rect.bottom;
+        const spaceTop = rect.top;
+        
+        const spaces = { right: spaceRight, left: spaceLeft, bottom: spaceBottom, top: spaceTop };
+        let bestPlacement = 'right';
+        let maxSpace = spaces.right;
+        
+        for (const [placement, space] of Object.entries(spaces)) {
+          if (space > maxSpace) {
+            maxSpace = space;
+            bestPlacement = placement;
+          }
+        }
+        return bestPlacement;
+      }
+      
+      hide(delay = 100) {
+        if (this.hideTimeout) {
+          clearTimeout(this.hideTimeout);
+        }
+        this.hideTimeout = setTimeout(() => {
+          this.tooltip.style.opacity = '0';
+          this.currentElement = null;
+          this.hideTimeout = null;
+        }, delay);
+      }
+      
+      hideImmediately() {
+        if (this.hideTimeout) {
+          clearTimeout(this.hideTimeout);
+          this.hideTimeout = null;
+        }
+        this.tooltip.style.opacity = '0';
+        this.currentElement = null;
+      }
+    }
+    
+    let tooltipManager = null;
+    
+    function bindNoteTooltips() {
+      if (!tooltipManager) {
+        tooltipManager = new TooltipManager();
+      }
+      
+      const noteElements = document.querySelectorAll('.notes-display');
+      
+      noteElements.forEach(el => {
+        el.removeEventListener('mouseenter', handleNoteMouseEnter);
+        el.removeEventListener('mouseleave', handleNoteMouseLeave);
+        el.addEventListener('mouseenter', handleNoteMouseEnter);
+        el.addEventListener('mouseleave', handleNoteMouseLeave);
+      });
+    }
+    
+    function handleNoteMouseEnter(event) {
+      const element = event.target;
+      const text = element.textContent;
+      setTimeout(() => {
+        if (element.matches(':hover')) {
+          tooltipManager.show(element, text, event);
+        }
+      }, 300);
+    }
+    
+    function handleNoteMouseLeave(event) {
+      tooltipManager.hide(100);
+    }
+    
+    function bindScrollHideTooltip() {
+      window.addEventListener('scroll', () => {
+        if (tooltipManager) {
+          tooltipManager.hideImmediately();
         }
       });
     }
@@ -1165,6 +1408,9 @@ async function resetUserStructure(userId) {
         } else {
           usersList.innerHTML = html;
           bindCheckboxEvents();
+          
+          // 綁定備註欄 Tooltip
+          bindNoteTooltips();
         }
         
         if (loadMoreContainer) {
@@ -1738,6 +1984,9 @@ async function resetUserStructure(userId) {
       hasMore = true;
       await loadUsers(currentFilter, false);
       await updateStats();
+      
+      // 重新綁定備註欄 Tooltip
+      bindNoteTooltips();
     }
     
     async function performSearch() {
@@ -2161,13 +2410,16 @@ async function resetUserStructure(userId) {
         currentUserIsTeacher = userData.role === 'teacher';
         
         if (!currentUserIsAdmin && !currentUserIsTeacher) {
-          appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-shield-alt"></i><h2>無權限訪問</h2><p>此頁面僅限管理員或老師使用</p><p>您的帳號：${escapeHtml(user.email)}</p><button onclick="logout()" class="btn-toggle">登出</button></div>`;
+          appDiv.innerHTML = `<div class="unauthorized">...</div>`;
           return;
         }
         await loadAdminInterface(appDiv, user);
+        
+        // 綁定滾動隱藏 Tooltip
+        bindScrollHideTooltip();
       } catch (error) {
         console.error('權限檢查失敗:', error);
-        appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-exclamation-triangle"></i><h2>發生錯誤</h2><p>${error.message}</p><button onclick="logout()" class="btn-toggle">登出</button></div>`;
+        appDiv.innerHTML = `<div class="unauthorized">...</div>`;
       }
     });
   </script>
