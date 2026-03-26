@@ -2,6 +2,8 @@
   "unit_id": "unit4",
   "unit_title": "Unit 4: All about Pets",
   "unit_description": "核心詞彙：寵物、照護、情感與語篇連接",
+  "grade": ["S1", "S2", "S3"],
+  "publisher": "示範",
   "difficulty": "intermediate",
   "words": [
     {
