@@ -391,43 +391,6 @@
       text-overflow: ellipsis;
     }
     
-    /* 備註欄加寬，點擊直接編輯 */
-    .notes-cell {
-      max-width: 220px;
-      position: relative;
-    }
-    
-    .notes-display {
-      max-width: 200px;
-      cursor: pointer;
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
-    
-    .notes-display:hover {
-      background: #f1f5f9;
-    }
-    
-    /* 懸停顯示完整內容 */
-    .notes-cell:hover .notes-display {
-      overflow: visible;
-      white-space: normal;
-      position: absolute;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 4px 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      z-index: 10;
-      width: 280px;
-      max-width: 280px;
-      min-width: 200px;
-      word-break: break-word;
-      left: 0;
-      top: 100%;
-      margin-top: 4px;
-    }
-    
     .phone-unset, .notes-unset, .publisher-unset {
       color: #94a3b8;
       font-style: italic;
