@@ -829,7 +829,6 @@
       });
     }
 
-    // 轉義 JavaScript 字符串（用於 onclick 等屬性）
     function escapeJsString(str) {
       if (!str) return '';
       return str.replace(/[\\'\"\n\r\t]/g, function(m) {
@@ -880,11 +879,8 @@
       });
     }
 
-    // ===== 用事件監聽器替代 onclick（解決特殊字符轉義問題）=====
     function bindClickEvents() {
-      // 綁定備註欄
       document.querySelectorAll('.notes-display').forEach(el => {
-        // 移除舊的事件監聽器
         if (el._clickHandler) {
           el.removeEventListener('click', el._clickHandler);
         }
@@ -901,7 +897,6 @@
         }
       });
       
-      // 綁定群組欄
       document.querySelectorAll('.branch-display').forEach(el => {
         if (el._branchHandler) {
           el.removeEventListener('click', el._branchHandler);
@@ -918,7 +913,6 @@
         }
       });
       
-      // 綁定教材欄
       document.querySelectorAll('.publisher-display').forEach(el => {
         if (el._publisherHandler) {
           el.removeEventListener('click', el._publisherHandler);
@@ -935,7 +929,7 @@
         }
       });
       
-      console.log('✅ 事件監聽器已綁定');
+      console.log('Event listeners bound');
     }
     
     async function showNoteModal(content, userId) {
@@ -950,6 +944,9 @@
       }
       
       const originalContent = currentNote === '未填寫' ? '' : currentNote;
+      
+      const existingModal = document.querySelector('.note-modal-overlay');
+      if (existingModal) existingModal.remove();
       
       const modal = document.createElement('div');
       modal.className = 'note-modal-overlay';
@@ -979,7 +976,9 @@
       const cancelBtn = modal.querySelector('.note-modal-cancel-btn');
       const closeBtn = modal.querySelector('.note-modal-close');
       
-      const closeModal = () => { modal.remove(); };
+      const closeModal = () => {
+        modal.remove();
+      };
       
       const saveNote = async () => {
         const newNotes = textarea.value.trim();
@@ -1015,13 +1014,20 @@
         }
       };
       
-      closeBtn.addEventListener('click', closeModal);
-      cancelBtn.addEventListener('click', closeModal);
-      saveBtn.addEventListener('click', saveNote);
+      const newSaveBtn = saveBtn.cloneNode(true);
+      saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+      const newCancelBtn = cancelBtn.cloneNode(true);
+      cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+      const newCloseBtn = closeBtn.cloneNode(true);
+      closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+      
+      newSaveBtn.addEventListener('click', saveNote, { once: true });
+      newCancelBtn.addEventListener('click', closeModal, { once: true });
+      newCloseBtn.addEventListener('click', closeModal, { once: true });
       
       modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
-      });
+      }, { once: true });
       
       textarea.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -1046,6 +1052,9 @@
     
     async function showArrayFieldModal(fieldName, userId, fieldKey, displayValue, arrayValue) {
       const originalValue = displayValue === '-' ? '' : displayValue;
+      
+      const existingModal = document.querySelector('.note-modal-overlay');
+      if (existingModal) existingModal.remove();
       
       const modal = document.createElement('div');
       modal.className = 'note-modal-overlay';
@@ -1079,7 +1088,9 @@
       const cancelBtn = modal.querySelector('.note-modal-cancel-btn');
       const closeBtn = modal.querySelector('.note-modal-close');
       
-      const closeModal = () => { modal.remove(); };
+      const closeModal = () => {
+        modal.remove();
+      };
       
       const saveValue = async () => {
         const newValueStr = input.value.trim();
@@ -1128,13 +1139,20 @@
         }
       };
       
-      closeBtn.addEventListener('click', closeModal);
-      cancelBtn.addEventListener('click', closeModal);
-      saveBtn.addEventListener('click', saveValue);
+      const newSaveBtn = saveBtn.cloneNode(true);
+      saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+      const newCancelBtn = cancelBtn.cloneNode(true);
+      cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+      const newCloseBtn = closeBtn.cloneNode(true);
+      closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+      
+      newSaveBtn.addEventListener('click', saveValue, { once: true });
+      newCancelBtn.addEventListener('click', closeModal, { once: true });
+      newCloseBtn.addEventListener('click', closeModal, { once: true });
       
       modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
-      });
+      }, { once: true });
       
       input.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -1519,8 +1537,8 @@
            </div>
           <td class="notes-cell" id="notes-${docId}">
             <div class="editable-wrapper notes-wrapper" data-fullvalue="${escapeHtml(notesDisplay)}">
-              <span class="editable-display notes-display ${!user.notes ? 'notes-unset' : ''}" onclick="showNoteModal('${escapeJsString(notesDisplay)}', '${docId}')">${escapeHtml(notesDisplay)}</span>
-              <i class="fas fa-file-alt edit-icon view-note-icon" style="display: none;" onclick="showNoteModal('${escapeJsString(notesDisplay)}', '${docId}')"></i>
+              <span class="editable-display notes-display ${!user.notes ? 'notes-unset' : ''}">${escapeHtml(notesDisplay)}</span>
+              <i class="fas fa-file-alt edit-icon view-note-icon" style="display: none;"></i>
             </div>
             <input type="text" class="notes-input" value="${escapeHtml(user.notes || '')}" style="display:none;">
             <button class="btn-icon btn-save-notes" onclick="saveNotes('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
@@ -1528,8 +1546,8 @@
            </div>
           <td id="branch-${docId}" class="branch-cell">
             <div class="editable-wrapper branch-wrapper" data-fullvalue="${escapeHtml(branchDisplay)}">
-              <span class="editable-display branch-display ${!user.branch || (Array.isArray(user.branch) && user.branch.length === 0) ? 'branch-unset' : ''}" onclick="showBranchModal('${escapeJsString(branchDisplay)}', '${docId}')">${escapeHtml(branchDisplay)}</span>
-              <i class="fas fa-tag edit-icon view-branch-icon" style="display: none;" onclick="showBranchModal('${escapeJsString(branchDisplay)}', '${docId}')"></i>
+              <span class="editable-display branch-display ${!user.branch || (Array.isArray(user.branch) && user.branch.length === 0) ? 'branch-unset' : ''}">${escapeHtml(branchDisplay)}</span>
+              <i class="fas fa-tag edit-icon view-branch-icon" style="display: none;"></i>
             </div>
             <input type="text" class="branch-input" value="${escapeHtml(Array.isArray(user.branch) ? user.branch.join(', ') : (user.branch || ''))}" style="display:none;" placeholder="請輸入群組（逗號分隔）" maxlength="200">
             <button class="btn-icon btn-save-branch" onclick="saveBranch('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
@@ -1543,8 +1561,8 @@
            </div>
           <td id="publisher-${docId}" class="publisher-cell ${!user.publishers || (Array.isArray(user.publishers) && user.publishers.length === 0) ? 'publisher-unset' : ''}">
             <div class="editable-wrapper publisher-wrapper" data-fullvalue="${escapeHtml(publishersDisplay)}">
-              <span class="editable-display publisher-display" onclick="showPublisherModal('${escapeJsString(publishersDisplay)}', '${docId}')">${escapeHtml(publishersDisplay)}</span>
-              <i class="fas fa-book edit-icon view-publisher-icon" style="display: none;" onclick="showPublisherModal('${escapeJsString(publishersDisplay)}', '${docId}')"></i>
+              <span class="editable-display publisher-display">${escapeHtml(publishersDisplay)}</span>
+              <i class="fas fa-book edit-icon view-publisher-icon" style="display: none;"></i>
             </div>
             <input type="text" class="publisher-input" style="display:none;" value="${escapeHtml(Array.isArray(user.publishers) ? user.publishers.join(', ') : (user.publishers || ''))}" placeholder="請輸入教材（逗號分隔）">
             <button class="btn-icon btn-save-publisher" onclick="savePublisher('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
@@ -1678,7 +1696,7 @@
           usersList.innerHTML = html;
           bindCheckboxEvents();
           bindEditableTooltips();
-          bindClickEvents();  // ← 添加這行
+          bindClickEvents();
         }
         
         if (loadMoreContainer) {
@@ -2098,7 +2116,7 @@
       await loadUsers(currentFilter, false);
       await updateStats();
       bindEditableTooltips();
-      bindClickEvents(); 
+      bindClickEvents();
     }
     
     async function performSearch() {
@@ -2293,15 +2311,15 @@
           ` : ''}
           
           <div class="users-table">
-             <table>
+            <table>
               <thead>
-                 <tr>
+                <tr>
                   <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()"></th>
                   <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>群組</th><th>年級</th><th>教材</th><th>註冊/最近</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>操作</th>
-                 </tr>
+                </tr>
               </thead>
-              <tbody id="usersList"> <tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr> </tbody>
-             </table>
+              <tbody id="usersList"><tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
+            </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
         </div>
