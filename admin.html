@@ -1191,8 +1191,8 @@
       await showArrayFieldModal('群組', userId, 'branch', currentDisplay, currentArray);
     }
     
-    async function showPublisherModal(userId) {
-      const cell = document.getElementById(`publisher-${userId}`);
+      async function showPublisherModal(userId) {
+      const cell = document.getElementById(`publishers-${userId}`);
       if (!cell) return;
       
       const displaySpan = cell.querySelector('.editable-display');
@@ -1559,7 +1559,7 @@
             <button class="btn-icon btn-save-grade" onclick="saveGrade('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-grade" onclick="cancelEditGrade('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
            </div>
-          <td id="publisher-${docId}" class="publisher-cell ${!user.publishers || (Array.isArray(user.publishers) && user.publishers.length === 0) ? 'publisher-unset' : ''}">
+             <td id="publishers-${docId}" class="publisher-cell ${!user.publishers || (Array.isArray(user.publishers) && user.publishers.length === 0) ? 'publisher-unset' : ''}">
             <div class="editable-wrapper publisher-wrapper" data-fullvalue="${escapeHtml(publishersDisplay)}">
               <span class="editable-display publisher-display">${escapeHtml(publishersDisplay)}</span>
               <i class="fas fa-book edit-icon view-publisher-icon" style="display: none;"></i>
