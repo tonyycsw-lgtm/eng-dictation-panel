@@ -1434,17 +1434,24 @@
     }
 
     // Helper function to display branch name without UID prefix
-    function displayBranchName(branchValue) {
-      if (!branchValue) return '-';
-      if (branchValue.startsWith('Open')) {
-        return branchValue;
-      }
-      const parts = branchValue.split('_');
-      if (parts.length >= 2) {
-        return parts.slice(1).join('_');
-      }
-      return branchValue;
-    }
+function displayBranchName(branchValue) {
+  if (!branchValue) return '-';
+  if (typeof branchValue !== 'string') return '-';
+  
+  // Open 開頭的群組直接顯示
+  if (branchValue.startsWith('Open')) {
+    return branchValue;
+  }
+  
+  // 處理帶 UID 前綴的群組 (格式: teacherA_uid_課程名稱)
+  const parts = branchValue.split('_');
+  if (parts.length >= 2) {
+    // 去掉第一段（UID），剩下的部分用底線連接
+    return parts.slice(1).join('_');
+  }
+  
+  return branchValue;
+}
 
     function generateUserRow(docId, user) {
       const isDisabled = user.isDisabled === true;
@@ -1452,20 +1459,45 @@
       const isAdmin = user.role === 'admin';
       const trialStatus = getTrialStatus(user.trialEndAt);
       
-      let branchDisplay = '-';
-      if (user.branch && user.branch.length > 0) {
-        branchDisplay = user.branch.map(b => displayBranchName(b)).join(', ');
-      }
-      
-      let publishersDisplay = '-';
-      if (user.publishers && user.publishers.length > 0) {
-        publishersDisplay = user.publishers.map(p => displayBranchName(p)).join(', ');
-      }
-      
-      let gradeDisplay = user.grade || '未設定';
-      if (Array.isArray(user.grade)) {
-        gradeDisplay = user.grade.join(', ');
-      }
+// 處理 branch（兼容字串和陣列）
+let branchDisplay = '-';
+if (user.branch) {
+  let branchArray = [];
+  if (Array.isArray(user.branch)) {
+    branchArray = user.branch;
+  } else if (typeof user.branch === 'string') {
+    branchArray = user.branch.split(',').map(s => s.trim()).filter(s => s !== '');
+  }
+  
+  if (branchArray.length > 0) {
+    branchDisplay = branchArray.map(b => displayBranchName(b)).join(', ');
+  }
+}
+
+// 處理 publishers（兼容字串和陣列）
+let publishersDisplay = '-';
+if (user.publishers) {
+  let publishersArray = [];
+  if (Array.isArray(user.publishers)) {
+    publishersArray = user.publishers;
+  } else if (typeof user.publishers === 'string') {
+    publishersArray = user.publishers.split(',').map(s => s.trim()).filter(s => s !== '');
+  }
+  
+  if (publishersArray.length > 0) {
+    publishersDisplay = publishersArray.map(p => displayBranchName(p)).join(', ');
+  }
+}
+
+// 處理 grade（兼容字串和陣列）
+let gradeDisplay = '未設定';
+if (user.grade) {
+  if (Array.isArray(user.grade)) {
+    gradeDisplay = user.grade.join(', ');
+  } else if (typeof user.grade === 'string') {
+    gradeDisplay = user.grade;
+  }
+}
       
       let nameHtml = `
         <div class="displayname-cell" id="displayname-${docId}">
