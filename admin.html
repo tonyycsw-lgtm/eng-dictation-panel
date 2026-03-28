@@ -1191,7 +1191,7 @@
       await showArrayFieldModal('群組', userId, 'branch', currentDisplay, currentArray);
     }
     
-      async function showPublisherModal(userId) {
+    async function showPublisherModal(userId) {
       const cell = document.getElementById(`publishers-${userId}`);
       if (!cell) return;
       
@@ -1258,7 +1258,7 @@
           }
         }
         if (newPublishers.length === 0) {
-          newPublishers = ["示範"];
+          newPublishers = ["Open示範"];
         }
         updates.publishers = newPublishers;
         
@@ -1433,6 +1433,19 @@
       }
     }
 
+    // Helper function to display branch name without UID prefix
+    function displayBranchName(branchValue) {
+      if (!branchValue) return '-';
+      if (branchValue.startsWith('Open')) {
+        return branchValue;
+      }
+      const parts = branchValue.split('_');
+      if (parts.length >= 2) {
+        return parts.slice(1).join('_');
+      }
+      return branchValue;
+    }
+
     function generateUserRow(docId, user) {
       const isDisabled = user.isDisabled === true;
       const isTeacher = user.role === 'teacher';
@@ -1440,21 +1453,13 @@
       const trialStatus = getTrialStatus(user.trialEndAt);
       
       let branchDisplay = '-';
-      if (user.branch) {
-        if (Array.isArray(user.branch)) {
-          branchDisplay = user.branch.join(', ');
-        } else {
-          branchDisplay = user.branch;
-        }
+      if (user.branch && user.branch.length > 0) {
+        branchDisplay = user.branch.map(b => displayBranchName(b)).join(', ');
       }
       
       let publishersDisplay = '-';
-      if (user.publishers) {
-        if (Array.isArray(user.publishers)) {
-          publishersDisplay = user.publishers.join(', ');
-        } else {
-          publishersDisplay = user.publishers;
-        }
+      if (user.publishers && user.publishers.length > 0) {
+        publishersDisplay = user.publishers.map(p => displayBranchName(p)).join(', ');
       }
       
       let gradeDisplay = user.grade || '未設定';
@@ -1559,7 +1564,7 @@
             <button class="btn-icon btn-save-grade" onclick="saveGrade('${docId}')" style="display:none;"><i class="fas fa-check"></i></button>
             <button class="btn-icon btn-cancel-grade" onclick="cancelEditGrade('${docId}')" style="display:none;"><i class="fas fa-times"></i></button>
            </div>
-             <td id="publishers-${docId}" class="publisher-cell ${!user.publishers || (Array.isArray(user.publishers) && user.publishers.length === 0) ? 'publisher-unset' : ''}">
+          <td id="publishers-${docId}" class="publisher-cell ${!user.publishers || (Array.isArray(user.publishers) && user.publishers.length === 0) ? 'publisher-unset' : ''}">
             <div class="editable-wrapper publisher-wrapper" data-fullvalue="${escapeHtml(publishersDisplay)}">
               <span class="editable-display publisher-display">${escapeHtml(publishersDisplay)}</span>
               <i class="fas fa-book edit-icon view-publisher-icon" style="display: none;"></i>
@@ -1768,7 +1773,7 @@
         return;
       }
       
-      if (!confirm(`確定要重置 ${selectedIds.length} 位用戶的資料結構嗎？\n\n此操作將：\n- 將群組 (branch) 轉換為陣列格式\n- 將教材 (publishers) 轉換為陣列格式（如無則設為 ["示範"]）\n- 保留所有其他數據\n\n此操作不可復原！`)) {
+      if (!confirm(`確定要重置 ${selectedIds.length} 位用戶的資料結構嗎？\n\n此操作將：\n- 將群組 (branch) 轉換為陣列格式\n- 將教材 (publishers) 轉換為陣列格式（如無則設為 ["Open示範"]）\n- 保留所有其他數據\n\n此操作不可復原！`)) {
         return;
       }
       
@@ -2238,7 +2243,7 @@
         <div class="container">
           <div class="header">
             <h1><i class="fas fa-chalkboard-teacher"></i> 會員管理後台 · 英語默書系統</h1>
-            <div><span style="margin-right:15px;">${escapeHtml(user.email)} ${currentUserIsAdmin ? '👑 管理員' : (currentUserIsTeacher ? '🏫 老師' : '')} ${currentUserBranch.length > 0 ? `(${currentUserBranch.join(', ')})` : ''}</span><button onclick="logout()" class="btn-toggle">登出</button></div>
+            <div><span style="margin-right:15px;">${escapeHtml(user.email)} ${currentUserIsAdmin ? '👑 管理員' : (currentUserIsTeacher ? '🏫 老師' : '')} ${currentUserBranch.length > 0 ? `(${currentUserBranch.map(b => displayBranchName(b)).join(', ')})` : ''}</span><button onclick="logout()" class="btn-toggle">登出</button></div>
           </div>
           
           <div class="stats">
@@ -2311,15 +2316,15 @@
           ` : ''}
           
           <div class="users-table">
-            <table>
+             <table>
               <thead>
-                <tr>
+                 <tr>
                   <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()"></th>
                   <th>用戶</th><th>Email</th><th>電話</th><th>備註</th><th>群組</th><th>年級</th><th>教材</th><th>註冊/最近</th><th>線上狀態</th><th>方案</th><th>有效期</th><th>試用到期</th><th>操作</th>
-                </tr>
+                 </tr>
               </thead>
-              <tbody id="usersList"><tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr></tbody>
-            </table>
+              <tbody id="usersList"> <tr><td colspan="14" class="loading"><span class="loading-spinner"></span> 載入中...</td></tr> </tbody>
+             </table>
             <div id="loadMoreContainer" class="load-more-container" style="display:none;"><button class="load-more-btn" onclick="loadMoreUsers()"><i class="fas fa-chevron-down"></i> 載入更多會員</button></div>
           </div>
         </div>
@@ -2416,6 +2421,26 @@
           appDiv.innerHTML = `<div class="unauthorized"><i class="fas fa-shield-alt"></i><h2>無權限訪問</h2><p>此頁面僅限管理員或老師使用</p><p>您的帳號：${escapeHtml(user.email)}</p><button onclick="logout()" class="btn-toggle">登出</button></div>`;
           return;
         }
+        
+        // Auto-assign default groups for new teachers
+        if (currentUserIsTeacher && (!userData.branch || userData.branch.length === 0)) {
+          await updateDoc(doc(db, 'users', user.uid), {
+            branch: [`${user.uid}`, "Open老師資源", "Open學生資源"],
+            publishers: ["Open示範"],
+            updatedAt: new Date().toISOString()
+          });
+        }
+        
+        // Auto-assign default groups for new students
+        if (!currentUserIsAdmin && !currentUserIsTeacher && (!userData.branch || userData.branch.length === 0)) {
+          await updateDoc(doc(db, 'users', user.uid), {
+            branch: ["Open示範"],
+            publishers: ["Open示範"],
+            status: "trial",
+            updatedAt: new Date().toISOString()
+          });
+        }
+        
         await loadAdminInterface(appDiv, user);
       } catch (error) {
         console.error('權限檢查失敗:', error);
